@@ -33,7 +33,7 @@ version = '1.0'
 setup(
     name='bda.daemon',
     version=version,
-    description="mixin to turn a class into a simple daemon.",
+    description="takes a class and runs it as a simple daemon.",
     long_description="""""",
     classifiers=[],
     keywords='daemon fork',

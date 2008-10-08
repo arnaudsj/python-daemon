@@ -47,7 +47,6 @@ represents the main routine of the deamon
 """
 
 __author__ = """Robert Niederreiter <office@squarewave.at>"""
-__version__ = 0.1
 __docformat__ = 'plaintext'
 
 import os

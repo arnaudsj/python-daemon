@@ -2,7 +2,7 @@
 #
 # tests/test_daemon.py
 #
-# Copyright © 2008 Ben Finney <ben+python@benfinney.id.au>
+# Copyright © 2008–2009 Ben Finney <ben+python@benfinney.id.au>
 #
 # Permission to use, copy, modify, and/or distribute this software for
 # any purpose with or without fee is hereby granted, provided that the
@@ -51,47 +51,50 @@ class Daemon_start_TestCase(scaffold.TestCase):
     """ Test cases for Daemon start process """
 
     class TestApp(object):
+
         def __init__(self, pidfile_name):
             self.stdin = tempfile.mktemp()
             self.stdout = tempfile.mktemp()
             self.stderr = tempfile.mktemp()
             self.pidfile = pidfile_name
+
         def run(self):
             pass
 
     def setUp(self):
         """ Set up test fixtures """
         self.mock_outfile = StringIO()
+        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
 
         self.mock_stderr = FakeFileHandleStringIO()
 
         test_pids = [0, 0]
         scaffold.mock(
             "os.fork", returns_iter=test_pids,
-            outfile=self.mock_outfile)
+            tracker=self.mock_tracker)
         scaffold.mock(
             "os.setsid",
-            outfile=self.mock_outfile)
+            tracker=self.mock_tracker)
         scaffold.mock(
             "os.dup2",
-            outfile=self.mock_outfile)
+            tracker=self.mock_tracker)
 
         def raise_system_exit(status=None):
             raise SystemExit(status)
 
         scaffold.mock(
             "sys.exit", returns_func=raise_system_exit,
-            outfile=self.mock_outfile)
+            tracker=self.mock_tracker)
 
         scaffold.mock(
             "sys.stderr",
             mock_obj=self.mock_stderr,
-            outfile=self.mock_outfile)
+            tracker=self.mock_tracker)
 
         scaffold.mock(
             "sys.argv",
             mock_obj=["fooprog", "start"],
-            outfile=self.mock_outfile)
+            tracker=self.mock_tracker)
 
         self.mock_pid = 235
         mock_pidfile_name = tempfile.mktemp()
@@ -120,7 +123,7 @@ class Daemon_start_TestCase(scaffold.TestCase):
         scaffold.mock(
             "__builtin__.file",
             returns_func=mock_open,
-            outfile=self.mock_outfile)
+            tracker=self.mock_tracker)
 
     def tearDown(self):
         """ Tear down test fixtures """
@@ -130,7 +133,7 @@ class Daemon_start_TestCase(scaffold.TestCase):
         """ Parent process should exit """
         parent_pid = 23
         scaffold.mock("os.fork", returns_iter=[parent_pid],
-            outfile=self.mock_outfile)
+            tracker=self.mock_tracker)
         self.failUnlessRaises(
             SystemExit,
             daemon.Daemon, self.test_app)
@@ -141,8 +144,7 @@ class Daemon_start_TestCase(scaffold.TestCase):
             """
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue()
-            )
+            expect_mock_output, self.mock_outfile.getvalue())
 
     def test_first_fork_error_reports_to_stderr(self):
         """ Error on first fork should cause report to stderr """
@@ -150,14 +152,16 @@ class Daemon_start_TestCase(scaffold.TestCase):
         fork_strerror = "Bad stuff happened"
         fork_error = OSError(fork_errno, fork_strerror)
         test_pids_iter = iter([fork_error])
+
         def mock_fork():
             next = test_pids_iter.next()
             if isinstance(next, Exception):
                 raise next
             else:
                 return next
+
         scaffold.mock("os.fork", returns_func=mock_fork,
-            outfile=self.mock_outfile)
+            tracker=self.mock_tracker)
         self.failUnlessRaises(
             SystemExit,
             daemon.Daemon, self.test_app)
@@ -171,11 +175,9 @@ class Daemon_start_TestCase(scaffold.TestCase):
             """ % vars()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue()
-            )
+            expect_mock_output, self.mock_outfile.getvalue())
         self.failUnlessOutputCheckerMatch(
-            expect_stderr, self.mock_stderr.getvalue()
-            )
+            expect_stderr, self.mock_stderr.getvalue())
 
     def test_child_starts_new_process_group(self):
         """ Child should start new process group """
@@ -188,14 +190,13 @@ class Daemon_start_TestCase(scaffold.TestCase):
             """
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue()
-            )
+            expect_mock_output, self.mock_outfile.getvalue())
 
     def test_child_forks_next_parent_exits(self):
         """ Child should fork, then exit if parent """
         test_pids = [0, 42]
         scaffold.mock("os.fork", returns_iter=test_pids,
-            outfile=self.mock_outfile)
+            tracker=self.mock_tracker)
         self.failUnlessRaises(
             SystemExit,
             daemon.Daemon, self.test_app)
@@ -208,8 +209,7 @@ class Daemon_start_TestCase(scaffold.TestCase):
             """
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue()
-            )
+            expect_mock_output, self.mock_outfile.getvalue())
 
     def test_second_fork_error_reports_to_stderr(self):
         """ Error on second fork should cause report to stderr """
@@ -217,14 +217,16 @@ class Daemon_start_TestCase(scaffold.TestCase):
         fork_strerror = "Nasty stuff happened"
         fork_error = OSError(fork_errno, fork_strerror)
         test_pids_iter = iter([0, fork_error])
+
         def mock_fork():
             next = test_pids_iter.next()
             if isinstance(next, Exception):
                 raise next
             else:
                 return next
+
         scaffold.mock("os.fork", returns_func=mock_fork,
-            outfile=self.mock_outfile)
+            tracker=self.mock_tracker)
         self.failUnlessRaises(
             SystemExit,
             daemon.Daemon, self.test_app)
@@ -240,11 +242,9 @@ class Daemon_start_TestCase(scaffold.TestCase):
             """ % vars()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue()
-            )
+            expect_mock_output, self.mock_outfile.getvalue())
         self.failUnlessOutputCheckerMatch(
-            expect_stderr, self.mock_stderr.getvalue()
-            )
+            expect_stderr, self.mock_stderr.getvalue())
 
     def test_child_forks_next_child_continues(self):
         """ Child should fork, then continue if child """
@@ -260,8 +260,7 @@ class Daemon_start_TestCase(scaffold.TestCase):
             """ % vars(instance.instance)
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue()
-            )
+            expect_mock_output, self.mock_outfile.getvalue())
 
     def test_creates_pid_file_with_specified_name(self):
         """ Should request creation of a PID file with specified name """
@@ -273,8 +272,7 @@ class Daemon_start_TestCase(scaffold.TestCase):
             """ % vars(instance.instance)
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue()
-            )
+            expect_mock_output, self.mock_outfile.getvalue())
 
     def test_disables_standard_streams(self):
         """ Should disable standard stream files """
@@ -291,6 +289,4 @@ class Daemon_start_TestCase(scaffold.TestCase):
             """ % vars(instance.instance)
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue()
-            )
-
+            expect_mock_output, self.mock_outfile.getvalue())

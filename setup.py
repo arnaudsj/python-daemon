@@ -29,7 +29,7 @@ setup.py bdist_egg
 
 from setuptools import setup, find_packages
 
-version = '1.1'
+version = '1.1.1'
 
 setup(
     name='bda.daemon',

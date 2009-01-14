@@ -2,7 +2,7 @@
 
 # tests/scaffold.py
 #
-# Copyright © 2007–2008 Ben Finney <ben+python@benfinney.id.au>
+# Copyright © 2007–2009 Ben Finney <ben+python@benfinney.id.au>
 # This is free software; you may copy, modify and/or distribute this work
 # under the terms of the GNU General Public License, version 2 or later.
 # No warranty expressed or implied. See the file LICENSE for details.
@@ -21,6 +21,7 @@ import textwrap
 from StringIO import StringIO
 from minimock import (
     Mock,
+    Printer as MockTracker,
     mock,
     restore as mock_restore,
     )
@@ -315,8 +316,7 @@ class Test_Exception(TestCase):
             params['instance'] = instance
 
         self.iterate_params = make_params_iterator(
-            default_params_dict = self.valid_exceptions
-            )
+            default_params_dict = self.valid_exceptions)
 
         super(Test_Exception, self).setUp()
 
@@ -371,11 +371,12 @@ class Test_ProgramMain(TestCase):
     def setUp(self):
         """ Set up test fixtures """
         self.mock_outfile = StringIO()
+        self.mock_tracker = MockTracker(self.mock_outfile)
 
         self.app_class_name = self.application_class.__name__
-        self.mock_app = Mock("test_app", outfile=self.mock_outfile)
+        self.mock_app = Mock("test_app", tracker=self.mock_tracker)
         self.mock_app_class = Mock(self.app_class_name,
-            outfile=self.mock_outfile)
+            tracker=self.mock_tracker)
         self.mock_app_class.mock_returns = self.mock_app
         mock(self.app_class_name, mock_obj=self.mock_app_class,
             nsdicts=[self.program_module.__dict__])

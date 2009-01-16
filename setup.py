@@ -39,9 +39,7 @@ setup(
         'setuptools', 
         # -*- Extra requirements: -*
         ],
-    extras_require={
-        'test': [
-            'minimock',
-            ],
-        },
+    tests_require=[
+        'MiniMock >=1.0',
+        ],
     )

@@ -8,10 +8,14 @@ PENDING
 Tests
 =====
 
-* Write full unit tests for every new or changed behaviour.
+* Write full unit tests for every new or changed behaviour at time of
+  commit.
 
 Features
 ========
+
+Important
+---------
 
 * Detect whether started by another process that handles
   daemonisation, such as ‘inetd’, and behave appropriately.
@@ -25,6 +29,9 @@ Features
 * Close all open file handles.
 
 * Default re-open stdin, stdout, stderr to ‘/dev/null’.
+
+Wishlist
+--------
 
 * Allow specification of a non-root user and group to drop to, if
   started as ‘root’ (default: no change of user or group).
@@ -40,7 +47,7 @@ Documentation
 
 * Full docstrings for functions, classes, and modules.
 
-* PEP for adding this library to the standard library.
+* PEP for adding this library to the Python standard library.
 
 Standard library inclusion
 ==========================

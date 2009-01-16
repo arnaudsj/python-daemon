@@ -9,7 +9,7 @@
 # later as published by the Python Software Foundation.
 # No warranty expressed or implied. See the file LICENSE.PSF-2 for details.
 
-""" Unit test for bda.daemon.daemon module
+""" Unit test for daemon package
 """
 
 import __builtin__
@@ -21,7 +21,7 @@ import tempfile
 
 import scaffold
 
-from bda.daemon import daemon
+import daemon
 
 
 class FakeFileHandleStringIO(StringIO, object):

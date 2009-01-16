@@ -14,7 +14,7 @@ shortdesc = u"Take a class and run it as a simple daemon."
 longdesc = u""
 
 setup(
-    name='bda.daemon',
+    name='daemon',
     version=version,
     description=shortdesc,
     long_description=longdesc,
@@ -32,7 +32,6 @@ setup(
     url='http://svn.plone.org/svn/collective/bda.daemon',
     license='PSF',
     packages=find_packages(exclude=['ez_setup']),
-    namespace_packages=['bda'],
     include_package_data=True,
     zip_safe=True,
     test_suite="tests.suite",

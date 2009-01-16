@@ -3,9 +3,11 @@
 # tests/scaffold.py
 #
 # Copyright © 2007–2009 Ben Finney <ben+python@benfinney.id.au>
-# This is free software; you may copy, modify and/or distribute this work
-# under the terms of the GNU General Public License, version 2 or later.
-# No warranty expressed or implied. See the file LICENSE for details.
+#
+# This is free software: you may copy, modify, and/or distribute this work
+# under the terms of the Python Software Foundation License, version 2 or
+# later as published by the Python Software Foundation.
+# No warranty expressed or implied. See the file LICENSE.PSF-2 for details.
 
 """ Scaffolding for unit test modules
 """

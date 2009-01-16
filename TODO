@@ -32,8 +32,8 @@ Features
 * Allow specification of PID file name and directory, with standard
   PID file locking behaviour (default: no PID file).
 
-* Allow specification of a syslog service to log as (default: output
-  to stdout and stderr, not syslog).
+* Allow specification of a syslog service name to log as (default:
+  output to stdout and stderr, not syslog).
 
 Documentation
 =============

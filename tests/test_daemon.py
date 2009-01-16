@@ -9,7 +9,7 @@
 # later as published by the Python Software Foundation.
 # No warranty expressed or implied. See the file LICENSE.PSF-2 for details.
 
-""" Unit test for daemon package
+""" Unit test for daemon module
 """
 
 import __builtin__

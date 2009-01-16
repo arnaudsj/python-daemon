@@ -9,7 +9,7 @@
 # later as published by the Python Software Foundation.
 # No warranty expressed or implied. See the file LICENSE.PSF-2 for details.
 
-""" Unit test suite for bda.daemon package
+""" Unit test suite for daemon package
 """
 
 import scaffold

@@ -37,6 +37,38 @@ def prevent_core_dump():
     resource.setrlimit(core_resource, core_limit)
 
 
+def detach_process_context():
+    """ Detach the process context from parent and session.
+
+        Detach from the parent process and session group, allowing the
+        parent to exit while this process continues running.
+
+        Reference: “Advanced Programming in the Unix Environment”,
+        section 13.3, by W. Richard Stevens, published 1993 by
+        Addison-Wesley.
+    
+        """
+    try:
+        pid = os.fork()
+        if pid > 0:
+            sys.exit(0)
+    except OSError, e:
+        msg = "fork #1 failed: (%d) %s\n" % (e.errno, e.strerror)
+        sys.stderr.write(msg)
+        sys.exit(1)
+
+    os.setsid()
+
+    try:
+        pid = os.fork()
+        if pid > 0:
+            sys.exit(0)
+    except OSError, e:
+        msg = "fork #2 failed: (%d) %s\n" % (e.errno, e.strerror)
+        sys.stderr.write(msg)
+        sys.exit(1)
+
+
 class Daemon(object):
     """Class Daemon is used to run any routine in the background on unix
     environments as daemon.
@@ -68,27 +100,10 @@ class Daemon(object):
     def deamonize(self):
         """Fork the process into the background.
         """
-        try:
-            pid = os.fork()
-            if pid > 0:
-                sys.exit(0)
-        except OSError, e:
-            msg = "fork #1 failed: (%d) %s\n" % (e.errno, e.strerror)
-            sys.stderr.write(msg)
-            sys.exit(1)
+        detach_process_context()
 
         os.chdir(self.WORKDIR)
         os.umask(self.UMASK)
-        os.setsid()
-
-        try:
-            pid = os.fork()
-            if pid > 0:
-                sys.exit(0)
-        except OSError, e:
-            msg = "fork #2 failed: (%d) %s\n" % (e.errno, e.strerror)
-            sys.stderr.write(msg)
-            sys.exit(1)
 
         prevent_core_dump()
 

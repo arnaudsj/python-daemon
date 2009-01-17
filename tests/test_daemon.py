@@ -112,6 +112,10 @@ class Daemon_start_TestCase(scaffold.TestCase):
 
         self.mock_stderr = FakeFileHandleStringIO()
 
+        scaffold.mock(
+            "daemon.daemon.prevent_core_dump",
+            tracker=self.mock_tracker)
+
         test_pids = [0, 0]
         scaffold.mock(
             "os.fork", returns_iter=test_pids,
@@ -302,6 +306,18 @@ class Daemon_start_TestCase(scaffold.TestCase):
             Called __builtin__.file(...)
             ...
             """ % vars(instance.instance)
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_prevents_core_dump(self):
+        """ Should request prevention of core dumps """
+        instance = daemon.Daemon(self.test_app)
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.prevent_core_dump()
+            ...
+            """ % vars()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())

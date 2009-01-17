@@ -84,6 +84,8 @@ class Daemon(object):
             sys.stderr.write(msg)
             sys.exit(1)
 
+        prevent_core_dump()
+
         if not self.instance.stderr:
             self.instance.stderr = self.instance.stdout
 

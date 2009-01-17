@@ -19,7 +19,13 @@ from signal import SIGTERM
 
 
 def prevent_core_dump():
-    """ Prevent this process from generating a core dump. """
+    """ Prevent this process from generating a core dump.
+
+        Sets the soft and hard limits for core dump size to zero. On
+        Unix, this prevents the process from creating core dump
+        altogether.
+
+        """
     core_resource = resource.RLIMIT_CORE
 
     # Ensure the resource limit exists on this platform, by requesting

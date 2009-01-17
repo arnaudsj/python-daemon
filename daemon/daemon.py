@@ -13,9 +13,24 @@
 import os
 import sys
 import time
+import resource
 
 from signal import SIGTERM
 
+
+def prevent_core_dump():
+    """ Prevent this process from generating a core dump. """
+    core_resource = resource.RLIMIT_CORE
+
+    # Ensure the resource limit exists on this platform, by requesting
+    # its current value
+    core_limit_prev = resource.getrlimit(core_resource)
+
+    # Set hard and soft limits to zero, i.e. no core dump at all
+    core_limit = (0, 0)
+    resource.setrlimit(core_resource, core_limit)
+
+
 class Daemon(object):
     """Class Daemon is used to run any routine in the background on unix
     environments as daemon.

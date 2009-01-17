@@ -18,6 +18,7 @@ import sys
 from StringIO import StringIO
 import itertools
 import tempfile
+import resource
 
 import scaffold
 
@@ -36,6 +37,58 @@ class FakeFileHandleStringIO(StringIO, object):
 
     def fileno(self):
         return self._fileno
+
+
+class prevent_core_dump_TestCase(scaffold.TestCase):
+    """ Test cases for prevent_core_dump function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        self.mock_outfile = StringIO()
+        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
+
+        self.RLIMIT_CORE = object()
+        scaffold.mock(
+            "resource.RLIMIT_CORE", mock_obj=self.RLIMIT_CORE,
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "resource.getrlimit", returns=None,
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "resource.setrlimit", returns=None,
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_sets_core_limit_to_zero(self):
+        """ Should set the RLIMIT_CORE resource to zero """
+        expect_resource = self.RLIMIT_CORE
+        expect_limit = (0, 0)
+        expect_mock_output = """\
+            Called resource.getrlimit(
+                %(expect_resource)r)
+            Called resource.setrlimit(
+                %(expect_resource)r,
+                %(expect_limit)r)
+            """ % vars()
+        daemon.daemon.prevent_core_dump()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_raises_error_when_no_core_resource(self):
+        """ Should raise ValueError if no RLIMIT_CORE resource """
+        def mock_getrlimit(res):
+            if res == resource.RLIMIT_CORE:
+                raise ValueError("Bogus platform doesn't have RLIMIT_CORE")
+            else:
+                return None
+        resource.getrlimit.mock_returns_func = mock_getrlimit
+        expect_error = ValueError
+        self.failUnlessRaises(
+            expect_error,
+            daemon.daemon.prevent_core_dump)
 
 
 class Daemon_start_TestCase(scaffold.TestCase):

@@ -9,35 +9,37 @@
 
 from setuptools import setup, find_packages
 
-version = '1.1.1'
-shortdesc = u"Take a class and run it as a simple daemon."
-longdesc = u""
+version = '1.2'
+shortdesc = u"Library to implement a well-behaved Unix daemon process"
+longdesc = u"""
+    This library implements PEP [no number yet], Standard daemon
+    process library.
+    """
 
 setup(
-    name='daemon',
+    name='python-daemon',
     version=version,
     description=shortdesc,
     long_description=longdesc,
     classifiers=[
-        'Development Status :: 5 - Production/Stable',
+        'Development Status :: 4 - Beta',
         'License :: OSI Approved :: Python Software Foundation License',
         'Operating System :: POSIX',
         'Programming Language :: Python',
         'Intended Audience :: Developers',
-        'Topic :: Software Development :: Libraries :: Python Modules'        
+        'Topic :: Software Development :: Libraries :: Python Modules'
         ], # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
-    keywords='Daemon Fork Unix',
-    author='Robert Niederreiter',
-    author_email='rnix@squarewave.at',
-    url='http://svn.plone.org/svn/collective/bda.daemon',
+    keywords='daemon fork unix',
+    author='Ben Finney',
+    author_email='ben+python@benfinney.id.au',
+    url='http://pypi.python.org/pypi/python-daemon/',
     license='PSF',
     packages=find_packages(exclude=['ez_setup']),
     include_package_data=True,
-    zip_safe=True,
+    zip_safe=False,
     test_suite="tests.suite",
     install_requires=[
-        'setuptools', 
-        # -*- Extra requirements: -*
+        'setuptools',
         ],
     tests_require=[
         'MiniMock >=1.0',

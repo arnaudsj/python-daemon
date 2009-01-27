@@ -250,8 +250,8 @@ class detatch_process_context_TestCase(scaffold.TestCase):
             expect_mock_output, self.mock_outfile.getvalue())
 
 
-class Daemon_start_TestCase(scaffold.TestCase):
-    """ Test cases for Daemon start process """
+def setup_daemon_fixtures(testcase):
+    """ Set up common test fixtures for Daemon test case """
 
     class TestApp(object):
 
@@ -261,12 +261,40 @@ class Daemon_start_TestCase(scaffold.TestCase):
             self.stderr = tempfile.mktemp()
             self.pidfile = pidfile_name
 
+    testcase.TestApp = TestApp
+
+    testcase.mock_outfile = StringIO()
+    testcase.mock_tracker = scaffold.MockTracker(
+        testcase.mock_outfile)
+
+    testcase.mock_stderr = FakeFileHandleStringIO()
+
+    test_app = testcase.TestApp(None)
+    testcase.test_instance = daemon.Daemon(test_app)
+
+
+class Daemon_TestCase(scaffold.TestCase):
+    """ Test cases for Daemon class """
+
     def setUp(self):
         """ Set up test fixtures """
-        self.mock_outfile = StringIO()
-        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
+        setup_daemon_fixtures(self)
 
-        self.mock_stderr = FakeFileHandleStringIO()
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_instantiate(self):
+        """ New instance of Daemon should be created """
+        self.failIfIs(None, self.test_instance)
+
+
+class Daemon_start_TestCase(scaffold.TestCase):
+    """ Test cases for Daemon start process """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_daemon_fixtures(self)
 
         scaffold.mock(
             "daemon.daemon.detach_process_context",
@@ -292,7 +320,8 @@ class Daemon_start_TestCase(scaffold.TestCase):
         self.mock_pid = 235
         mock_pidfile_name = tempfile.mktemp()
 
-        self.test_app = self.TestApp(mock_pidfile_name)
+        test_app = self.TestApp(mock_pidfile_name)
+        self.test_instance = daemon.Daemon(test_app)
 
         def mock_pidfile_open_nonexist(filename, mode, buffering):
             if 'r' in mode:
@@ -322,45 +351,47 @@ class Daemon_start_TestCase(scaffold.TestCase):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
-    def test_detaches_process_group(self):
+    def test_detaches_process_context(self):
         """ Should request detach of process context """
-        instance = daemon.Daemon(self.test_app)
+        instance = self.test_instance
         expect_mock_output = """\
-            ...
             Called daemon.daemon.detach_process_context()
             ...
             """ % vars()
+        instance.start()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
     def test_prevents_core_dump(self):
         """ Should request prevention of core dumps """
-        instance = daemon.Daemon(self.test_app)
+        instance = self.test_instance
         expect_mock_output = """\
             ...
             Called daemon.daemon.prevent_core_dump()
             ...
             """ % vars()
+        instance.start()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
     def test_creates_pid_file_with_specified_name(self):
         """ Should request creation of a PID file with specified name """
-        instance = daemon.Daemon(self.test_app)
+        instance = self.test_instance
         expect_mock_output = """\
             ...
             Called __builtin__.file(%(pidfile)r, 'w+')
             ...
             """ % vars(instance.instance)
+        instance.start()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
     def test_disables_standard_streams(self):
         """ Should disable standard stream files """
-        instance = daemon.Daemon(self.test_app)
+        instance = self.test_instance
         expect_mock_output = """\
             ...
             Called __builtin__.file(%(stdin)r, 'r')
@@ -371,6 +402,7 @@ class Daemon_start_TestCase(scaffold.TestCase):
             Called os.dup2(...)
             Called os.dup2(...)
             """ % vars(instance.instance)
+        instance.start()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())

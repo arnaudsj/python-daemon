@@ -91,11 +91,10 @@ class Daemon(object):
 
     def __init__(self, instance):
         self.instance = instance
-        self.startstop()
 
-    def deamonize(self):
-        """Fork the process into the background.
-        """
+    def start(self):
+        """ Become a daemon process. """
+
         detach_process_context()
 
         os.chdir(self.WORKDIR)

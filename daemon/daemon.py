@@ -69,6 +69,23 @@ def detach_process_context():
         sys.exit(1)
 
 
+def read_pid_from_lockfile(lockfile_name):
+    """ Read the PID recorded in the named lockfile.
+
+        Read and return the numeric PID recorded as text in the named
+        lockfile. If the lockfile cannot be read, return ``None``.
+
+        """
+    try:
+        lockfile = file(lockfile_name, 'r')
+        pid = int(lockfile.read().strip())
+        lockfile.close()
+    except IOError:
+        pid = None
+
+    return pid
+
+
 class Daemon(object):
     """Class Daemon is used to run any routine in the background on unix
     environments as daemon.
@@ -94,6 +111,8 @@ class Daemon(object):
 
     def start(self):
         """ Become a daemon process. """
+
+        existing_pid = read_pid_from_lockfile(self.instance.pidfile)
 
         detach_process_context()
 
@@ -126,12 +145,7 @@ class Daemon(object):
         """
         if len(sys.argv) > 1:
             action = sys.argv[1]
-            try:
-                pf = file(self.instance.pidfile, 'r')
-                pid = int(pf.read().strip())
-                pf.close()
-            except IOError:
-                pid = None
+            pid = read_pid_from_lockfile(self.instance.pidfile)
             if 'stop' == action or 'restart' == action:
                 if not pid:
                     mess = "Could not stop, pid file '%s' missing.\n"

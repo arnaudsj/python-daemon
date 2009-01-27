@@ -253,6 +253,10 @@ class detatch_process_context_TestCase(scaffold.TestCase):
 def setup_lockfile_fixtures(testcase):
     """ Set up common fixtures for lockfile test cases """
 
+    testcase.mock_outfile = StringIO()
+    testcase.mock_tracker = scaffold.MockTracker(
+        testcase.mock_outfile)
+
     testcase.mock_pid = 235
     testcase.mock_lockfile_name = tempfile.mktemp()
 
@@ -265,6 +269,9 @@ def setup_lockfile_fixtures(testcase):
 
     def mock_lockfile_open_exist(filename, mode, buffering):
         return FakeFileHandleStringIO("%(mock_pid)s\n" % vars(testcase))
+
+    testcase.mock_lockfile_open_nonexist = mock_lockfile_open_nonexist
+    testcase.mock_lockfile_open_exist = mock_lockfile_open_exist
 
     testcase.lockfile_open_func = mock_lockfile_open_nonexist
 
@@ -279,6 +286,47 @@ def setup_lockfile_fixtures(testcase):
         "__builtin__.file",
         returns_func=mock_open,
         tracker=testcase.mock_tracker)
+
+
+class read_pid_from_lockfile_TestCase(scaffold.TestCase):
+    """ Test cases for read_pid_from_lockfile function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_lockfile_fixtures(self)
+
+        self.lockfile_open_func = self.mock_lockfile_open_exist
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_opens_specified_filename(self):
+        """ Should attempt to open specified lockfile filename """
+        lockfile_name = self.mock_lockfile_name
+        expect_mock_output = """\
+            Called __builtin__.file(%(lockfile_name)r, 'r')
+            """ % vars()
+        dummy = daemon.daemon.read_pid_from_lockfile(lockfile_name)
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_reads_pid_from_file(self):
+        """ Should read the PID from the specified file """
+        lockfile_name = self.mock_lockfile_name
+        expect_pid = self.mock_pid
+        pid = daemon.daemon.read_pid_from_lockfile(lockfile_name)
+        scaffold.mock_restore()
+        self.failUnlessEqual(expect_pid, pid)
+
+    def test_returns_none_when_file_nonexist(self):
+        """ Should return None when the lockfile does not exist """
+        lockfile_name = self.mock_lockfile_name
+        self.lockfile_open_func = self.mock_lockfile_open_nonexist
+        pid = daemon.daemon.read_pid_from_lockfile(lockfile_name)
+        scaffold.mock_restore()
+        self.failUnlessIs(None, pid)
 
 
 def setup_daemon_fixtures(testcase):
@@ -352,15 +400,6 @@ class Daemon_start_TestCase(scaffold.TestCase):
         test_app = self.TestApp(self.mock_lockfile_name)
         self.test_instance = daemon.Daemon(test_app)
 
-        def mock_open(filename, mode=None, buffering=None):
-            result = FakeFileHandleStringIO()
-            return result
-
-        scaffold.mock(
-            "__builtin__.file",
-            returns_func=mock_open,
-            tracker=self.mock_tracker)
-
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()
@@ -369,6 +408,7 @@ class Daemon_start_TestCase(scaffold.TestCase):
         """ Should request detach of process context """
         instance = self.test_instance
         expect_mock_output = """\
+            ...
             Called daemon.daemon.detach_process_context()
             ...
             """ % vars()
@@ -393,11 +433,12 @@ class Daemon_start_TestCase(scaffold.TestCase):
     def test_creates_pid_file_with_specified_name(self):
         """ Should request creation of a PID file with specified name """
         instance = self.test_instance
+        lockfile_name = self.mock_lockfile_name
         expect_mock_output = """\
             ...
-            Called __builtin__.file(%(pidfile)r, 'w+')
+            Called __builtin__.file(%(lockfile_name)r, 'w+')
             ...
-            """ % vars(instance.instance)
+            """ % vars()
         instance.start()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(

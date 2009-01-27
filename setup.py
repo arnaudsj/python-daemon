@@ -7,20 +7,25 @@
 # later as published by the Python Software Foundation.
 # No warranty expressed or implied. See the file LICENSE.PSF-2 for details.
 
+""" Python distribution setup
+"""
+
+import textwrap
 from setuptools import setup, find_packages
 
-version = '1.2'
-shortdesc = u"Library to implement a well-behaved Unix daemon process"
-longdesc = u"""
-    This library implements PEP [no number yet], Standard daemon
-    process library.
-    """
+import daemon as main_module
 
+short_description, long_description = (
+    textwrap.dedent(d).strip()
+    for d in main_module.__doc__.split('\n\n', 1)
+    )
+
+
 setup(
     name='python-daemon',
-    version=version,
-    description=shortdesc,
-    long_description=longdesc,
+    version=main_module.version,
+    description=short_description,
+    long_description=long_description,
     classifiers=[
         'Development Status :: 4 - Beta',
         'License :: OSI Approved :: Python Software Foundation License',

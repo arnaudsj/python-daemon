@@ -250,16 +250,47 @@ class detatch_process_context_TestCase(scaffold.TestCase):
             expect_mock_output, self.mock_outfile.getvalue())
 
 
+def setup_lockfile_fixtures(testcase):
+    """ Set up common fixtures for lockfile test cases """
+
+    testcase.mock_pid = 235
+    testcase.mock_lockfile_name = tempfile.mktemp()
+
+    def mock_lockfile_open_nonexist(filename, mode, buffering):
+        if 'r' in mode:
+            raise IOError("No such file %(filename)r" % vars())
+        else:
+            result = FakeFileHandleStringIO()
+        return result
+
+    def mock_lockfile_open_exist(filename, mode, buffering):
+        return FakeFileHandleStringIO("%(mock_pid)s\n" % vars(testcase))
+
+    testcase.lockfile_open_func = mock_lockfile_open_nonexist
+
+    def mock_open(filename, mode=None, buffering=None):
+        if filename == testcase.mock_lockfile_name:
+            result = testcase.lockfile_open_func(filename, mode, buffering)
+        else:
+            result = FakeFileHandleStringIO()
+        return result
+
+    scaffold.mock(
+        "__builtin__.file",
+        returns_func=mock_open,
+        tracker=testcase.mock_tracker)
+
+
 def setup_daemon_fixtures(testcase):
     """ Set up common test fixtures for Daemon test case """
 
     class TestApp(object):
 
-        def __init__(self, pidfile_name):
+        def __init__(self, lockfile_name):
             self.stdin = tempfile.mktemp()
             self.stdout = tempfile.mktemp()
             self.stderr = tempfile.mktemp()
-            self.pidfile = pidfile_name
+            self.pidfile = lockfile_name
 
     testcase.TestApp = TestApp
 
@@ -295,6 +326,7 @@ class Daemon_start_TestCase(scaffold.TestCase):
     def setUp(self):
         """ Set up test fixtures """
         setup_daemon_fixtures(self)
+        setup_lockfile_fixtures(self)
 
         scaffold.mock(
             "daemon.daemon.detach_process_context",
@@ -317,29 +349,11 @@ class Daemon_start_TestCase(scaffold.TestCase):
             mock_obj=self.mock_stderr,
             tracker=self.mock_tracker)
 
-        self.mock_pid = 235
-        mock_pidfile_name = tempfile.mktemp()
-
-        test_app = self.TestApp(mock_pidfile_name)
+        test_app = self.TestApp(self.mock_lockfile_name)
         self.test_instance = daemon.Daemon(test_app)
 
-        def mock_pidfile_open_nonexist(filename, mode, buffering):
-            if 'r' in mode:
-                raise IOError("No such file %(filename)r" % vars())
-            else:
-                result = FakeFileHandleStringIO()
-            return result
-
-        def mock_pidfile_open_exist(filename, mode, buffering):
-            return FakeFileHandleStringIO("%(mock_pid)s\n" % vars(self))
-
-        self.pidfile_open_func = mock_pidfile_open_nonexist
-
         def mock_open(filename, mode=None, buffering=None):
-            if filename == mock_pidfile_name:
-                result = self.pidfile_open_func(filename, mode, buffering)
-            else:
-                result = FakeFileHandleStringIO()
+            result = FakeFileHandleStringIO()
             return result
 
         scaffold.mock(

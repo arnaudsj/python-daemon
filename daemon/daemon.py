@@ -75,9 +75,6 @@ class Daemon(object):
     
     There are several things to consider:
     
-    * The instance object given to the constructor MUST provide a ``run()``
-      function with represents the main routine of the deamon
-    
     * The instance object MUST provide global file descriptors for
       (and named as):
         -stdin
@@ -95,7 +92,6 @@ class Daemon(object):
     def __init__(self, instance):
         self.instance = instance
         self.startstop()
-        instance.run()
 
     def deamonize(self):
         """Fork the process into the background.

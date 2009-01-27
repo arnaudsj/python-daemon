@@ -261,9 +261,6 @@ class Daemon_start_TestCase(scaffold.TestCase):
             self.stderr = tempfile.mktemp()
             self.pidfile = pidfile_name
 
-        def run(self):
-            pass
-
     def setUp(self):
         """ Set up test fixtures """
         self.mock_outfile = StringIO()

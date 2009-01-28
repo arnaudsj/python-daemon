@@ -15,7 +15,6 @@ import sys
 import time
 import resource
 import errno
-
 from signal import SIGTERM
 
 

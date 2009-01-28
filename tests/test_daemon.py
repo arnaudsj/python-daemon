@@ -19,6 +19,7 @@ from StringIO import StringIO
 import itertools
 import tempfile
 import resource
+import errno
 
 import scaffold
 
@@ -332,6 +333,57 @@ class read_pid_from_lockfile_TestCase(scaffold.TestCase):
         self.failUnlessIs(None, pid)
 
 
+class remove_lockfile_if_exist_TestCase(scaffold.TestCase):
+    """ Test cases for remove_lockfile_if_exist function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_lockfile_fixtures(self)
+        self.lockfile_open_func = self.mock_lockfile_open_exist
+
+        scaffold.mock(
+            "os.remove",
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_removes_specified_filename(self):
+        """ Should attempt to remove specified lockfile filename """
+        lockfile_name = self.mock_lockfile_name
+        expect_mock_output = """\
+            Called os.remove(%(lockfile_name)r)
+            """ % vars()
+        daemon.daemon.remove_lockfile_if_exist(lockfile_name)
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_ignores_file_not_exist_error(self):
+        """ Should ignore error if file does not exist """
+        lockfile_name = self.mock_lockfile_name
+        mock_error = OSError(errno.ENOENT, "Not there", lockfile_name)
+        os.remove.mock_raises = mock_error
+        expect_mock_output = """\
+            Called os.remove(%(lockfile_name)r)
+            """ % vars()
+        daemon.daemon.remove_lockfile_if_exist(lockfile_name)
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_propagates_arbitrary_oserror(self):
+        """ Should propagate any OSError other than ENOENT """
+        lockfile_name = self.mock_lockfile_name
+        mock_error = OSError(errno.EACCES, "Denied", lockfile_name)
+        os.remove.mock_raises = mock_error
+        self.failUnlessRaises(
+            mock_error.__class__,
+            daemon.daemon.remove_lockfile_if_exist,
+            lockfile_name)
+
+
 class write_pid_to_lockfile_TestCase(scaffold.TestCase):
     """ Test cases for write_pid_to_lockfile function """
 
@@ -356,7 +408,7 @@ class write_pid_to_lockfile_TestCase(scaffold.TestCase):
             Called __builtin__.file(%(lockfile_name)r, 'w')
             ...
             """ % vars()
-        dummy = daemon.daemon.write_pid_to_lockfile(lockfile_name)
+        daemon.daemon.write_pid_to_lockfile(lockfile_name)
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())

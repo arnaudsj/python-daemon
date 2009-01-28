@@ -14,6 +14,7 @@ import os
 import sys
 import time
 import resource
+import errno
 
 from signal import SIGTERM
 
@@ -114,6 +115,22 @@ def write_pid_to_lockfile(lockfile_name):
     line = "%(pid)d\n" % vars()
     lockfile.write(line)
 
+def remove_lockfile_if_exist(lockfile_name):
+    """ Remove the named lockfile if it exists.
+
+        Removing a lockfile that doesn't already exist puts us in the
+        desired state, so we ignore the condition if the file does not
+        exist.
+
+        """
+    try:
+        os.remove(lockfile_name)
+    except OSError, exc:
+        if exc.errno == errno.ENOENT:
+            pass
+        else:
+            raise
+
 
 class Daemon(object):
     """Class Daemon is used to run any routine in the background on unix
@@ -187,7 +204,7 @@ class Daemon(object):
                 except OSError, err:
                     err = str(err)
                     if err.find("No such process") > 0:
-                        os.remove(self.instance.pidfile)
+                        remove_lockfile_if_exist(self.instance.pidfile)
                         if 'stop' == action:
                             sys.exit(0)
                         action = 'start'

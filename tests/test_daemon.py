@@ -259,16 +259,20 @@ def setup_lockfile_fixtures(testcase):
 
     testcase.mock_pid = 235
     testcase.mock_lockfile_name = tempfile.mktemp()
+    testcase.mock_lockfile = FakeFileHandleStringIO()
 
     def mock_lockfile_open_nonexist(filename, mode, buffering):
         if 'r' in mode:
             raise IOError("No such file %(filename)r" % vars())
         else:
-            result = FakeFileHandleStringIO()
+            result = testcase.mock_lockfile
         return result
 
     def mock_lockfile_open_exist(filename, mode, buffering):
-        return FakeFileHandleStringIO("%(mock_pid)s\n" % vars(testcase))
+        lockfile = testcase.mock_lockfile
+        lockfile.write("%(mock_pid)s\n" % vars(testcase))
+        lockfile.seek(0)
+        return lockfile
 
     testcase.mock_lockfile_open_nonexist = mock_lockfile_open_nonexist
     testcase.mock_lockfile_open_exist = mock_lockfile_open_exist
@@ -294,7 +298,6 @@ class read_pid_from_lockfile_TestCase(scaffold.TestCase):
     def setUp(self):
         """ Set up test fixtures """
         setup_lockfile_fixtures(self)
-
         self.lockfile_open_func = self.mock_lockfile_open_exist
 
     def tearDown(self):
@@ -327,6 +330,48 @@ class read_pid_from_lockfile_TestCase(scaffold.TestCase):
         pid = daemon.daemon.read_pid_from_lockfile(lockfile_name)
         scaffold.mock_restore()
         self.failUnlessIs(None, pid)
+
+
+class write_pid_to_lockfile_TestCase(scaffold.TestCase):
+    """ Test cases for write_pid_to_lockfile function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_lockfile_fixtures(self)
+        self.lockfile_open_func = self.mock_lockfile_open_nonexist
+
+        scaffold.mock(
+            "os.getpid",
+            returns=self.mock_pid,
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_opens_specified_filename(self):
+        """ Should attempt to open specified lockfile filename """
+        lockfile_name = self.mock_lockfile_name
+        expect_mock_output = """\
+            Called __builtin__.file(%(lockfile_name)r, 'w')
+            ...
+            """ % vars()
+        dummy = daemon.daemon.write_pid_to_lockfile(lockfile_name)
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_writes_pid_to_file(self):
+        """ Should write the current PID to the specified file """
+        lockfile_name = self.mock_lockfile_name
+        expect_line = "%(mock_pid)d\n" % vars(self)
+        expect_mock_output = """\
+            ...
+            Called 
+            """ % vars()
+        daemon.daemon.write_pid_to_lockfile(lockfile_name)
+        scaffold.mock_restore()
+        self.failUnlessEqual(expect_line, self.mock_lockfile.getvalue())
 
 
 def setup_daemon_fixtures(testcase):
@@ -377,6 +422,13 @@ class Daemon_start_TestCase(scaffold.TestCase):
         setup_lockfile_fixtures(self)
 
         scaffold.mock(
+            "daemon.daemon.read_pid_from_lockfile",
+            returns=self.mock_pid,
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.write_pid_to_lockfile",
+            tracker=self.mock_tracker)
+        scaffold.mock(
             "daemon.daemon.detach_process_context",
             tracker=self.mock_tracker)
         scaffold.mock(
@@ -404,6 +456,19 @@ class Daemon_start_TestCase(scaffold.TestCase):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
+    def test_reads_pid_from_existing_lockfile(self):
+        """ Should read PID from existing lockfile """
+        instance = self.test_instance
+        lockfile_name = self.mock_lockfile_name
+        expect_mock_output = """\
+            Called daemon.daemon.read_pid_from_lockfile(%(lockfile_name)r)
+            ...
+            """ % vars()
+        instance.start()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
     def test_detaches_process_context(self):
         """ Should request detach of process context """
         instance = self.test_instance
@@ -430,13 +495,13 @@ class Daemon_start_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
-    def test_creates_pid_file_with_specified_name(self):
+    def test_writes_pid_to_specified_lockfile(self):
         """ Should request creation of a PID file with specified name """
         instance = self.test_instance
         lockfile_name = self.mock_lockfile_name
         expect_mock_output = """\
             ...
-            Called __builtin__.file(%(lockfile_name)r, 'w+')
+            Called daemon.daemon.write_pid_to_lockfile(%(lockfile_name)r)
             ...
             """ % vars()
         instance.start()

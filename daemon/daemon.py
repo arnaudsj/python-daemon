@@ -85,6 +85,20 @@ def read_pid_from_lockfile(lockfile_name):
 
     return pid
 
+
+def write_pid_to_lockfile(lockfile_name):
+    """ Write the PID in the named lockfile.
+
+        Get the current numeric process ID (“pid”) and write it to
+        the named file as a line of text.
+
+        """
+    lockfile = file(lockfile_name, 'w')
+
+    pid = os.getpid()
+    line = "%(pid)d\n" % vars()
+    lockfile.write(line)
+
 
 class Daemon(object):
     """Class Daemon is used to run any routine in the background on unix
@@ -134,7 +148,7 @@ class Daemon(object):
         sys.stderr.flush()
 
         if self.instance.pidfile:
-            file(self.instance.pidfile, 'w+').write("%s\n" % pid)
+            write_pid_to_lockfile(self.instance.pidfile)
 
         os.dup2(si.fileno(), sys.stdin.fileno())
         os.dup2(so.fileno(), sys.stdout.fileno())
@@ -171,7 +185,7 @@ class Daemon(object):
                     mess = "Start aborded since pid file '%s' exists.\n"
                     sys.stderr.write(mess % self.instance.pidfile)
                     sys.exit(1)
-                self.deamonize()
+                self.start()
                 return
         print "usage: %s start|stop|restart" % sys.argv[0]
         sys.exit(2)

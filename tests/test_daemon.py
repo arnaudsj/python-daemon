@@ -463,8 +463,48 @@ class write_pid_to_lockfile_TestCase(scaffold.TestCase):
         self.failUnlessEqual(expect_line, self.mock_lockfile.getvalue())
 
 
+def setup_streams_fixtures(testcase):
+    """ Set up common test fixtures for standard streams """
+    testcase.mock_outfile = StringIO()
+    testcase.mock_tracker = scaffold.MockTracker(
+        testcase.mock_outfile)
+
+    scaffold.mock(
+        "os.dup2",
+        tracker=testcase.mock_tracker)
+
+
+class redirect_stream_TestCase(scaffold.TestCase):
+    """ Test cases for redirect_stream function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_streams_fixtures(self)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_duplicates_file_descriptor(self):
+        """ Should duplicate file descriptor from target to system stream """
+        system_stream = FakeFileHandleStringIO()
+        system_fileno = system_stream.fileno()
+        target_stream = FakeFileHandleStringIO()
+        target_fileno = target_stream.fileno()
+        expect_mock_output = """\
+            Called os.dup2(%(target_fileno)r, %(system_fileno)r)
+            """ % vars()
+        daemon.daemon.redirect_stream(system_stream, target_stream)
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+
 def setup_daemon_fixtures(testcase):
     """ Set up common test fixtures for Daemon test case """
+
+    testcase.mock_outfile = StringIO()
+    testcase.mock_tracker = scaffold.MockTracker(
+        testcase.mock_outfile)
 
     class TestApp(object):
 
@@ -474,16 +514,68 @@ def setup_daemon_fixtures(testcase):
             self.stderr = tempfile.mktemp()
             self.pidfile = lockfile_name
 
+            self.stream_files = {
+                self.stdin: FakeFileHandleStringIO(),
+                self.stdout: FakeFileHandleStringIO(),
+                self.stderr: FakeFileHandleStringIO(),
+                }
+
     testcase.TestApp = TestApp
 
-    testcase.mock_outfile = StringIO()
-    testcase.mock_tracker = scaffold.MockTracker(
-        testcase.mock_outfile)
+    testcase.mock_lockfile_name = tempfile.mktemp()
+
+    scaffold.mock(
+        "daemon.daemon.abort_if_existing_lockfile",
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "daemon.daemon.abort_if_no_existing_lockfile",
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "daemon.daemon.read_pid_from_lockfile",
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "daemon.daemon.write_pid_to_lockfile",
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "daemon.daemon.remove_existing_lockfile",
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "daemon.daemon.detach_process_context",
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "daemon.daemon.prevent_core_dump",
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "daemon.daemon.redirect_stream",
+        tracker=testcase.mock_tracker)
 
     testcase.mock_stderr = FakeFileHandleStringIO()
 
-    test_app = testcase.TestApp(None)
+    scaffold.mock(
+        "sys.stdin",
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "sys.stdout",
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "sys.stderr",
+        mock_obj=testcase.mock_stderr,
+        tracker=testcase.mock_tracker)
+
+    test_app = testcase.TestApp(testcase.mock_lockfile_name)
     testcase.test_instance = daemon.Daemon(test_app)
+
+    def mock_open(filename, mode=None, buffering=None):
+        if filename in test_app.stream_files:
+            result = test_app.stream_files[filename]
+        else:
+            result = FakeFileHandleStringIO()
+        return result
+
+    scaffold.mock(
+        "__builtin__.file",
+        returns_func=mock_open,
+        tracker=testcase.mock_tracker)
 
 
 class Daemon_TestCase(scaffold.TestCase):
@@ -508,40 +600,11 @@ class Daemon_start_TestCase(scaffold.TestCase):
     def setUp(self):
         """ Set up test fixtures """
         setup_daemon_fixtures(self)
-        setup_lockfile_fixtures(self)
-
-        scaffold.mock(
-            "daemon.daemon.abort_if_existing_lockfile",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "daemon.daemon.abort_if_no_existing_lockfile",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "daemon.daemon.write_pid_to_lockfile",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "daemon.daemon.detach_process_context",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "daemon.daemon.prevent_core_dump",
-            tracker=self.mock_tracker)
-
-        scaffold.mock(
-            "os.dup2",
-            tracker=self.mock_tracker)
 
         scaffold.mock(
             "sys.argv",
             mock_obj=["fooprog", "start"],
             tracker=self.mock_tracker)
-
-        scaffold.mock(
-            "sys.stderr",
-            mock_obj=self.mock_stderr,
-            tracker=self.mock_tracker)
-
-        test_app = self.TestApp(self.mock_lockfile_name)
-        self.test_instance = daemon.Daemon(test_app)
 
     def tearDown(self):
         """ Tear down test fixtures """
@@ -552,7 +615,8 @@ class Daemon_start_TestCase(scaffold.TestCase):
         instance = self.test_instance
         lockfile_name = self.mock_lockfile_name
         expect_mock_output = """\
-            Called daemon.daemon.abort_if_existing_lockfile(%(lockfile_name)r)
+            Called daemon.daemon.abort_if_existing_lockfile(
+                %(lockfile_name)r)
             ...
             """ % vars()
         instance.start()
@@ -600,19 +664,24 @@ class Daemon_start_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
-    def test_disables_standard_streams(self):
-        """ Should disable standard stream files """
+    def test_redirects_standard_streams(self):
+        """ Should request redirection of standard stream files """
         instance = self.test_instance
+        test_app = instance.instance
+        (system_stdin, system_stdout, system_stderr) = (
+            sys.stdin, sys.stdout, sys.stderr)
+        (target_stdin, target_stdout, target_stderr) = (
+            test_app.stream_files[getattr(test_app, name)]
+            for name in ['stdin', 'stdout', 'stderr'])
         expect_mock_output = """\
             ...
-            Called __builtin__.file(%(stdin)r, 'r')
-            Called __builtin__.file(%(stdout)r, 'a+')
-            Called __builtin__.file(%(stderr)r, 'a+', 0)
-            ...
-            Called os.dup2(...)
-            Called os.dup2(...)
-            Called os.dup2(...)
-            """ % vars(instance.instance)
+            Called daemon.daemon.redirect_stream(
+                %(system_stdin)r, %(target_stdin)r)
+            Called daemon.daemon.redirect_stream(
+                %(system_stdout)r, %(target_stdout)r)
+            Called daemon.daemon.redirect_stream(
+                %(system_stderr)r, %(target_stderr)r)
+            """ % vars()
         instance.start()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
@@ -625,37 +694,24 @@ class Daemon_stop_TestCase(scaffold.TestCase):
     def setUp(self):
         """ Set up test fixtures """
         setup_daemon_fixtures(self)
-        setup_lockfile_fixtures(self)
-        self.lockfile_open_func = self.mock_lockfile_open_exist
-
-        scaffold.mock(
-            "daemon.daemon.remove_existing_lockfile",
-            tracker=self.mock_tracker)
-
-        scaffold.mock(
-            "sys.stderr",
-            mock_obj=self.mock_stderr,
-            tracker=self.mock_tracker)
-
-        test_app = self.TestApp(self.mock_lockfile_name)
-        self.test_instance = daemon.Daemon(test_app)
 
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
-    def test_aborts_if_no_lockfile(self):
-        """ Should raise a SystemExit with error if no lockfile """
+    def test_aborts_if_no_lockfile_exists(self):
+        """ Should request abort if lockfile does not exist """
         instance = self.test_instance
-        self.lockfile_open_func = self.mock_lockfile_open_nonexist
-        try:
-            instance.stop()
-        except SystemExit, exc:
-            pass
-        else:
-            self.fail("Expected SystemExit exception")
-        expect_code = 1
-        self.failUnlessEqual(expect_code, exc.code)
+        lockfile_name = self.mock_lockfile_name
+        expect_mock_output = """\
+            Called daemon.daemon.abort_if_no_existing_lockfile(
+                %(lockfile_name)r)
+            ...
+            """ % vars()
+        instance.stop()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
 
     def test_removes_existing_lockfile(self):
         """ Should request removal of existing lockfile """

@@ -76,6 +76,7 @@ def lockfile_exists(lockfile_name):
     result = os.path.exists(lockfile_name)
     return result
 
+
 def read_pid_from_lockfile(lockfile_name):
     """ Read the PID recorded in the named lockfile.
 
@@ -92,6 +93,7 @@ def read_pid_from_lockfile(lockfile_name):
 
     return pid
 
+
 def abort_if_existing_lockfile(lockfile_name):
     """ Exit the program if the named lockfile exists.
 
@@ -107,6 +109,7 @@ def abort_if_existing_lockfile(lockfile_name):
         sys.stderr.write(mess)
         sys.exit(1)
 
+
 def abort_if_no_existing_lockfile(lockfile_name):
     """ Exit the program if the named lockfile does not exist.
 
@@ -115,13 +118,13 @@ def abort_if_no_existing_lockfile(lockfile_name):
         failure indicates a fatal error.
 
         """
-    existing_pid = read_pid_from_lockfile(lockfile_name)
-    if existing_pid is None:
+    if not lockfile_exists(lockfile_name):
         mess = (
             "Aborting: could not read lock file '%(lockfile_name)s'.\n"
             ) % vars()
         sys.stderr.write(mess)
         sys.exit(1)
+
 
 def write_pid_to_lockfile(lockfile_name):
     """ Write the PID in the named lockfile.
@@ -135,6 +138,7 @@ def write_pid_to_lockfile(lockfile_name):
     pid = os.getpid()
     line = "%(pid)d\n" % vars()
     lockfile.write(line)
+
 
 def remove_existing_lockfile(lockfile_name):
     """ Remove the named lockfile if it exists.
@@ -151,6 +155,17 @@ def remove_existing_lockfile(lockfile_name):
             pass
         else:
             raise
+
+
+def redirect_stream(system_stream, target_stream):
+    """ Redirect a system stream to a specified file.
+
+        `system_stream` is a standard system stream such as
+        ``sys.stdout``. `target_stream` is an open file object that
+        should replace the corresponding system stream object.
+
+        """
+    os.dup2(target_stream.fileno(), system_stream.fileno())
 
 
 class Daemon(object):
@@ -203,9 +218,9 @@ class Daemon(object):
         if self.instance.pidfile:
             write_pid_to_lockfile(self.instance.pidfile)
 
-        os.dup2(si.fileno(), sys.stdin.fileno())
-        os.dup2(so.fileno(), sys.stdout.fileno())
-        os.dup2(se.fileno(), sys.stderr.fileno())
+        redirect_stream(sys.stdin, si)
+        redirect_stream(sys.stdout, so)
+        redirect_stream(sys.stderr, se)
 
     def stop(self):
         """ Stop the running daemon process. """

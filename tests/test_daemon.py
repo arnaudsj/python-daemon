@@ -423,7 +423,6 @@ class Daemon_start_TestCase(scaffold.TestCase):
 
         scaffold.mock(
             "daemon.daemon.read_pid_from_lockfile",
-            returns=self.mock_pid,
             tracker=self.mock_tracker)
         scaffold.mock(
             "daemon.daemon.write_pid_to_lockfile",
@@ -468,6 +467,14 @@ class Daemon_start_TestCase(scaffold.TestCase):
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_raises_systemexit_if_existing_lockfile(self):
+        """ Should raise SystemExit if lockfile already exists """
+        daemon.daemon.read_pid_from_lockfile.mock_returns = self.mock_pid
+        instance = self.test_instance
+        self.failUnlessRaises(
+            SystemExit,
+            instance.start)
 
     def test_detaches_process_context(self):
         """ Should request detach of process context """

@@ -85,6 +85,21 @@ def read_pid_from_lockfile(lockfile_name):
 
     return pid
 
+def abort_if_lockfile_exists(lockfile_name):
+    """ Exit the program if the named lockfile exists.
+
+        The presence of the specified lockfile indicates another
+        instance of this daemon program is already running, so we exit
+        this program in that case.
+
+        """
+    existing_pid = read_pid_from_lockfile(lockfile_name)
+    if existing_pid:
+        mess = (
+            "Aborting: lock file '%(lockfile_name)s' exists.\n"
+            ) % vars()
+        sys.stderr.write(mess)
+        sys.exit(1)
 
 def write_pid_to_lockfile(lockfile_name):
     """ Write the PID in the named lockfile.
@@ -126,7 +141,7 @@ class Daemon(object):
     def start(self):
         """ Become a daemon process. """
 
-        existing_pid = read_pid_from_lockfile(self.instance.pidfile)
+        abort_if_lockfile_exists(self.instance.pidfile)
 
         detach_process_context()
 
@@ -181,10 +196,6 @@ class Daemon(object):
                         print str(err)
                         sys.exit(1)
             if 'start' == action:
-                if pid:
-                    mess = "Start aborded since pid file '%s' exists.\n"
-                    sys.stderr.write(mess % self.instance.pidfile)
-                    sys.exit(1)
                 self.start()
                 return
         print "usage: %s start|stop|restart" % sys.argv[0]

@@ -262,6 +262,19 @@ def setup_lockfile_fixtures(testcase):
     testcase.mock_lockfile_name = tempfile.mktemp()
     testcase.mock_lockfile = FakeFileHandleStringIO()
 
+    def mock_path_exists(path):
+        if path == testcase.mock_lockfile_name:
+            result = testcase.lockfile_exists_func(path)
+        else:
+            result = False
+        return result
+
+    testcase.lockfile_exists_func = (lambda p: False)
+
+    scaffold.mock(
+        "os.path.exists",
+        mock_obj=mock_path_exists)
+
     def mock_lockfile_open_nonexist(filename, mode, buffering):
         if 'r' in mode:
             raise IOError("No such file %(filename)r" % vars())
@@ -291,6 +304,30 @@ def setup_lockfile_fixtures(testcase):
         "__builtin__.file",
         returns_func=mock_open,
         tracker=testcase.mock_tracker)
+
+
+class lockfile_exists_TestCase(scaffold.TestCase):
+    """ Test cases for lockfile_exists function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_lockfile_fixtures(self)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_returns_true_when_lockfile_exists(self):
+        """ Should return True when lockfile exists """
+        self.lockfile_exists_func = (lambda p: True)
+        result = daemon.daemon.lockfile_exists(self.mock_lockfile_name)
+        self.failUnless(result)
+
+    def test_returns_false_when_no_lockfile_exists(self):
+        """ Should return False when lockfile does not exist """
+        self.lockfile_exists_func = (lambda p: False)
+        result = daemon.daemon.lockfile_exists(self.mock_lockfile_name)
+        self.failIf(result)
 
 
 class read_pid_from_lockfile_TestCase(scaffold.TestCase):
@@ -333,8 +370,8 @@ class read_pid_from_lockfile_TestCase(scaffold.TestCase):
         self.failUnlessIs(None, pid)
 
 
-class remove_lockfile_if_exist_TestCase(scaffold.TestCase):
-    """ Test cases for remove_lockfile_if_exist function """
+class remove_existing_lockfile_TestCase(scaffold.TestCase):
+    """ Test cases for remove_existing_lockfile function """
 
     def setUp(self):
         """ Set up test fixtures """
@@ -355,7 +392,7 @@ class remove_lockfile_if_exist_TestCase(scaffold.TestCase):
         expect_mock_output = """\
             Called os.remove(%(lockfile_name)r)
             """ % vars()
-        daemon.daemon.remove_lockfile_if_exist(lockfile_name)
+        daemon.daemon.remove_existing_lockfile(lockfile_name)
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
@@ -368,7 +405,7 @@ class remove_lockfile_if_exist_TestCase(scaffold.TestCase):
         expect_mock_output = """\
             Called os.remove(%(lockfile_name)r)
             """ % vars()
-        daemon.daemon.remove_lockfile_if_exist(lockfile_name)
+        daemon.daemon.remove_existing_lockfile(lockfile_name)
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
@@ -380,7 +417,7 @@ class remove_lockfile_if_exist_TestCase(scaffold.TestCase):
         os.remove.mock_raises = mock_error
         self.failUnlessRaises(
             mock_error.__class__,
-            daemon.daemon.remove_lockfile_if_exist,
+            daemon.daemon.remove_existing_lockfile,
             lockfile_name)
 
 
@@ -474,7 +511,10 @@ class Daemon_start_TestCase(scaffold.TestCase):
         setup_lockfile_fixtures(self)
 
         scaffold.mock(
-            "daemon.daemon.read_pid_from_lockfile",
+            "daemon.daemon.abort_if_existing_lockfile",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.abort_if_no_existing_lockfile",
             tracker=self.mock_tracker)
         scaffold.mock(
             "daemon.daemon.write_pid_to_lockfile",
@@ -507,26 +547,18 @@ class Daemon_start_TestCase(scaffold.TestCase):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
-    def test_reads_pid_from_existing_lockfile(self):
-        """ Should read PID from existing lockfile """
+    def test_aborts_if_lockfile_exists(self):
+        """ Should request abort if lockfile exists """
         instance = self.test_instance
         lockfile_name = self.mock_lockfile_name
         expect_mock_output = """\
-            Called daemon.daemon.read_pid_from_lockfile(%(lockfile_name)r)
+            Called daemon.daemon.abort_if_existing_lockfile(%(lockfile_name)r)
             ...
             """ % vars()
         instance.start()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
-
-    def test_raises_systemexit_if_existing_lockfile(self):
-        """ Should raise SystemExit if lockfile already exists """
-        daemon.daemon.read_pid_from_lockfile.mock_returns = self.mock_pid
-        instance = self.test_instance
-        self.failUnlessRaises(
-            SystemExit,
-            instance.start)
 
     def test_detaches_process_context(self):
         """ Should request detach of process context """
@@ -582,6 +614,58 @@ class Daemon_start_TestCase(scaffold.TestCase):
             Called os.dup2(...)
             """ % vars(instance.instance)
         instance.start()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+
+class Daemon_stop_TestCase(scaffold.TestCase):
+    """ Test cases for Daemon stop process """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_daemon_fixtures(self)
+        setup_lockfile_fixtures(self)
+        self.lockfile_open_func = self.mock_lockfile_open_exist
+
+        scaffold.mock(
+            "daemon.daemon.remove_existing_lockfile",
+            tracker=self.mock_tracker)
+
+        scaffold.mock(
+            "sys.stderr",
+            mock_obj=self.mock_stderr,
+            tracker=self.mock_tracker)
+
+        test_app = self.TestApp(self.mock_lockfile_name)
+        self.test_instance = daemon.Daemon(test_app)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_aborts_if_no_lockfile(self):
+        """ Should raise a SystemExit with error if no lockfile """
+        instance = self.test_instance
+        self.lockfile_open_func = self.mock_lockfile_open_nonexist
+        try:
+            instance.stop()
+        except SystemExit, exc:
+            pass
+        else:
+            self.fail("Expected SystemExit exception")
+        expect_code = 1
+        self.failUnlessEqual(expect_code, exc.code)
+
+    def test_removes_existing_lockfile(self):
+        """ Should request removal of existing lockfile """
+        instance = self.test_instance
+        lockfile_name = self.mock_lockfile_name
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.remove_existing_lockfile(%(lockfile_name)r)
+            """ % vars()
+        instance.stop()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())

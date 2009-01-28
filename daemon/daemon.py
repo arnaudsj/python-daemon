@@ -70,6 +70,12 @@ def detach_process_context():
         sys.exit(1)
 
 
+def lockfile_exists(lockfile_name):
+    """ Return True if the named lockfile exists on the filesystem.
+        """
+    result = os.path.exists(lockfile_name)
+    return result
+
 def read_pid_from_lockfile(lockfile_name):
     """ Read the PID recorded in the named lockfile.
 
@@ -86,7 +92,7 @@ def read_pid_from_lockfile(lockfile_name):
 
     return pid
 
-def abort_if_lockfile_exists(lockfile_name):
+def abort_if_existing_lockfile(lockfile_name):
     """ Exit the program if the named lockfile exists.
 
         The presence of the specified lockfile indicates another
@@ -94,10 +100,25 @@ def abort_if_lockfile_exists(lockfile_name):
         this program in that case.
 
         """
-    existing_pid = read_pid_from_lockfile(lockfile_name)
-    if existing_pid:
+    if lockfile_exists(lockfile_name):
         mess = (
             "Aborting: lock file '%(lockfile_name)s' exists.\n"
+            ) % vars()
+        sys.stderr.write(mess)
+        sys.exit(1)
+
+def abort_if_no_existing_lockfile(lockfile_name):
+    """ Exit the program if the named lockfile does not exist.
+
+        The specified lockfile should be created when we start and
+        should continue to be readable while the daemon runs, so
+        failure indicates a fatal error.
+
+        """
+    existing_pid = read_pid_from_lockfile(lockfile_name)
+    if existing_pid is None:
+        mess = (
+            "Aborting: could not read lock file '%(lockfile_name)s'.\n"
             ) % vars()
         sys.stderr.write(mess)
         sys.exit(1)
@@ -115,7 +136,7 @@ def write_pid_to_lockfile(lockfile_name):
     line = "%(pid)d\n" % vars()
     lockfile.write(line)
 
-def remove_lockfile_if_exist(lockfile_name):
+def remove_existing_lockfile(lockfile_name):
     """ Remove the named lockfile if it exists.
 
         Removing a lockfile that doesn't already exist puts us in the
@@ -158,7 +179,7 @@ class Daemon(object):
     def start(self):
         """ Become a daemon process. """
 
-        abort_if_lockfile_exists(self.instance.pidfile)
+        abort_if_existing_lockfile(self.instance.pidfile)
 
         detach_process_context()
 
@@ -186,33 +207,25 @@ class Daemon(object):
         os.dup2(so.fileno(), sys.stdout.fileno())
         os.dup2(se.fileno(), sys.stderr.fileno())
 
+    def stop(self):
+        """ Stop the running daemon process. """
+        abort_if_no_existing_lockfile(self.instance.pidfile)
+        remove_existing_lockfile(self.instance.pidfile)
+
     def startstop(self):
         """Start/stop/restart behaviour.
         """
         if len(sys.argv) > 1:
             action = sys.argv[1]
-            pid = read_pid_from_lockfile(self.instance.pidfile)
-            if 'stop' == action or 'restart' == action:
-                if not pid:
-                    mess = "Could not stop, pid file '%s' missing.\n"
-                    sys.stderr.write(mess % pidfile)
-                    sys.exit(1)
-                try:
-                    while 1:
-                        os.kill(pid, SIGTERM)
-                        time.sleep(1)
-                except OSError, err:
-                    err = str(err)
-                    if err.find("No such process") > 0:
-                        remove_lockfile_if_exist(self.instance.pidfile)
-                        if 'stop' == action:
-                            sys.exit(0)
-                        action = 'start'
-                        pid = None
-                    else:
-                        print str(err)
-                        sys.exit(1)
+            if 'stop' == action:
+                self.stop()
+                sys.exit(0)
+                return
             if 'start' == action:
+                self.start()
+                return
+            if 'restart' == action:
+                self.stop()
                 self.start()
                 return
         print "usage: %s start|stop|restart" % sys.argv[0]

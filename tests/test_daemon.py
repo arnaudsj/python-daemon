@@ -499,8 +499,8 @@ class redirect_stream_TestCase(scaffold.TestCase):
             expect_mock_output, self.mock_outfile.getvalue())
 
 
-def setup_daemon_fixtures(testcase):
-    """ Set up common test fixtures for Daemon test case """
+def setup_daemon_context_fixtures(testcase):
+    """ Set up common test fixtures for DaemonContext test case """
 
     testcase.mock_outfile = StringIO()
     testcase.mock_tracker = scaffold.MockTracker(
@@ -563,7 +563,7 @@ def setup_daemon_fixtures(testcase):
         tracker=testcase.mock_tracker)
 
     test_app = testcase.TestApp(testcase.mock_pidfile_name)
-    testcase.test_instance = daemon.Daemon(test_app)
+    testcase.test_instance = daemon.DaemonContext(test_app)
 
     def mock_open(filename, mode=None, buffering=None):
         if filename in test_app.stream_files:
@@ -578,28 +578,28 @@ def setup_daemon_fixtures(testcase):
         tracker=testcase.mock_tracker)
 
 
-class Daemon_TestCase(scaffold.TestCase):
-    """ Test cases for Daemon class """
+class DaemonContext_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext class """
 
     def setUp(self):
         """ Set up test fixtures """
-        setup_daemon_fixtures(self)
+        setup_daemon_context_fixtures(self)
 
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
     def test_instantiate(self):
-        """ New instance of Daemon should be created """
+        """ New instance of DaemonContext should be created """
         self.failIfIs(None, self.test_instance)
 
 
-class Daemon_start_TestCase(scaffold.TestCase):
-    """ Test cases for Daemon start process """
+class DaemonContext_start_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext.start method """
 
     def setUp(self):
         """ Set up test fixtures """
-        setup_daemon_fixtures(self)
+        setup_daemon_context_fixtures(self)
 
         scaffold.mock(
             "sys.argv",
@@ -688,12 +688,12 @@ class Daemon_start_TestCase(scaffold.TestCase):
             expect_mock_output, self.mock_outfile.getvalue())
 
 
-class Daemon_stop_TestCase(scaffold.TestCase):
-    """ Test cases for Daemon stop process """
+class DaemonContext_stop_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext.stop method """
 
     def setUp(self):
         """ Set up test fixtures """
-        setup_daemon_fixtures(self)
+        setup_daemon_context_fixtures(self)
 
     def tearDown(self):
         """ Tear down test fixtures """

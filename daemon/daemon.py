@@ -167,7 +167,14 @@ def redirect_stream(system_stream, target_stream):
     os.dup2(target_stream.fileno(), system_stream.fileno())
 
 
-class Daemon(object):
+class DaemonContext(object):
+    """ Context for turning the current program into a daemon process.
+
+        Implements the well-behaved daemon behaviour defined in PEP
+        [no number yet].
+
+        """
+    
     """Class Daemon is used to run any routine in the background on unix
     environments as daemon.
     

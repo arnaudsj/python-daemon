@@ -591,7 +591,49 @@ class DaemonContext_TestCase(scaffold.TestCase):
 
     def test_instantiate(self):
         """ New instance of DaemonContext should be created """
-        self.failIfIs(None, self.test_instance)
+        self.failUnlessIsInstance(
+            self.test_instance, daemon.daemon.DaemonContext)
+
+    def test_requires_no_arguments(self):
+        """ Initialiser should not require any arguments """
+        instance = daemon.daemon.DaemonContext()
+        self.failIfIs(None, instance)
+
+    def test_has_specified_pidfile_name(self):
+        """ Should have specified pidfile_name option """
+        args = dict(
+            pidfile_name = object(),
+            )
+        expect_name = args['pidfile_name']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_name, instance.pidfile_name)
+
+    def test_has_specified_stdin(self):
+        """ Should have specified stdin option """
+        args = dict(
+            stdin = object(),
+            )
+        expect_file = args['stdin']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_file, instance.stdin)
+
+    def test_has_specified_stdout(self):
+        """ Should have specified stdout option """
+        args = dict(
+            stdout = object(),
+            )
+        expect_file = args['stdout']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_file, instance.stdout)
+
+    def test_has_specified_stderr(self):
+        """ Should have specified stderr option """
+        args = dict(
+            stderr = object(),
+            )
+        expect_file = args['stderr']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_file, instance.stderr)
 
 
 class DaemonContext_start_TestCase(scaffold.TestCase):

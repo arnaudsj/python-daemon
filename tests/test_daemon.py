@@ -301,7 +301,7 @@ def setup_pidfile_fixtures(testcase):
         return result
 
     scaffold.mock(
-        "__builtin__.file",
+        "__builtin__.open",
         returns_func=mock_open,
         tracker=testcase.mock_tracker)
 
@@ -346,7 +346,7 @@ class read_pid_from_pidfile_TestCase(scaffold.TestCase):
         """ Should attempt to open specified pidfile filename """
         pidfile_name = self.mock_pidfile_name
         expect_mock_output = """\
-            Called __builtin__.file(%(pidfile_name)r, 'r')
+            Called __builtin__.open(%(pidfile_name)r, 'r')
             """ % vars()
         dummy = daemon.daemon.read_pid_from_pidfile(pidfile_name)
         scaffold.mock_restore()
@@ -442,7 +442,7 @@ class write_pid_to_pidfile_TestCase(scaffold.TestCase):
         """ Should attempt to open specified PID file filename """
         pidfile_name = self.mock_pidfile_name
         expect_mock_output = """\
-            Called __builtin__.file(%(pidfile_name)r, 'w')
+            Called __builtin__.open(%(pidfile_name)r, 'w')
             ...
             """ % vars()
         daemon.daemon.write_pid_to_pidfile(pidfile_name)
@@ -573,7 +573,7 @@ def setup_daemon_context_fixtures(testcase):
         return result
 
     scaffold.mock(
-        "__builtin__.file",
+        "__builtin__.open",
         returns_func=mock_open,
         tracker=testcase.mock_tracker)
 

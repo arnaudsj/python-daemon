@@ -84,7 +84,7 @@ def read_pid_from_pidfile(pidfile_name):
 
         """
     try:
-        pidfile = file(pidfile_name, 'r')
+        pidfile = open(pidfile_name, 'r')
         pid = int(pidfile.read().strip())
         pidfile.close()
     except IOError:
@@ -132,7 +132,7 @@ def write_pid_to_pidfile(pidfile_name):
         and write it to the named file as a line of text.
 
         """
-    pidfile = file(pidfile_name, 'w')
+    pidfile = open(pidfile_name, 'w')
 
     pid = os.getpid()
     line = "%(pid)d\n" % vars()
@@ -212,9 +212,9 @@ class DaemonContext(object):
         if not self.instance.stderr:
             self.instance.stderr = self.instance.stdout
 
-        si = file(self.instance.stdin, 'r')
-        so = file(self.instance.stdout, 'a+')
-        se = file(self.instance.stderr, 'a+', 0)
+        si = open(self.instance.stdin, 'r')
+        so = open(self.instance.stdout, 'a+')
+        se = open(self.instance.stderr, 'a+', 0)
 
         pid = str(os.getpid())
 

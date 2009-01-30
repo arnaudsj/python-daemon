@@ -508,11 +508,10 @@ def setup_daemon_context_fixtures(testcase):
 
     class TestApp(object):
 
-        def __init__(self, pidfile_name):
+        def __init__(self):
             self.stdin = tempfile.mktemp()
             self.stdout = tempfile.mktemp()
             self.stderr = tempfile.mktemp()
-            self.pidfile = pidfile_name
 
             self.stream_files = {
                 self.stdin: FakeFileDescriptorStringIO(),
@@ -562,8 +561,13 @@ def setup_daemon_context_fixtures(testcase):
         mock_obj=testcase.mock_stderr,
         tracker=testcase.mock_tracker)
 
-    test_app = testcase.TestApp(testcase.mock_pidfile_name)
-    testcase.test_instance = daemon.DaemonContext(test_app)
+    test_app = testcase.TestApp()
+    testcase.daemon_context_args = dict(
+        instance = test_app,
+        pidfile_name = testcase.mock_pidfile_name,
+        )
+    testcase.test_instance = daemon.DaemonContext(
+        **testcase.daemon_context_args)
 
     def mock_open(filename, mode=None, buffering=None):
         if filename in test_app.stream_files:

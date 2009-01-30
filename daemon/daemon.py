@@ -211,7 +211,7 @@ class DaemonContext(object):
     def start(self):
         """ Become a daemon process. """
 
-        abort_if_existing_pidfile(self.instance.pidfile)
+        abort_if_existing_pidfile(self.pidfile_name)
 
         detach_process_context()
 
@@ -232,8 +232,8 @@ class DaemonContext(object):
         sys.stderr.write("\n%s\n" % self.startmsg % pid)
         sys.stderr.flush()
 
-        if self.instance.pidfile:
-            write_pid_to_pidfile(self.instance.pidfile)
+        if self.pidfile_name:
+            write_pid_to_pidfile(self.pidfile_name)
 
         redirect_stream(sys.stdin, si)
         redirect_stream(sys.stdout, so)
@@ -241,8 +241,8 @@ class DaemonContext(object):
 
     def stop(self):
         """ Stop the running daemon process. """
-        abort_if_no_existing_pidfile(self.instance.pidfile)
-        remove_existing_pidfile(self.instance.pidfile)
+        abort_if_no_existing_pidfile(self.pidfile_name)
+        remove_existing_pidfile(self.pidfile_name)
 
     def startstop(self):
         """Start/stop/restart behaviour.

@@ -23,7 +23,7 @@ import errno
 
 import scaffold
 from test_daemon import (
-    FakeFileHandleStringIO,
+    FakeFileDescriptorStringIO,
     setup_streams_fixtures,
     )
 
@@ -47,9 +47,9 @@ def setup_service_fixtures(testcase):
             self.pidfile = pidfile_name
 
             self.stream_files = {
-                self.stdin: FakeFileHandleStringIO(),
-                self.stdout: FakeFileHandleStringIO(),
-                self.stderr: FakeFileHandleStringIO(),
+                self.stdin: FakeFileDescriptorStringIO(),
+                self.stdout: FakeFileDescriptorStringIO(),
+                self.stderr: FakeFileDescriptorStringIO(),
                 }
 
     testcase.TestApp = TestApp
@@ -66,7 +66,7 @@ def setup_service_fixtures(testcase):
         if filename in testcase.test_app.stream_files:
             result = testcase.test_app.stream_files[filename]
         else:
-            result = FakeFileHandleStringIO()
+            result = FakeFileDescriptorStringIO()
         result.mode = mode
         return result
 

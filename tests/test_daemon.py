@@ -26,14 +26,14 @@ import scaffold
 import daemon
 
 
-class FakeFileHandleStringIO(StringIO, object):
-    """ A StringIO class that fakes a file handle """
+class FakeFileDescriptorStringIO(StringIO, object):
+    """ A StringIO class that fakes a file descriptor """
 
     _fileno_generator = itertools.count()
 
     def __init__(self, *args, **kwargs):
         self._fileno = self._fileno_generator.next()
-        super_instance = super(FakeFileHandleStringIO, self)
+        super_instance = super(FakeFileDescriptorStringIO, self)
         super_instance.__init__(*args, **kwargs)
 
     def fileno(self):
@@ -100,7 +100,7 @@ class detatch_process_context_TestCase(scaffold.TestCase):
         self.mock_outfile = StringIO()
         self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
 
-        self.mock_stderr = FakeFileHandleStringIO()
+        self.mock_stderr = FakeFileDescriptorStringIO()
 
         test_pids = [0, 0]
         scaffold.mock(
@@ -260,7 +260,7 @@ def setup_pidfile_fixtures(testcase):
 
     testcase.mock_pid = 235
     testcase.mock_pidfile_name = tempfile.mktemp()
-    testcase.mock_pidfile = FakeFileHandleStringIO()
+    testcase.mock_pidfile = FakeFileDescriptorStringIO()
 
     def mock_path_exists(path):
         if path == testcase.mock_pidfile_name:
@@ -297,7 +297,7 @@ def setup_pidfile_fixtures(testcase):
         if filename == testcase.mock_pidfile_name:
             result = testcase.pidfile_open_func(filename, mode, buffering)
         else:
-            result = FakeFileHandleStringIO()
+            result = FakeFileDescriptorStringIO()
         return result
 
     scaffold.mock(
@@ -487,9 +487,9 @@ class redirect_stream_TestCase(scaffold.TestCase):
 
     def test_duplicates_file_descriptor(self):
         """ Should duplicate file descriptor from target to system stream """
-        system_stream = FakeFileHandleStringIO()
+        system_stream = FakeFileDescriptorStringIO()
         system_fileno = system_stream.fileno()
-        target_stream = FakeFileHandleStringIO()
+        target_stream = FakeFileDescriptorStringIO()
         target_fileno = target_stream.fileno()
         expect_mock_output = """\
             Called os.dup2(%(target_fileno)r, %(system_fileno)r)
@@ -515,9 +515,9 @@ def setup_daemon_context_fixtures(testcase):
             self.pidfile = pidfile_name
 
             self.stream_files = {
-                self.stdin: FakeFileHandleStringIO(),
-                self.stdout: FakeFileHandleStringIO(),
-                self.stderr: FakeFileHandleStringIO(),
+                self.stdin: FakeFileDescriptorStringIO(),
+                self.stdout: FakeFileDescriptorStringIO(),
+                self.stderr: FakeFileDescriptorStringIO(),
                 }
 
     testcase.TestApp = TestApp
@@ -549,7 +549,7 @@ def setup_daemon_context_fixtures(testcase):
         "daemon.daemon.redirect_stream",
         tracker=testcase.mock_tracker)
 
-    testcase.mock_stderr = FakeFileHandleStringIO()
+    testcase.mock_stderr = FakeFileDescriptorStringIO()
 
     scaffold.mock(
         "sys.stdin",
@@ -569,7 +569,7 @@ def setup_daemon_context_fixtures(testcase):
         if filename in test_app.stream_files:
             result = test_app.stream_files[filename]
         else:
-            result = FakeFileHandleStringIO()
+            result = FakeFileDescriptorStringIO()
         return result
 
     scaffold.mock(

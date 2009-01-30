@@ -506,11 +506,6 @@ def setup_daemon_context_fixtures(testcase):
     testcase.mock_tracker = scaffold.MockTracker(
         testcase.mock_outfile)
 
-    class TestApp(object):
-
-        def __init__(self):
-            pass
-
     testcase.stream_file_paths = dict(
         stdin = tempfile.mktemp(),
         stdout = tempfile.mktemp(),
@@ -527,8 +522,6 @@ def setup_daemon_context_fixtures(testcase):
             testcase.stream_files_by_name[name])
         for name in ['stdin', 'stdout', 'stderr']
         )
-
-    testcase.TestApp = TestApp
 
     testcase.mock_pidfile_name = tempfile.mktemp()
 
@@ -559,9 +552,7 @@ def setup_daemon_context_fixtures(testcase):
 
     testcase.mock_stderr = FakeFileDescriptorStringIO()
 
-    test_app = testcase.TestApp()
     testcase.daemon_context_args = dict(
-        instance = test_app,
         pidfile_name = testcase.mock_pidfile_name,
         stdin = testcase.stream_files_by_name['stdin'],
         stdout = testcase.stream_files_by_name['stdout'],
@@ -725,7 +716,6 @@ class DaemonContext_start_TestCase(scaffold.TestCase):
     def test_redirects_standard_streams(self):
         """ Should request redirection of standard stream files """
         instance = self.test_instance
-        test_app = instance.instance
         (system_stdin, system_stdout, system_stderr) = (
             sys.stdin, sys.stdout, sys.stderr)
         (target_stdin, target_stdout, target_stderr) = (

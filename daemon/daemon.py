@@ -191,18 +191,15 @@ class DaemonContext(object):
 
     UMASK = 0
     WORKDIR = "."
-    instance = None
     startmsg = 'started with pid %s'
 
     def __init__(
         self,
-        instance=None,
         pidfile_name=None,
         stdin=None,
         stdout=None,
         stderr=None,
         ):
-        self.instance = instance
         self.pidfile_name = pidfile_name
         self.stdin = stdin
         self.stdout = stdout

@@ -509,15 +509,24 @@ def setup_daemon_context_fixtures(testcase):
     class TestApp(object):
 
         def __init__(self):
-            self.stdin = tempfile.mktemp()
-            self.stdout = tempfile.mktemp()
-            self.stderr = tempfile.mktemp()
+            pass
 
-            self.stream_files = {
-                self.stdin: FakeFileDescriptorStringIO(),
-                self.stdout: FakeFileDescriptorStringIO(),
-                self.stderr: FakeFileDescriptorStringIO(),
-                }
+    testcase.stream_file_paths = dict(
+        stdin = tempfile.mktemp(),
+        stdout = tempfile.mktemp(),
+        stderr = tempfile.mktemp(),
+        )
+
+    testcase.stream_files_by_name = dict(
+        (name, FakeFileDescriptorStringIO())
+        for name in ['stdin', 'stdout', 'stderr']
+        )
+
+    testcase.stream_files_by_filename = dict(
+        (testcase.stream_file_paths[name],
+            testcase.stream_files_by_name[name])
+        for name in ['stdin', 'stdout', 'stderr']
+        )
 
     testcase.TestApp = TestApp
 
@@ -550,6 +559,29 @@ def setup_daemon_context_fixtures(testcase):
 
     testcase.mock_stderr = FakeFileDescriptorStringIO()
 
+    test_app = testcase.TestApp()
+    testcase.daemon_context_args = dict(
+        instance = test_app,
+        pidfile_name = testcase.mock_pidfile_name,
+        stdin = testcase.stream_files_by_name['stdin'],
+        stdout = testcase.stream_files_by_name['stdout'],
+        stderr = testcase.stream_files_by_name['stderr'],
+        )
+    testcase.test_instance = daemon.DaemonContext(
+        **testcase.daemon_context_args)
+
+    def mock_open(filename, mode=None, buffering=None):
+        if filename in testcase.stream_files_by_filename:
+            result = testcase.stream_files_by_filename[filename]
+        else:
+            result = FakeFileDescriptorStringIO()
+        return result
+
+    scaffold.mock(
+        "__builtin__.open",
+        returns_func=mock_open,
+        tracker=testcase.mock_tracker)
+
     scaffold.mock(
         "sys.stdin",
         tracker=testcase.mock_tracker)
@@ -559,26 +591,6 @@ def setup_daemon_context_fixtures(testcase):
     scaffold.mock(
         "sys.stderr",
         mock_obj=testcase.mock_stderr,
-        tracker=testcase.mock_tracker)
-
-    test_app = testcase.TestApp()
-    testcase.daemon_context_args = dict(
-        instance = test_app,
-        pidfile_name = testcase.mock_pidfile_name,
-        )
-    testcase.test_instance = daemon.DaemonContext(
-        **testcase.daemon_context_args)
-
-    def mock_open(filename, mode=None, buffering=None):
-        if filename in test_app.stream_files:
-            result = test_app.stream_files[filename]
-        else:
-            result = FakeFileDescriptorStringIO()
-        return result
-
-    scaffold.mock(
-        "__builtin__.open",
-        returns_func=mock_open,
         tracker=testcase.mock_tracker)
 
 
@@ -717,7 +729,7 @@ class DaemonContext_start_TestCase(scaffold.TestCase):
         (system_stdin, system_stdout, system_stderr) = (
             sys.stdin, sys.stdout, sys.stderr)
         (target_stdin, target_stdout, target_stderr) = (
-            test_app.stream_files[getattr(test_app, name)]
+            self.stream_files_by_name[name]
             for name in ['stdin', 'stdout', 'stderr'])
         expect_mock_output = """\
             ...

@@ -220,12 +220,8 @@ class DaemonContext(object):
 
         prevent_core_dump()
 
-        if not self.instance.stderr:
-            self.instance.stderr = self.instance.stdout
-
-        si = open(self.instance.stdin, 'r')
-        so = open(self.instance.stdout, 'a+')
-        se = open(self.instance.stderr, 'a+', 0)
+        if not self.stderr:
+            self.stderr = self.stdout
 
         pid = str(os.getpid())
 
@@ -235,9 +231,9 @@ class DaemonContext(object):
         if self.pidfile_name:
             write_pid_to_pidfile(self.pidfile_name)
 
-        redirect_stream(sys.stdin, si)
-        redirect_stream(sys.stdout, so)
-        redirect_stream(sys.stderr, se)
+        redirect_stream(sys.stdin, self.stdin)
+        redirect_stream(sys.stdout, self.stdout)
+        redirect_stream(sys.stderr, self.stderr)
 
     def stop(self):
         """ Stop the running daemon process. """

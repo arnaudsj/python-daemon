@@ -34,11 +34,11 @@ class Service(object):
 
             The `app` argument must have the following attributes:
 
-            * `stdin`, `stdout`, `stderr`: Filesystem paths to open
-              and replace the existing `sys.stdin`, `sys.stdout`,
-              `sys.stderr`.
+            * `stdin_path`, `stdout_path`, `stderr_path`: Filesystem
+              paths to open and replace the existing `sys.stdin`,
+              `sys.stdout`, `sys.stderr`.
 
-            * `pidfile_name`: Filesystem path to a file that will be
+            * `pidfile_path`: Filesystem path to a file that will be
               used as the PID file for the daemon.
 
             * `run`: Callable that will be invoked when the daemon is
@@ -48,10 +48,10 @@ class Service(object):
         self.parse_args()
         self.app = app
         self.daemon_context = DaemonContext(app)
-        self.daemon_context.pidfile_name = app.pidfile
-        self.daemon_context.stdin = open(app.stdin, 'r')
-        self.daemon_context.stdout = open(app.stdout, 'w+')
-        self.daemon_context.stderr = open(app.stderr, 'w+')
+        self.daemon_context.pidfile_path = app.pidfile_path
+        self.daemon_context.stdin = open(app.stdin_path, 'r')
+        self.daemon_context.stdout = open(app.stdout_path, 'w+')
+        self.daemon_context.stderr = open(app.stderr_path, 'w+')
 
     def parse_args(self, argv=None):
         """ Parse command-line arguments.

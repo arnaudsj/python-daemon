@@ -69,14 +69,14 @@ def detach_process_context():
         sys.exit(1)
 
 
-def pidfile_exists(pidfile_name):
+def pidfile_exists(pidfile_path):
     """ Return True if the named PID file exists on the filesystem.
         """
-    result = os.path.exists(pidfile_name)
+    result = os.path.exists(pidfile_path)
     return result
 
 
-def read_pid_from_pidfile(pidfile_name):
+def read_pid_from_pidfile(pidfile_path):
     """ Read the PID recorded in the named PID file.
 
         Read and return the numeric PID recorded as text in the named
@@ -84,7 +84,7 @@ def read_pid_from_pidfile(pidfile_name):
 
         """
     try:
-        pidfile = open(pidfile_name, 'r')
+        pidfile = open(pidfile_path, 'r')
         pid = int(pidfile.read().strip())
         pidfile.close()
     except IOError:
@@ -93,7 +93,7 @@ def read_pid_from_pidfile(pidfile_name):
     return pid
 
 
-def abort_if_existing_pidfile(pidfile_name):
+def abort_if_existing_pidfile(pidfile_path):
     """ Exit the program if the named PID file exists.
 
         The presence of the specified PID file indicates another
@@ -101,15 +101,15 @@ def abort_if_existing_pidfile(pidfile_name):
         this program in that case.
 
         """
-    if pidfile_exists(pidfile_name):
+    if pidfile_exists(pidfile_path):
         mess = (
-            "Aborting: PID file '%(pidfile_name)s' exists.\n"
+            "Aborting: PID file '%(pidfile_path)s' exists.\n"
             ) % vars()
         sys.stderr.write(mess)
         sys.exit(1)
 
 
-def abort_if_no_existing_pidfile(pidfile_name):
+def abort_if_no_existing_pidfile(pidfile_path):
     """ Exit the program if the named PID file does not exist.
 
         The specified PID file should be created when we start and
@@ -117,29 +117,29 @@ def abort_if_no_existing_pidfile(pidfile_name):
         failure indicates a fatal error.
 
         """
-    if not pidfile_exists(pidfile_name):
+    if not pidfile_exists(pidfile_path):
         mess = (
-            "Aborting: could not read PID file '%(pidfile_name)s'.\n"
+            "Aborting: could not read PID file '%(pidfile_path)s'.\n"
             ) % vars()
         sys.stderr.write(mess)
         sys.exit(1)
 
 
-def write_pid_to_pidfile(pidfile_name):
+def write_pid_to_pidfile(pidfile_path):
     """ Write the PID in the named PID file.
 
         Get the numeric process ID (“PID”) of the current process
         and write it to the named file as a line of text.
 
         """
-    pidfile = open(pidfile_name, 'w')
+    pidfile = open(pidfile_path, 'w')
 
     pid = os.getpid()
     line = "%(pid)d\n" % vars()
     pidfile.write(line)
 
 
-def remove_existing_pidfile(pidfile_name):
+def remove_existing_pidfile(pidfile_path):
     """ Remove the named PID file if it exists.
 
         Removing a PID file that doesn't already exist puts us in the
@@ -148,7 +148,7 @@ def remove_existing_pidfile(pidfile_name):
 
         """
     try:
-        os.remove(pidfile_name)
+        os.remove(pidfile_path)
     except OSError, exc:
         if exc.errno == errno.ENOENT:
             pass
@@ -195,12 +195,12 @@ class DaemonContext(object):
 
     def __init__(
         self,
-        pidfile_name=None,
+        pidfile_path=None,
         stdin=None,
         stdout=None,
         stderr=None,
         ):
-        self.pidfile_name = pidfile_name
+        self.pidfile_path = pidfile_path
         self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
@@ -208,7 +208,7 @@ class DaemonContext(object):
     def start(self):
         """ Become a daemon process. """
 
-        abort_if_existing_pidfile(self.pidfile_name)
+        abort_if_existing_pidfile(self.pidfile_path)
 
         detach_process_context()
 
@@ -225,8 +225,8 @@ class DaemonContext(object):
         sys.stderr.write("\n%s\n" % self.startmsg % pid)
         sys.stderr.flush()
 
-        if self.pidfile_name:
-            write_pid_to_pidfile(self.pidfile_name)
+        if self.pidfile_path:
+            write_pid_to_pidfile(self.pidfile_path)
 
         redirect_stream(sys.stdin, self.stdin)
         redirect_stream(sys.stdout, self.stdout)
@@ -234,8 +234,8 @@ class DaemonContext(object):
 
     def stop(self):
         """ Stop the running daemon process. """
-        abort_if_no_existing_pidfile(self.pidfile_name)
-        remove_existing_pidfile(self.pidfile_name)
+        abort_if_no_existing_pidfile(self.pidfile_path)
+        remove_existing_pidfile(self.pidfile_path)
 
     def startstop(self):
         """Start/stop/restart behaviour.

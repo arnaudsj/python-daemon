@@ -40,15 +40,15 @@ def setup_service_fixtures(testcase):
 
     setup_streams_fixtures(testcase)
 
-    testcase.mock_pidfile_name = tempfile.mktemp()
+    testcase.mock_pidfile_path = tempfile.mktemp()
 
     class TestApp(object):
 
         def __init__(self):
-            self.stdin = testcase.stream_file_paths['stdin']
-            self.stdout = testcase.stream_file_paths['stdout']
-            self.stderr = testcase.stream_file_paths['stderr']
-            self.pidfile = testcase.mock_pidfile_name
+            self.stdin_path = testcase.stream_file_paths['stdin']
+            self.stdout_path = testcase.stream_file_paths['stdout']
+            self.stderr_path = testcase.stream_file_paths['stderr']
+            self.pidfile_path = testcase.mock_pidfile_path
 
         def run(self):
             pass
@@ -118,12 +118,12 @@ class Service_TestCase(scaffold.TestCase):
         """ Should have specified application object """
         self.failUnlessIs(self.test_app, self.test_instance.app)
 
-    def test_daemon_context_has_specified_pidfile_name(self):
+    def test_daemon_context_has_specified_pidfile_path(self):
         """ DaemonContext component should have specified PID file path """
-        expect_pidfile_name = self.test_app.pidfile
+        expect_pidfile_path = self.test_app.pidfile_path
         daemon_context = self.test_instance.daemon_context
         self.failUnlessEqual(
-            expect_pidfile_name, daemon_context.pidfile_name)
+            expect_pidfile_path, daemon_context.pidfile_path)
 
     def test_daemon_context_has_specified_stdin_stream(self):
         """ DaemonContext component should have specified stdin file """

@@ -61,6 +61,12 @@ def setup_service_fixtures(testcase):
 
     testcase.test_app = testcase.TestApp()
 
+    testcase.valid_argv_params = {
+        'start': ['fooprog', 'start'],
+        'stop': ['fooprog', 'stop'],
+        'restart': ['fooprog', 'restart'],
+        }
+
     def mock_open(filename, mode=None, buffering=None):
         if filename in testcase.stream_files_by_path:
             result = testcase.stream_files_by_path[filename]
@@ -83,6 +89,13 @@ class Service_TestCase(scaffold.TestCase):
     def setUp(self):
         """ Set up test fixtures """
         setup_service_fixtures(self)
+        self.mock_outfile.truncate(0)
+
+        scaffold.mock(
+            "service.Service.parse_args",
+            tracker=self.mock_tracker)
+
+        self.test_instance = service.Service(self.test_app)
 
     def tearDown(self):
         """ Tear down test fixtures """
@@ -91,6 +104,15 @@ class Service_TestCase(scaffold.TestCase):
     def test_instantiate(self):
         """ New instance of Service should be created """
         self.failUnlessIsInstance(self.test_instance, service.Service)
+
+    def test_parses_commandline_args(self):
+        """ Should parse commandline arguments """
+        expect_mock_output = """\
+            Called service.Service.parse_args()
+            ...
+            """
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
 
     def test_has_specified_app(self):
         """ Should have specified application object """
@@ -141,3 +163,62 @@ class Service_TestCase(scaffold.TestCase):
         expect_mode = 'w+'
         daemon_context = self.test_instance.daemon_context
         self.failUnlessIn(daemon_context.stderr.mode, expect_mode)
+
+
+class Service_parse_args_TestCase(scaffold.TestCase):
+    """ Test cases for Service.parse_args method """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_service_fixtures(self)
+
+        self.mock_stderr = FakeFileDescriptorStringIO()
+        scaffold.mock(
+            "sys.stderr",
+            mock_obj=self.mock_stderr,
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_emits_usage_message_if_insufficient_args(self):
+        """ Should emit a usage message and exit if too few arguments """
+        instance = self.test_instance
+        argv = ['fooprog']
+        scaffold.mock(
+            "sys.argv",
+            mock_obj=argv,
+            tracker=self.mock_tracker)
+        expect_stderr_output = """\
+            usage: ...
+            """
+        expect_exception = SystemExit
+        try:
+            instance.parse_args()
+        except expect_exception:
+            pass
+        else:
+            self.fail("Expected %(expect_exception)r")
+        self.failUnlessOutputCheckerMatch(
+            expect_stderr_output, self.mock_stderr.getvalue())
+
+    def test_should_parse_system_argv_by_default(self):
+        """ Should parse sys.argv by default """
+        instance = self.test_instance
+        expect_action = 'start'
+        argv = self.valid_argv_params['start']
+        scaffold.mock(
+            "sys.argv",
+            mock_obj=argv,
+            tracker=self.mock_tracker)
+        instance.parse_args()
+        self.failUnlessEqual(expect_action, instance.action)
+
+    def test_sets_action_from_first_argument(self):
+        """ Should set action from first commandline argument """
+        instance = self.test_instance
+        for name, argv in self.valid_argv_params.items():
+            expect_action = name
+            instance.parse_args(argv)
+            self.failUnlessEqual(expect_action, instance.action)

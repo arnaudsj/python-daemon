@@ -38,33 +38,32 @@ def setup_service_fixtures(testcase):
     testcase.mock_tracker = scaffold.MockTracker(
         testcase.mock_outfile)
 
-    class TestApp(object):
-
-        def __init__(self, pidfile_name):
-            self.stdin = tempfile.mktemp()
-            self.stdout = tempfile.mktemp()
-            self.stderr = tempfile.mktemp()
-            self.pidfile = pidfile_name
-
-            self.stream_files = {
-                self.stdin: FakeFileDescriptorStringIO(),
-                self.stdout: FakeFileDescriptorStringIO(),
-                self.stderr: FakeFileDescriptorStringIO(),
-                }
-
-    testcase.TestApp = TestApp
+    setup_streams_fixtures(testcase)
 
     testcase.mock_pidfile_name = tempfile.mktemp()
+
+    class TestApp(object):
+
+        def __init__(self):
+            self.stdin = testcase.stream_file_paths['stdin']
+            self.stdout = testcase.stream_file_paths['stdout']
+            self.stderr = testcase.stream_file_paths['stderr']
+            self.pidfile = testcase.mock_pidfile_name
+
+        def run(self):
+            pass
+
+    testcase.TestApp = TestApp
 
     scaffold.mock(
         "daemon.daemon.DaemonContext",
         tracker=testcase.mock_tracker)
 
-    testcase.test_app = testcase.TestApp(testcase.mock_pidfile_name)
+    testcase.test_app = testcase.TestApp()
 
     def mock_open(filename, mode=None, buffering=None):
-        if filename in testcase.test_app.stream_files:
-            result = testcase.test_app.stream_files[filename]
+        if filename in testcase.stream_files_by_path:
+            result = testcase.stream_files_by_path[filename]
         else:
             result = FakeFileDescriptorStringIO()
         result.mode = mode
@@ -83,7 +82,6 @@ class Service_TestCase(scaffold.TestCase):
 
     def setUp(self):
         """ Set up test fixtures """
-        setup_streams_fixtures(self)
         setup_service_fixtures(self)
 
     def tearDown(self):
@@ -108,7 +106,7 @@ class Service_TestCase(scaffold.TestCase):
     def test_daemon_context_has_specified_stdin_stream(self):
         """ DaemonContext component should have specified stdin file """
         test_app = self.test_app
-        expect_file = test_app.stream_files[test_app.stdin]
+        expect_file = self.stream_files_by_name['stdin']
         daemon_context = self.test_instance.daemon_context
         self.failUnlessEqual(expect_file, daemon_context.stdin)
 
@@ -121,7 +119,7 @@ class Service_TestCase(scaffold.TestCase):
     def test_daemon_context_has_specified_stdout_stream(self):
         """ DaemonContext component should have specified stdout file """
         test_app = self.test_app
-        expect_file = test_app.stream_files[test_app.stdout]
+        expect_file = self.stream_files_by_name['stdout']
         daemon_context = self.test_instance.daemon_context
         self.failUnlessEqual(expect_file, daemon_context.stdout)
 
@@ -134,7 +132,7 @@ class Service_TestCase(scaffold.TestCase):
     def test_daemon_context_has_specified_stderr_stream(self):
         """ DaemonContext component should have specified stderr file """
         test_app = self.test_app
-        expect_file = test_app.stream_files[test_app.stderr]
+        expect_file = self.stream_files_by_name['stderr']
         daemon_context = self.test_instance.daemon_context
         self.failUnlessEqual(expect_file, daemon_context.stderr)
 

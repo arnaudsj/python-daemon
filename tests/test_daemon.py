@@ -469,6 +469,23 @@ def setup_streams_fixtures(testcase):
     testcase.mock_tracker = scaffold.MockTracker(
         testcase.mock_outfile)
 
+    testcase.stream_file_paths = dict(
+        stdin = tempfile.mktemp(),
+        stdout = tempfile.mktemp(),
+        stderr = tempfile.mktemp(),
+        )
+
+    testcase.stream_files_by_name = dict(
+        (name, FakeFileDescriptorStringIO())
+        for name in ['stdin', 'stdout', 'stderr']
+        )
+
+    testcase.stream_files_by_path = dict(
+        (testcase.stream_file_paths[name],
+            testcase.stream_files_by_name[name])
+        for name in ['stdin', 'stdout', 'stderr']
+        )
+
     scaffold.mock(
         "os.dup2",
         tracker=testcase.mock_tracker)
@@ -506,22 +523,7 @@ def setup_daemon_context_fixtures(testcase):
     testcase.mock_tracker = scaffold.MockTracker(
         testcase.mock_outfile)
 
-    testcase.stream_file_paths = dict(
-        stdin = tempfile.mktemp(),
-        stdout = tempfile.mktemp(),
-        stderr = tempfile.mktemp(),
-        )
-
-    testcase.stream_files_by_name = dict(
-        (name, FakeFileDescriptorStringIO())
-        for name in ['stdin', 'stdout', 'stderr']
-        )
-
-    testcase.stream_files_by_filename = dict(
-        (testcase.stream_file_paths[name],
-            testcase.stream_files_by_name[name])
-        for name in ['stdin', 'stdout', 'stderr']
-        )
+    setup_streams_fixtures(testcase)
 
     testcase.mock_pidfile_name = tempfile.mktemp()
 
@@ -562,8 +564,8 @@ def setup_daemon_context_fixtures(testcase):
         **testcase.daemon_context_args)
 
     def mock_open(filename, mode=None, buffering=None):
-        if filename in testcase.stream_files_by_filename:
-            result = testcase.stream_files_by_filename[filename]
+        if filename in testcase.stream_files_by_path:
+            result = testcase.stream_files_by_path[filename]
         else:
             result = FakeFileDescriptorStringIO()
         return result

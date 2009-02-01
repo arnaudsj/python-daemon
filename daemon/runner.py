@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+# daemon/runner.py
+#
 # Copyright © 2007–2009 Robert Niederreiter, Jens Klein, Ben Finney
 # Copyright © 2003 Clark Evans
 # Copyright © 2002 Noah Spurrier
@@ -10,7 +12,7 @@
 # later as published by the Python Software Foundation.
 # No warranty expressed or implied. See the file LICENSE.PSF-2 for details.
 
-""" Background process services library.
+""" Daemon runner library.
     """
 
 import sys
@@ -18,8 +20,8 @@ import sys
 from daemon import DaemonContext
 
 
-class Service(object):
-    """ Service to run a callable in a separate background process.
+class Runner(object):
+    """ Controller for a callable running in a separate background process.
 
         The first command-line arguments is the action to take:
 
@@ -30,7 +32,7 @@ class Service(object):
         """
 
     def __init__(self, app):
-        """ Set up the parameters of a new service.
+        """ Set up the parameters of a new runner.
 
             The `app` argument must have the following attributes:
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# tests/test_service.py
+# tests/test_runner.py
 #
 # Copyright © 2009 Ben Finney <ben+python@benfinney.id.au>
 #
@@ -9,7 +9,7 @@
 # later as published by the Python Software Foundation.
 # No warranty expressed or implied. See the file LICENSE.PSF-2 for details.
 
-""" Unit test for service module
+""" Unit test for runner module
 """
 
 import __builtin__
@@ -28,11 +28,11 @@ from test_daemon import (
     )
 
 import daemon
-from daemon import service
+from daemon import runner
 
 
-def setup_service_fixtures(testcase):
-    """ Set up common test fixtures for Service test case """
+def setup_runner_fixtures(testcase):
+    """ Set up common test fixtures for Runner test case """
 
     testcase.mock_outfile = StringIO()
     testcase.mock_tracker = scaffold.MockTracker(
@@ -80,35 +80,35 @@ def setup_service_fixtures(testcase):
         returns_func=mock_open,
         tracker=testcase.mock_tracker)
 
-    testcase.test_instance = service.Service(testcase.test_app)
+    testcase.test_instance = runner.Runner(testcase.test_app)
 
 
-class Service_TestCase(scaffold.TestCase):
-    """ Test cases for Service class """
+class Runner_TestCase(scaffold.TestCase):
+    """ Test cases for Runner class """
 
     def setUp(self):
         """ Set up test fixtures """
-        setup_service_fixtures(self)
+        setup_runner_fixtures(self)
         self.mock_outfile.truncate(0)
 
         scaffold.mock(
-            "service.Service.parse_args",
+            "runner.Runner.parse_args",
             tracker=self.mock_tracker)
 
-        self.test_instance = service.Service(self.test_app)
+        self.test_instance = runner.Runner(self.test_app)
 
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
     def test_instantiate(self):
-        """ New instance of Service should be created """
-        self.failUnlessIsInstance(self.test_instance, service.Service)
+        """ New instance of Runner should be created """
+        self.failUnlessIsInstance(self.test_instance, runner.Runner)
 
     def test_parses_commandline_args(self):
         """ Should parse commandline arguments """
         expect_mock_output = """\
-            Called service.Service.parse_args()
+            Called runner.Runner.parse_args()
             ...
             """
         self.failUnlessOutputCheckerMatch(
@@ -165,12 +165,12 @@ class Service_TestCase(scaffold.TestCase):
         self.failUnlessIn(daemon_context.stderr.mode, expect_mode)
 
 
-class Service_parse_args_TestCase(scaffold.TestCase):
-    """ Test cases for Service.parse_args method """
+class Runner_parse_args_TestCase(scaffold.TestCase):
+    """ Test cases for Runner.parse_args method """
 
     def setUp(self):
         """ Set up test fixtures """
-        setup_service_fixtures(self)
+        setup_runner_fixtures(self)
 
         self.mock_stderr = FakeFileDescriptorStringIO()
         scaffold.mock(

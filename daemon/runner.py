@@ -49,7 +49,7 @@ class Runner(object):
             """
         self.parse_args()
         self.app = app
-        self.daemon_context = DaemonContext(app)
+        self.daemon_context = DaemonContext()
         self.daemon_context.pidfile_path = app.pidfile_path
         self.daemon_context.stdin = open(app.stdin_path, 'r')
         self.daemon_context.stdout = open(app.stdout_path, 'w+')
@@ -75,6 +75,36 @@ class Runner(object):
             self._usage_exit(argv)
 
         self.action = argv[1]
-        valid_actions = ['start', 'stop', 'restart']
-        if self.action not in valid_actions:
+        if self.action not in self.action_funcs:
             self._usage_exit(argv)
+
+    def _start(self):
+        """ Start the daemon and run the application.
+            """
+        self.daemon_context.start()
+        self.app.run()
+
+    def _stop(self):
+        """ Stop the daemon.
+            """
+        self.daemon_context.stop()
+
+    def _restart(self):
+        """ Stop, then start.
+            """
+        self._stop()
+        self._start()
+
+    action_funcs = {
+        'start': _start,
+        'stop': _stop,
+        'restart': _restart,
+        }
+
+    def do_action(self):
+        """ Perform the requested action.
+            """
+        func = self.action_funcs.get(self.action, None)
+        if func is None:
+            raise ValueError("Unknown action: %(action)r" % vars(self))
+        func(self)

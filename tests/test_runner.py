@@ -26,8 +26,8 @@ from test_daemon import (
     FakeFileDescriptorStringIO,
     setup_streams_fixtures,
     )
+import daemon.daemon
 
-import daemon
 from daemon import runner
 
 
@@ -40,6 +40,12 @@ def setup_runner_fixtures(testcase):
 
     setup_streams_fixtures(testcase)
 
+    testcase.mock_stderr = FakeFileDescriptorStringIO()
+    scaffold.mock(
+        "sys.stderr",
+        mock_obj=testcase.mock_stderr,
+        tracker=testcase.mock_tracker)
+
     testcase.mock_pidfile_path = tempfile.mktemp()
 
     class TestApp(object):
@@ -50,13 +56,17 @@ def setup_runner_fixtures(testcase):
             self.stderr_path = testcase.stream_file_paths['stderr']
             self.pidfile_path = testcase.mock_pidfile_path
 
-        def run(self):
-            pass
+        run = scaffold.Mock(
+            "TestApp.run",
+            tracker=testcase.mock_tracker)
 
     testcase.TestApp = TestApp
 
     scaffold.mock(
-        "daemon.daemon.DaemonContext",
+        "daemon.runner.DaemonContext",
+        returns=scaffold.Mock(
+            "DaemonContext",
+            tracker=testcase.mock_tracker),
         tracker=testcase.mock_tracker)
 
     testcase.test_app = testcase.TestApp()
@@ -177,12 +187,6 @@ class Runner_parse_args_TestCase(scaffold.TestCase):
         """ Set up test fixtures """
         setup_runner_fixtures(self)
 
-        self.mock_stderr = FakeFileDescriptorStringIO()
-        scaffold.mock(
-            "sys.stderr",
-            mock_obj=self.mock_stderr,
-            tracker=self.mock_tracker)
-
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()
@@ -240,3 +244,80 @@ class Runner_parse_args_TestCase(scaffold.TestCase):
             expect_action = name
             instance.parse_args(argv)
             self.failUnlessEqual(expect_action, instance.action)
+
+
+class Runner_do_action_TestCase(scaffold.TestCase):
+    """ Test cases for Runner.do_action method """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_runner_fixtures(self)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_raises_error_if_unknown_action(self):
+        """ Should emit a usage message and exit if too few arguments """
+        instance = self.test_instance
+        instance.action = 'bogus'
+        expect_error = ValueError
+        self.failUnlessRaises(
+            expect_error,
+            instance.do_action)
+
+    def test_requests_daemon_start_if_start_action(self):
+        """ Should request the daemon to start if action is 'start' """
+        instance = self.test_instance
+        instance.action = 'start'
+        expect_mock_output = """\
+            ...
+            Called DaemonContext.start()
+            ...
+            """
+        instance.do_action()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_requests_app_run_if_start_Action(self):
+        """ Should request the application to run if action is 'start' """
+        instance = self.test_instance
+        instance.action = 'start'
+        expect_mock_output = """\
+            ...
+            Called TestApp.run()
+            """
+        instance.do_action()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_requests_daemon_stop_if_stop_action(self):
+        """ Should request the daemon to stop if action is 'stop' """
+        instance = self.test_instance
+        instance.action = 'stop'
+        expect_mock_output = """\
+            ...
+            Called DaemonContext.stop()
+            """
+        instance.do_action()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_requests_stop_then_start_if_restart_action(self):
+        """ Should request stop, then start, if action is 'restart' """
+        instance = self.test_instance
+        instance.action = 'restart'
+        scaffold.mock(
+            "daemon.runner.Runner._start",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.runner.Runner._stop",
+            tracker=self.mock_tracker)
+        expect_mock_output = """\
+            ...
+            Called daemon.runner.Runner._stop()
+            Called daemon.runner.Runner._start()
+            """
+        instance.do_action()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())

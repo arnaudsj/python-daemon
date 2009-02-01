@@ -55,18 +55,26 @@ class Runner(object):
         self.daemon_context.stdout = open(app.stdout_path, 'w+')
         self.daemon_context.stderr = open(app.stderr_path, 'w+')
 
+    def _usage_exit(self, argv):
+        """ Emit a usage message, then exit.
+            """
+        progname = argv[0]
+        usage_exit_code = 2
+        sys.stderr.write(
+            "usage: %(progname)s start|stop|restart\n" % vars())
+        sys.exit(usage_exit_code)
+
     def parse_args(self, argv=None):
         """ Parse command-line arguments.
             """
         if argv is None:
             argv = sys.argv
 
-        progname = argv[0]
         min_args = 2
-        usage_exit_code = 2
         if len(argv) < min_args:
-            sys.stderr.write(
-                "usage: %(progname)s start|stop|restart\n" % vars())
-            sys.exit(usage_exit_code)
+            self._usage_exit(argv)
 
         self.action = argv[1]
+        valid_actions = ['start', 'stop', 'restart']
+        if self.action not in valid_actions:
+            self._usage_exit(argv)

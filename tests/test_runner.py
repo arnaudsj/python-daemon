@@ -80,6 +80,11 @@ def setup_runner_fixtures(testcase):
         returns_func=mock_open,
         tracker=testcase.mock_tracker)
 
+    scaffold.mock(
+        "sys.argv",
+        mock_obj=testcase.valid_argv_params['start'],
+        tracker=testcase.mock_tracker)
+
     testcase.test_instance = runner.Runner(testcase.test_app)
 
 
@@ -193,13 +198,26 @@ class Runner_parse_args_TestCase(scaffold.TestCase):
         expect_stderr_output = """\
             usage: ...
             """
-        expect_exception = SystemExit
-        try:
-            instance.parse_args()
-        except expect_exception:
-            pass
-        else:
-            self.fail("Expected %(expect_exception)r")
+        self.failUnlessRaises(
+            SystemExit,
+            instance.parse_args)
+        self.failUnlessOutputCheckerMatch(
+            expect_stderr_output, self.mock_stderr.getvalue())
+
+    def test_emits_usage_message_if_unknown_action_arg(self):
+        """ Should emit a usage message and exit if unknown action """
+        instance = self.test_instance
+        argv = ['fooprog', 'bogus']
+        scaffold.mock(
+            "sys.argv",
+            mock_obj=argv,
+            tracker=self.mock_tracker)
+        expect_stderr_output = """\
+            usage: ...
+            """
+        self.failUnlessRaises(
+            SystemExit,
+            instance.parse_args)
         self.failUnlessOutputCheckerMatch(
             expect_stderr_output, self.mock_stderr.getvalue())
 

@@ -326,6 +326,9 @@ def setup_daemon_fixtures(testcase):
         "lockfile.remove_existing_pidfile",
         tracker=testcase.mock_tracker)
     scaffold.mock(
+        "lockfile.PIDLockFile",
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
         "daemon.daemon.detach_process_context",
         tracker=testcase.mock_tracker)
     scaffold.mock(

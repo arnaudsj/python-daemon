@@ -16,6 +16,19 @@ import os
 import sys
 import errno
 
+from montanaro_lockfile import (
+    LockBase,
+    )
+
+
+class PIDLockFile(LockBase):
+    """ Lockfile implemented as a Unix PID file. """
+
+    def is_locked(self):
+        """ Test if the PID file is currently locked. """
+        result = os.path.exists(self.path)
+        return result
+
 
 def pidfile_exists(pidfile_name):
     """ Return True if the named PID file exists on the filesystem.

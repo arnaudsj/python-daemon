@@ -15,7 +15,7 @@ import sys
 import time
 import resource
 import errno
-from signal import SIGTERM
+import signal
 
 
 def prevent_core_dump():
@@ -235,7 +235,9 @@ class DaemonContext(object):
     def stop(self):
         """ Stop the running daemon process. """
         abort_if_no_existing_pidfile(self.pidfile_path)
+        pid = read_pid_from_pidfile(self.pidfile_path)
         remove_existing_pidfile(self.pidfile_path)
+        os.kill(pid, signal.SIGTERM)
 
     def startstop(self):
         """Start/stop/restart behaviour.

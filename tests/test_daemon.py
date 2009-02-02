@@ -20,6 +20,7 @@ import itertools
 import tempfile
 import resource
 import errno
+import signal
 
 import scaffold
 
@@ -523,6 +524,7 @@ def setup_daemon_context_fixtures(testcase):
     testcase.mock_tracker = scaffold.MockTracker(
         testcase.mock_outfile)
 
+    setup_pidfile_fixtures(testcase)
     setup_streams_fixtures(testcase)
 
     testcase.mock_pidfile_path = tempfile.mktemp()
@@ -535,6 +537,7 @@ def setup_daemon_context_fixtures(testcase):
         tracker=testcase.mock_tracker)
     scaffold.mock(
         "daemon.daemon.read_pid_from_pidfile",
+        returns=testcase.mock_pid,
         tracker=testcase.mock_tracker)
     scaffold.mock(
         "daemon.daemon.write_pid_to_pidfile",
@@ -573,6 +576,10 @@ def setup_daemon_context_fixtures(testcase):
     scaffold.mock(
         "__builtin__.open",
         returns_func=mock_open,
+        tracker=testcase.mock_tracker)
+
+    scaffold.mock(
+        "os.kill",
         tracker=testcase.mock_tracker)
 
     scaffold.mock(
@@ -745,12 +752,14 @@ class DaemonContext_stop_TestCase(scaffold.TestCase):
         """ Set up test fixtures """
         setup_daemon_context_fixtures(self)
 
+        self.pidfile_open_func = self.mock_pidfile_open_exist
+
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
-    def test_aborts_if_no_pidfile_exists(self):
-        """ Should request abort if PID file does not exist """
+    def test_aborts_if_specified_pidfile_does_not_exist(self):
+        """ Should request abort if specified PID file does not exist """
         instance = self.test_instance
         pidfile_path = self.mock_pidfile_path
         expect_mock_output = """\
@@ -770,6 +779,21 @@ class DaemonContext_stop_TestCase(scaffold.TestCase):
         expect_mock_output = """\
             ...
             Called daemon.daemon.remove_existing_pidfile(%(pidfile_path)r)
+            ...
+            """ % vars()
+        instance.stop()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_sends_terminate_signal_to_process(self):
+        """ Should send SIGTERM to the daemon process """
+        instance = self.test_instance
+        pid = self.mock_pid
+        expect_signal = signal.SIGTERM
+        expect_mock_output = """\
+            ...
+            Called os.kill(%(pid)r, %(expect_signal)r)
             """ % vars()
         instance.stop()
         scaffold.mock_restore()

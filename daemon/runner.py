@@ -60,8 +60,9 @@ class Runner(object):
             """
         progname = argv[0]
         usage_exit_code = 2
+        action_usage = "|".join(self.action_funcs.keys())
         sys.stderr.write(
-            "usage: %(progname)s start|stop|restart\n" % vars())
+            "usage: %(progname)s %(action_usage)s\n" % vars())
         sys.exit(usage_exit_code)
 
     def parse_args(self, argv=None):

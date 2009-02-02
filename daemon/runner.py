@@ -53,7 +53,8 @@ class Runner(object):
         self.daemon_context.pidfile_path = app.pidfile_path
         self.daemon_context.stdin = open(app.stdin_path, 'r')
         self.daemon_context.stdout = open(app.stdout_path, 'w+')
-        self.daemon_context.stderr = open(app.stderr_path, 'w+')
+        self.daemon_context.stderr = open(
+            app.stderr_path, 'w+', buffering=0)
 
     def _usage_exit(self, argv):
         """ Emit a usage message, then exit.

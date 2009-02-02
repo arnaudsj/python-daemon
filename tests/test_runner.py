@@ -83,6 +83,7 @@ def setup_runner_fixtures(testcase):
         else:
             result = FakeFileDescriptorStringIO()
         result.mode = mode
+        result.buffering = buffering
         return result
 
     scaffold.mock(
@@ -178,6 +179,13 @@ class Runner_TestCase(scaffold.TestCase):
         expect_mode = 'w+'
         daemon_context = self.test_instance.daemon_context
         self.failUnlessIn(daemon_context.stderr.mode, expect_mode)
+
+    def test_daemon_context_has_stderr_with_no_buffering(self):
+        """ DaemonContext component should open stderr file unbuffered """
+        expect_buffering = 0
+        daemon_context = self.test_instance.daemon_context
+        self.failUnlessEqual(
+            expect_buffering, daemon_context.stderr.buffering)
 
 
 class Runner_parse_args_TestCase(scaffold.TestCase):

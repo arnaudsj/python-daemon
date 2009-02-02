@@ -659,11 +659,6 @@ class DaemonContext_start_TestCase(scaffold.TestCase):
         """ Set up test fixtures """
         setup_daemon_context_fixtures(self)
 
-        scaffold.mock(
-            "sys.argv",
-            mock_obj=["fooprog", "start"],
-            tracker=self.mock_tracker)
-
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()

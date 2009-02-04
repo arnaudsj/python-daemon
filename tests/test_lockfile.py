@@ -309,10 +309,6 @@ class write_pid_to_pidfile_TestCase(scaffold.TestCase):
         """ Should write the current PID to the specified file """
         pidfile_name = self.mock_pidfile_name
         expect_line = "%(mock_pid)d\n" % vars(self)
-        expect_mock_output = """\
-            ...
-            Called 
-            """ % vars()
         lockfile.write_pid_to_pidfile(pidfile_name)
         scaffold.mock_restore()
         self.failUnlessEqual(expect_line, self.mock_pidfile.getvalue())

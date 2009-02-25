@@ -35,15 +35,30 @@ class NotMyLock(Exception):
 
 
 class PIDLockFile(LockBase):
-    """ Lockfile implemented as a Unix PID file. """
+    """ Lockfile implemented as a Unix PID file.
+
+        The lock file is a normal file named by the attribute `path`.
+        A lock's PID file contains a single line of text, containing
+        the process ID (PID) of the process that acquired the lock.
+
+        """
 
     def is_locked(self):
-        """ Test if the PID file is currently locked. """
+        """ Test if the lock is currently held.
+
+            The lock is held if the PID file for this lock exists.
+
+            """
         result = pidfile_exists(self.path)
         return result
 
     def i_am_locking(self):
-        """ Test if the PID file is locked by the current process. """
+        """ Test if the lock is held by the current process.
+
+            Returns ``True`` if the current process ID matches the
+            number stored in the PID file.
+
+            """
         result = False
         current_pid = os.getpid()
         if os.path.exists(self.path):
@@ -59,7 +74,12 @@ class PIDLockFile(LockBase):
         return result
 
     def acquire(self):
-        """ Acquire the lock. """
+        """ Acquire the lock.
+
+            Creates the PID file for this lock, or raises an error if
+            the lock was already held.
+
+            """
         if pidfile_exists(self.path):
             error = AlreadyLocked()
             raise error
@@ -70,7 +90,12 @@ class PIDLockFile(LockBase):
             raise error
 
     def release(self):
-        """ Release the lock. """
+        """ Release the lock.
+
+            Removes the PID file to release the lock, or raises an
+            error if the current process does not hold the lock.
+
+            """
         if not self.is_locked():
             error = NotLocked()
             raise error
@@ -80,7 +105,12 @@ class PIDLockFile(LockBase):
         remove_existing_pidfile(self.path)
 
     def break_lock(self):
-        """ Break an existing lock. """
+        """ Break an existing lock.
+
+            Removes the PID file if it already exists, otherwise does
+            nothing.
+
+            """
         remove_existing_pidfile(self.path)
 
 

@@ -227,7 +227,7 @@ class PIDLockFile_release_TestCase(scaffold.TestCase):
     def test_raises_not_my_lock_if_pid_file_not_locked_by_this_lock(self):
         """ Should raise NotMyLock error if PID file not locked by me """
         instance = self.test_instance
-        self.mock_pidfile = FakeFileHandleStringIO("bogus\n")
+        self.mock_pidfile = FakeFileDescriptorStringIO("bogus\n")
         expect_error = pidlockfile.NotMyLock
         self.failUnlessRaises(
             expect_error,
@@ -247,8 +247,8 @@ class PIDLockFile_release_TestCase(scaffold.TestCase):
             expect_mock_output, self.mock_outfile.getvalue())
 
 
-class PIDLockFile_release_TestCase(scaffold.TestCase):
-    """ Test cases for PIDLockFile.release function """
+class PIDLockFile_break_lock_TestCase(scaffold.TestCase):
+    """ Test cases for PIDLockFile.break_lock function """
 
     def setUp(self):
         """ Set up test fixtures """

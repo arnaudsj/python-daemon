@@ -110,9 +110,10 @@ class Daemon(object):
         """ Become a daemon process. """
 
         if self.pidlockfile.is_locked():
+            pidfile_path = self.instance.pidfile
             error = SystemExit(
-                "PID file %(pidfile)r already locked"
-                % vars(self.instance))
+                "PID file %(pidfile_path)r already locked"
+                % vars())
             raise error
 
         detach_process_context()
@@ -143,9 +144,10 @@ class Daemon(object):
     def stop(self):
         """ Stop the running daemon process. """
         if not self.pidlockfile.i_am_locking():
+            pidfile_path = self.instance.pidfile
             error = SystemExit(
-                "PID file %(pidfile)r not locked by this process"
-                % vars(self.instance))
+                "PID file %(pidfile_path)r not locked by this process"
+                % vars())
             raise error
         self.pidlockfile.release()
 

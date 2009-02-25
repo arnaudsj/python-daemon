@@ -18,20 +18,9 @@ import errno
 
 from montanaro_lockfile import (
     LockBase,
+    AlreadyLocked, LockFailed,
+    NotLocked, NotMyLock,
     )
-
-
-class AlreadyLocked(Exception):
-    """ Error raised when attempting to acquire a lock already held. """
-
-class LockFailed(Exception):
-    """ Error raised to report a failure acquiring a lock. """
-
-class NotLocked(Exception):
-    """ Error raised when attempting to release a lock not held. """
-
-class NotMyLock(Exception):
-    """ Error raised to report a lock file not held by this process. """
 
 
 class PIDLockFile(LockBase):

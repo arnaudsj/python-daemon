@@ -313,6 +313,10 @@ def setup_daemon_fixtures(testcase):
 
     testcase.mock_pidfile_name = tempfile.mktemp()
 
+    testcase.mock_pidlockfile = scaffold.Mock(
+        "pidlockfile.PIDLockFile",
+        tracker=testcase.mock_tracker)
+
     scaffold.mock(
         "pidlockfile.abort_if_existing_pidfile",
         tracker=testcase.mock_tracker)
@@ -327,6 +331,7 @@ def setup_daemon_fixtures(testcase):
         tracker=testcase.mock_tracker)
     scaffold.mock(
         "pidlockfile.PIDLockFile",
+        returns=testcase.mock_pidlockfile,
         tracker=testcase.mock_tracker)
     scaffold.mock(
         "daemon.daemon.detach_process_context",
@@ -382,6 +387,17 @@ class Daemon_TestCase(scaffold.TestCase):
         """ New instance of Daemon should be created """
         self.failIfIs(None, self.test_instance)
 
+    def test_creates_pidlockfile(self):
+        """ Should create a PIDLockFile with the specified PID file name """
+        instance = self.test_instance
+        pidfile_name = self.mock_pidfile_name
+        expect_mock_output = """\
+            Called pidlockfile.PIDLockFile(%(pidfile_name)r)
+            """ % vars()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
 
 class Daemon_start_TestCase(scaffold.TestCase):
     """ Test cases for Daemon start process """
@@ -399,19 +415,17 @@ class Daemon_start_TestCase(scaffold.TestCase):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
-    def test_aborts_if_pidfile_exists(self):
-        """ Should request abort if PID file exists """
+    def test_aborts_if_pidfile_locked(self):
+        """ Should raise SystemExit if PID file is locked """
         instance = self.test_instance
-        pidfile_name = self.mock_pidfile_name
-        expect_mock_output = """\
-            Called pidlockfile.abort_if_existing_pidfile(
-                %(pidfile_name)r)
-            ...
-            """ % vars()
-        instance.start()
-        scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
+        self.mock_pidlockfile.is_locked.mock_returns = True
+        try:
+            instance.start()
+        except SystemExit, exc:
+            pass
+        else:
+            raise self.failureException("Failed to raise SystemExit")
+        self.failUnlessIn(exc.message, self.mock_pidfile_name)
 
     def test_detaches_process_context(self):
         """ Should request detach of process context """
@@ -493,6 +507,7 @@ class Daemon_stop_TestCase(scaffold.TestCase):
         instance = self.test_instance
         pidfile_name = self.mock_pidfile_name
         expect_mock_output = """\
+            ...
             Called pidlockfile.abort_if_no_existing_pidfile(
                 %(pidfile_name)r)
             ...

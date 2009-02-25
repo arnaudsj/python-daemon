@@ -104,11 +104,16 @@ class Daemon(object):
 
     def __init__(self, instance):
         self.instance = instance
+        self.pidlockfile = pidlockfile.PIDLockFile(self.instance.pidfile)
 
     def start(self):
         """ Become a daemon process. """
 
-        pidlockfile.abort_if_existing_pidfile(self.instance.pidfile)
+        if self.pidlockfile.is_locked():
+            error = SystemExit(
+                "PID file %(pidfile)r already locked"
+                % vars(self.instance))
+            raise error
 
         detach_process_context()
 

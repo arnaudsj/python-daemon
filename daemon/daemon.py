@@ -17,7 +17,7 @@ import resource
 import errno
 import signal
 
-import lockfile
+import pidlockfile
 
 
 def prevent_core_dump():
@@ -115,7 +115,7 @@ class DaemonContext(object):
         stdout=None,
         stderr=None,
         ):
-        self.pidfile_path = pidfile_path
+        self.pidlockfile = pidlockfile.PIDLockFile(pidfile_path)
         self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
@@ -123,7 +123,12 @@ class DaemonContext(object):
     def start(self):
         """ Become a daemon process. """
 
-        lockfile.abort_if_existing_pidfile(self.pidfile_path)
+        if self.pidlockfile.is_locked():
+            pidfile_path = self.pidlockfile.path
+            error = SystemExit(
+                "PID file %(pidfile_path)r already locked"
+                % vars())
+            raise error
 
         detach_process_context()
 
@@ -140,8 +145,7 @@ class DaemonContext(object):
         sys.stderr.write("\n%s\n" % self.startmsg % pid)
         sys.stderr.flush()
 
-        if self.pidfile_path:
-            lockfile.write_pid_to_pidfile(self.pidfile_path)
+        self.pidlockfile.acquire()
 
         redirect_stream(sys.stdin, self.stdin)
         redirect_stream(sys.stdout, self.stdout)
@@ -149,9 +153,15 @@ class DaemonContext(object):
 
     def stop(self):
         """ Stop the running daemon process. """
-        lockfile.abort_if_no_existing_pidfile(self.pidfile_path)
-        pid = lockfile.read_pid_from_pidfile(self.pidfile_path)
-        lockfile.remove_existing_pidfile(self.pidfile_path)
+        if not self.pidlockfile.i_am_locking():
+            pidfile_path = self.pidlockfile.path
+            error = SystemExit(
+                "PID file %(pidfile_path)r not locked by this process"
+                % vars())
+            raise error
+
+        pid = pidlockfile.read_pid_from_pidfile(self.pidlockfile.path)
+        self.pidlockfile.release()
         os.kill(pid, signal.SIGTERM)
 
     def startstop(self):

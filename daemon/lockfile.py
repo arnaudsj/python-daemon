@@ -41,7 +41,11 @@ class PIDLockFile(LockBase):
         if os.path.exists(self.path):
             error = AlreadyLocked()
             raise error
-        write_pid_to_pidfile(self.path)
+        try:
+            write_pid_to_pidfile(self.path)
+        except OSError:
+            error = LockFailed()
+            raise error
 
 
 def pidfile_exists(pidfile_path):

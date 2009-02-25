@@ -333,6 +333,16 @@ class PIDLockFile_acquire_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
+    def test_raises_lock_failed_on_write_error(self):
+        """ Should raise LockFailed error if write fails """
+        instance = self.test_instance
+        mock_error = OSError("Bad stuff happened")
+        lockfile.write_pid_to_pidfile.mock_raises = mock_error
+        expect_error = lockfile.LockFailed
+        self.failUnlessRaises(
+            expect_error,
+            instance.acquire)
+
 
 class write_pid_to_pidfile_TestCase(scaffold.TestCase):
     """ Test cases for write_pid_to_pidfile function """

@@ -301,13 +301,13 @@ class TestCase(unittest.TestCase):
     assertFunctionInTraceback = failUnlessFunctionInTraceback
 
 
-class Test_Exception(TestCase):
+class Exception_TestCase(TestCase):
     """ Test cases for exception classes """
 
     def __init__(self, *args, **kwargs):
         """ Set up a new instance """
         self.valid_exceptions = NotImplemented
-        super(Test_Exception, self).__init__(*args, **kwargs)
+        super(Exception_TestCase, self).__init__(*args, **kwargs)
 
     def setUp(self):
         """ Set up test fixtures """
@@ -320,7 +320,7 @@ class Test_Exception(TestCase):
         self.iterate_params = make_params_iterator(
             default_params_dict = self.valid_exceptions)
 
-        super(Test_Exception, self).setUp()
+        super(Exception_TestCase, self).setUp()
 
     def test_exception_instance(self):
         """ Exception instance should be created """
@@ -343,7 +343,7 @@ class Test_Exception(TestCase):
                     msg=fail_msg)
 
 
-class Test_ProgramMain(TestCase):
+class ProgramMain_TestCase(TestCase):
     """ Test cases for program __main__ function
 
         Tests a module-level function named __main__ with behaviour
@@ -368,7 +368,7 @@ class Test_ProgramMain(TestCase):
         """ Set up a new instance """
         self.program_module = NotImplemented
         self.application_class = NotImplemented
-        super(Test_ProgramMain, self).__init__(*args, **kwargs)
+        super(ProgramMain_TestCase, self).__init__(*args, **kwargs)
 
     def setUp(self):
         """ Set up test fixtures """
@@ -383,12 +383,12 @@ class Test_ProgramMain(TestCase):
         mock(self.app_class_name, mock_obj=self.mock_app_class,
             nsdicts=[self.program_module.__dict__])
 
-        super(Test_ProgramMain, self).setUp()
+        super(ProgramMain_TestCase, self).setUp()
 
     def tearDown(self):
         """ Tear down test fixtures """
         mock_restore()
-        super(Test_ProgramMain, self).tearDown()
+        super(ProgramMain_TestCase, self).tearDown()
 
     def test_main_should_instantiate_app(self):
         """ __main__() should instantiate application class """

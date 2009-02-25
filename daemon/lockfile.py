@@ -74,6 +74,9 @@ class PIDLockFile(LockBase):
         if not self.is_locked():
             error = NotLocked()
             raise error
+        if not self.i_am_locking():
+            error = NotMyLock()
+            raise error
         remove_existing_pidfile(self.path)
 
 

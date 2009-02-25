@@ -79,6 +79,10 @@ class PIDLockFile(LockBase):
             raise error
         remove_existing_pidfile(self.path)
 
+    def break_lock(self):
+        """ Break an existing lock. """
+        remove_existing_pidfile(self.path)
+
 
 def pidfile_exists(pidfile_path):
     """ Return True if the named PID file exists on the filesystem.

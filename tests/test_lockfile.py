@@ -275,6 +275,41 @@ class PIDLockFile_release_TestCase(scaffold.TestCase):
             expect_mock_output, self.mock_outfile.getvalue())
 
 
+class PIDLockFile_release_TestCase(scaffold.TestCase):
+    """ Test cases for PIDLockFile.release function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_pidlockfile_fixtures(self)
+        self.pidfile_path_exists_func = (lambda: True)
+        self.pidfile_open_func = self.mock_pidfile_open_exist
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_returns_none_if_no_pid_file(self):
+        """ Should return None if PID file does not exist """
+        instance = self.test_instance
+        self.pidfile_path_exists_func = (lambda: False)
+        expect_result = None
+        result = instance.break_lock()
+        self.failUnlessEqual(expect_result, result)
+
+    def test_removes_existing_pidfile(self):
+        """ Should request removal of specified PID file """
+        instance = self.test_instance
+        pidfile_path = self.mock_pidfile_path
+        expect_mock_output = """\
+            ...
+            Called lockfile.remove_existing_pidfile(%(pidfile_path)r)
+            """ % vars()
+        instance.break_lock()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+
 def setup_pidfile_fixtures(testcase):
     """ Set up common fixtures for PID file test cases """
 

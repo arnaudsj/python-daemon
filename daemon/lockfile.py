@@ -52,6 +52,9 @@ class PIDLockFile(LockBase):
 
     def release(self):
         """ Release the lock. """
+        if not self.is_locked():
+            error = NotLocked()
+            raise error
         remove_existing_pidfile(self.path)
 
 

@@ -364,6 +364,15 @@ class PIDLockFile_release_TestCase(scaffold.TestCase):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
+    def test_raises_not_locked_if_no_pid_file(self):
+        """ Should raise NotLocked error if PID file does not exist """
+        instance = self.test_instance
+        self.pidfile_path_exists_func = (lambda: False)
+        expect_error = lockfile.NotLocked
+        self.failUnlessRaises(
+            expect_error,
+            instance.release)
+
     def test_removes_existing_pidfile(self):
         """ Should request removal of specified PID file """
         instance = self.test_instance

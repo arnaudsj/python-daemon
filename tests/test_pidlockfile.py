@@ -249,8 +249,8 @@ class PIDLockFile_release_TestCase(scaffold.TestCase):
             expect_mock_output, self.mock_outfile.getvalue())
 
 
-class PIDLockFile_release_TestCase(scaffold.TestCase):
-    """ Test cases for PIDLockFile.release function """
+class PIDLockFile_break_lock_TestCase(scaffold.TestCase):
+    """ Test cases for PIDLockFile.break_lock function """
 
     def setUp(self):
         """ Set up test fixtures """

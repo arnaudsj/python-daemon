@@ -30,6 +30,9 @@ class LockFailed(Exception):
 class NotLocked(Exception):
     """ Error raised when attempting to release a lock not held. """
 
+class NotMyLock(Exception):
+    """ Error raised to report a lock file not held by this process. """
+
 
 class PIDLockFile(LockBase):
     """ Lockfile implemented as a Unix PID file. """

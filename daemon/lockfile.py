@@ -47,6 +47,10 @@ class PIDLockFile(LockBase):
             error = LockFailed()
             raise error
 
+    def release(self):
+        """ Release the lock. """
+        remove_existing_pidfile(self.path)
+
 
 def pidfile_exists(pidfile_path):
     """ Return True if the named PID file exists on the filesystem.

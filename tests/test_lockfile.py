@@ -71,6 +71,9 @@ def setup_pidlockfile_fixtures(testcase):
     scaffold.mock(
         "lockfile.write_pid_to_pidfile",
         tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "lockfile.remove_existing_pidfile",
+        tracker=testcase.mock_tracker)
 
 class PIDLockFile_TestCase(scaffold.TestCase):
     """ Test cases for PIDLockFile class """
@@ -342,6 +345,33 @@ class PIDLockFile_acquire_TestCase(scaffold.TestCase):
         self.failUnlessRaises(
             expect_error,
             instance.acquire)
+
+
+class PIDLockFile_release_TestCase(scaffold.TestCase):
+    """ Test cases for PIDLockFile.release function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_pidlockfile_fixtures(self)
+        self.pidfile_path_exists_func = (lambda: True)
+        self.pidfile_open_func = self.mock_pidfile_open_exist
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_removes_existing_pidfile(self):
+        """ Should request removal of specified PID file """
+        instance = self.test_instance
+        pidfile_path = self.mock_pidfile_path
+        expect_mock_output = """\
+            ...
+            Called lockfile.remove_existing_pidfile(%(pidfile_path)r)
+            """ % vars()
+        instance.release()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
 
 
 class write_pid_to_pidfile_TestCase(scaffold.TestCase):

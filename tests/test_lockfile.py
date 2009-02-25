@@ -103,7 +103,7 @@ class PIDLockFile_TestCase(scaffold.TestCase):
 
 
 class PIDLockFile_is_locked_TestCase(scaffold.TestCase):
-    """ Test cases for PIDLockFile class """
+    """ Test cases for PIDLockFile.is_locked function """
 
     def setUp(self):
         """ Set up test fixtures """
@@ -122,11 +122,61 @@ class PIDLockFile_is_locked_TestCase(scaffold.TestCase):
         self.failUnlessEqual(expect_result, result)
 
     def test_returns_false_if_no_pid_file(self):
-        """ Should return True if PID file does not exist """
+        """ Should return False if PID file does not exist """
         instance = self.test_instance
         expect_result = False
         self.pidfile_path_exists_func = (lambda: False)
         result = instance.is_locked()
+        self.failUnlessEqual(expect_result, result)
+
+
+class PIDLockFile_i_am_locking_TestCase(scaffold.TestCase):
+    """ Test cases for PIDLockFile.i_am_locking function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_pidlockfile_fixtures(self)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_returns_false_if_no_pid_file(self):
+        """ Should return False if PID file does not exist """
+        instance = self.test_instance
+        expect_result = False
+        self.pidfile_path_exists_func = (lambda: False)
+        result = instance.i_am_locking()
+        self.failUnlessEqual(expect_result, result)
+
+    def test_returns_false_if_pid_file_contains_bogus_pid(self):
+        """ Should return False if PID file contains a bogus PID """
+        instance = self.test_instance
+        expect_result = False
+        self.pidfile_path_exists_func = (lambda: True)
+        self.pidfile_open_func = self.mock_pidfile_open_exist
+        self.mock_pidfile.write("bogus\n")
+        result = instance.i_am_locking()
+        self.failUnlessEqual(expect_result, result)
+
+    def test_returns_false_if_pid_file_contains_different_pid(self):
+        """ Should return False if PID file contains a different PID """
+        instance = self.test_instance
+        expect_result = False
+        self.pidfile_path_exists_func = (lambda: True)
+        self.pidfile_open_func = self.mock_pidfile_open_exist
+        self.mock_pidfile.write("0\n")
+        result = instance.i_am_locking()
+        self.failUnlessEqual(expect_result, result)
+
+    def test_returns_true_if_pid_file_contains_current_pid(self):
+        """ Should return True if PID file contains the current PID """
+        instance = self.test_instance
+        expect_result = True
+        self.pidfile_path_exists_func = (lambda: True)
+        self.pidfile_open_func = self.mock_pidfile_open_exist
+        self.mock_pidfile.write("%(mock_pid)d\n" % vars(self))
+        result = instance.i_am_locking()
         self.failUnlessEqual(expect_result, result)
 
 

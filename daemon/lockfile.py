@@ -39,6 +39,22 @@ class PIDLockFile(LockBase):
         result = pidfile_exists(self.path)
         return result
 
+    def i_am_locking(self):
+        """ Test if the PID file is locked by the current process. """
+        result = False
+        current_pid = os.getpid()
+        if os.path.exists(self.path):
+            pidfile = open(self.path)
+            pidfile_line = pidfile.readline()
+            try:
+                pidfile_pid = int(pidfile_line.strip())
+            except ValueError:
+                pass
+            else:
+                if current_pid == pidfile_pid:
+                    result = True
+        return result
+
     def acquire(self):
         """ Acquire the lock. """
         if pidfile_exists(self.path):

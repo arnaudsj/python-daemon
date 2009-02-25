@@ -317,20 +317,17 @@ class Exception_TestCase(TestCase):
             instance = exc_type(*args)
             params['instance'] = instance
 
-        self.iterate_params = make_params_iterator(
-            default_params_dict = self.valid_exceptions)
-
         super(Exception_TestCase, self).setUp()
 
     def test_exception_instance(self):
         """ Exception instance should be created """
-        for key, params in self.iterate_params():
+        for params in self.valid_exceptions.values():
             instance = params['instance']
             self.failIfIs(None, instance)
 
     def test_exception_types(self):
         """ Exception instances should match expected types """
-        for key, params in self.iterate_params():
+        for params in self.valid_exceptions.values():
             instance = params['instance']
             for match_type in params['types']:
                 match_type_name = match_type.__name__

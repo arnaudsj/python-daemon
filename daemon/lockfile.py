@@ -21,6 +21,10 @@ from montanaro_lockfile import (
     )
 
 
+class AlreadyLocked(Exception):
+    """ Error raised when attempting to acquire a lock already held. """
+
+
 class PIDLockFile(LockBase):
     """ Lockfile implemented as a Unix PID file. """
 

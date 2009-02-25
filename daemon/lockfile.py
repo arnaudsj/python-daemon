@@ -33,15 +33,22 @@ class PIDLockFile(LockBase):
         result = os.path.exists(self.path)
         return result
 
+    def acquire(self):
+        """ Acquire the lock. """
+        if os.path.exists(self.path):
+            error = AlreadyLocked()
+            raise error
+        write_pid_to_pidfile(self.path)
+
 
-def pidfile_exists(pidfile_name):
+def pidfile_exists(pidfile_path):
     """ Return True if the named PID file exists on the filesystem.
         """
-    result = os.path.exists(pidfile_name)
+    result = os.path.exists(pidfile_path)
     return result
 
 
-def read_pid_from_pidfile(pidfile_name):
+def read_pid_from_pidfile(pidfile_path):
     """ Read the PID recorded in the named PID file.
 
         Read and return the numeric PID recorded as text in the named
@@ -49,7 +56,7 @@ def read_pid_from_pidfile(pidfile_name):
 
         """
     try:
-        pidfile = file(pidfile_name, 'r')
+        pidfile = open(pidfile_path, 'r')
         pid = int(pidfile.read().strip())
         pidfile.close()
     except IOError:
@@ -58,7 +65,7 @@ def read_pid_from_pidfile(pidfile_name):
     return pid
 
 
-def abort_if_existing_pidfile(pidfile_name):
+def abort_if_existing_pidfile(pidfile_path):
     """ Exit the program if the named PID file exists.
 
         The presence of the specified PID file indicates another
@@ -66,15 +73,15 @@ def abort_if_existing_pidfile(pidfile_name):
         this program in that case.
 
         """
-    if pidfile_exists(pidfile_name):
+    if pidfile_exists(pidfile_path):
         mess = (
-            "Aborting: PID file '%(pidfile_name)s' exists.\n"
+            "Aborting: PID file '%(pidfile_path)s' exists.\n"
             ) % vars()
         sys.stderr.write(mess)
         sys.exit(1)
 
 
-def abort_if_no_existing_pidfile(pidfile_name):
+def abort_if_no_existing_pidfile(pidfile_path):
     """ Exit the program if the named PID file does not exist.
 
         The specified PID file should be created when we start and
@@ -82,29 +89,29 @@ def abort_if_no_existing_pidfile(pidfile_name):
         failure indicates a fatal error.
 
         """
-    if not pidfile_exists(pidfile_name):
+    if not pidfile_exists(pidfile_path):
         mess = (
-            "Aborting: could not read PID file '%(pidfile_name)s'.\n"
+            "Aborting: could not read PID file '%(pidfile_path)s'.\n"
             ) % vars()
         sys.stderr.write(mess)
         sys.exit(1)
 
 
-def write_pid_to_pidfile(pidfile_name):
+def write_pid_to_pidfile(pidfile_path):
     """ Write the PID in the named PID file.
 
         Get the numeric process ID (“PID”) of the current process
         and write it to the named file as a line of text.
 
         """
-    pidfile = file(pidfile_name, 'w')
+    pidfile = open(pidfile_path, 'w')
 
     pid = os.getpid()
     line = "%(pid)d\n" % vars()
     pidfile.write(line)
 
 
-def remove_existing_pidfile(pidfile_name):
+def remove_existing_pidfile(pidfile_path):
     """ Remove the named PID file if it exists.
 
         Removing a PID file that doesn't already exist puts us in the
@@ -113,7 +120,7 @@ def remove_existing_pidfile(pidfile_name):
 
         """
     try:
-        os.remove(pidfile_name)
+        os.remove(pidfile_path)
     except OSError, exc:
         if exc.errno == errno.ENOENT:
             pass

@@ -33,12 +33,12 @@ class PIDLockFile(LockBase):
 
     def is_locked(self):
         """ Test if the PID file is currently locked. """
-        result = os.path.exists(self.path)
+        result = pidfile_exists(self.path)
         return result
 
     def acquire(self):
         """ Acquire the lock. """
-        if os.path.exists(self.path):
+        if pidfile_exists(self.path):
             error = AlreadyLocked()
             raise error
         try:

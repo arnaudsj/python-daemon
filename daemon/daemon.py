@@ -17,7 +17,7 @@ import resource
 import errno
 from signal import SIGTERM
 
-import lockfile
+import pidlockfile
 
 
 def prevent_core_dump():
@@ -108,7 +108,7 @@ class Daemon(object):
     def start(self):
         """ Become a daemon process. """
 
-        lockfile.abort_if_existing_pidfile(self.instance.pidfile)
+        pidlockfile.abort_if_existing_pidfile(self.instance.pidfile)
 
         detach_process_context()
 
@@ -130,7 +130,7 @@ class Daemon(object):
         sys.stderr.flush()
 
         if self.instance.pidfile:
-            lockfile.write_pid_to_pidfile(self.instance.pidfile)
+            pidlockfile.write_pid_to_pidfile(self.instance.pidfile)
 
         redirect_stream(sys.stdin, si)
         redirect_stream(sys.stdout, so)
@@ -138,8 +138,8 @@ class Daemon(object):
 
     def stop(self):
         """ Stop the running daemon process. """
-        lockfile.abort_if_no_existing_pidfile(self.instance.pidfile)
-        lockfile.remove_existing_pidfile(self.instance.pidfile)
+        pidlockfile.abort_if_no_existing_pidfile(self.instance.pidfile)
+        pidlockfile.remove_existing_pidfile(self.instance.pidfile)
 
     def startstop(self):
         """Start/stop/restart behaviour.

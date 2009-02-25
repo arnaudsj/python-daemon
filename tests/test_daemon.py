@@ -23,7 +23,7 @@ import errno
 
 import scaffold
 
-from daemon import lockfile
+from daemon import pidlockfile
 import daemon
 
 
@@ -314,19 +314,19 @@ def setup_daemon_fixtures(testcase):
     testcase.mock_pidfile_name = tempfile.mktemp()
 
     scaffold.mock(
-        "lockfile.abort_if_existing_pidfile",
+        "pidlockfile.abort_if_existing_pidfile",
         tracker=testcase.mock_tracker)
     scaffold.mock(
-        "lockfile.abort_if_no_existing_pidfile",
+        "pidlockfile.abort_if_no_existing_pidfile",
         tracker=testcase.mock_tracker)
     scaffold.mock(
-        "lockfile.write_pid_to_pidfile",
+        "pidlockfile.write_pid_to_pidfile",
         tracker=testcase.mock_tracker)
     scaffold.mock(
-        "lockfile.remove_existing_pidfile",
+        "pidlockfile.remove_existing_pidfile",
         tracker=testcase.mock_tracker)
     scaffold.mock(
-        "lockfile.PIDLockFile",
+        "pidlockfile.PIDLockFile",
         tracker=testcase.mock_tracker)
     scaffold.mock(
         "daemon.daemon.detach_process_context",
@@ -404,7 +404,7 @@ class Daemon_start_TestCase(scaffold.TestCase):
         instance = self.test_instance
         pidfile_name = self.mock_pidfile_name
         expect_mock_output = """\
-            Called lockfile.abort_if_existing_pidfile(
+            Called pidlockfile.abort_if_existing_pidfile(
                 %(pidfile_name)r)
             ...
             """ % vars()
@@ -445,7 +445,7 @@ class Daemon_start_TestCase(scaffold.TestCase):
         pidfile_name = self.mock_pidfile_name
         expect_mock_output = """\
             ...
-            Called lockfile.write_pid_to_pidfile(%(pidfile_name)r)
+            Called pidlockfile.write_pid_to_pidfile(%(pidfile_name)r)
             ...
             """ % vars()
         instance.start()
@@ -493,7 +493,7 @@ class Daemon_stop_TestCase(scaffold.TestCase):
         instance = self.test_instance
         pidfile_name = self.mock_pidfile_name
         expect_mock_output = """\
-            Called lockfile.abort_if_no_existing_pidfile(
+            Called pidlockfile.abort_if_no_existing_pidfile(
                 %(pidfile_name)r)
             ...
             """ % vars()
@@ -508,7 +508,7 @@ class Daemon_stop_TestCase(scaffold.TestCase):
         pidfile_name = self.mock_pidfile_name
         expect_mock_output = """\
             ...
-            Called lockfile.remove_existing_pidfile(%(pidfile_name)r)
+            Called pidlockfile.remove_existing_pidfile(%(pidfile_name)r)
             """ % vars()
         instance.stop()
         scaffold.mock_restore()

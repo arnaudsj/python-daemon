@@ -27,6 +27,9 @@ class AlreadyLocked(Exception):
 class LockFailed(Exception):
     """ Error raised to report a failure acquiring a lock. """
 
+class NotLocked(Exception):
+    """ Error raised when attempting to release a lock not held. """
+
 
 class PIDLockFile(LockBase):
     """ Lockfile implemented as a Unix PID file. """

@@ -134,8 +134,7 @@ class Daemon(object):
         sys.stderr.write("\n%s\n" % self.startmsg % pid)
         sys.stderr.flush()
 
-        if self.instance.pidfile:
-            pidlockfile.write_pid_to_pidfile(self.instance.pidfile)
+        self.pidlockfile.acquire()
 
         redirect_stream(sys.stdin, si)
         redirect_stream(sys.stdout, so)
@@ -143,8 +142,12 @@ class Daemon(object):
 
     def stop(self):
         """ Stop the running daemon process. """
-        pidlockfile.abort_if_no_existing_pidfile(self.instance.pidfile)
-        pidlockfile.remove_existing_pidfile(self.instance.pidfile)
+        if not self.pidlockfile.i_am_locking():
+            error = SystemExit(
+                "PID file %(pidfile)r not locked by this process"
+                % vars(self.instance))
+            raise error
+        self.pidlockfile.release()
 
     def startstop(self):
         """Start/stop/restart behaviour.

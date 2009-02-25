@@ -453,15 +453,14 @@ class Daemon_start_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
-    def test_writes_pid_to_specified_pidfile(self):
-        """ Should request creation of a PID file with specified name """
+    def test_acquires_pidfile_lock(self):
+        """ Should acquire the PID file lock """
         instance = self.test_instance
-        pidfile_name = self.mock_pidfile_name
         expect_mock_output = """\
             ...
-            Called pidlockfile.write_pid_to_pidfile(%(pidfile_name)r)
+            Called pidlockfile.PIDLockFile.acquire()
             ...
-            """ % vars()
+            """
         instance.start()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
@@ -497,34 +496,32 @@ class Daemon_stop_TestCase(scaffold.TestCase):
     def setUp(self):
         """ Set up test fixtures """
         setup_daemon_fixtures(self)
+        self.mock_pidlockfile.is_locked.mock_returns = True
+        self.mock_pidlockfile.i_am_locking.mock_returns = True
 
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
-    def test_aborts_if_no_pidfile_exists(self):
-        """ Should request abort if PID file does not exist """
+    def test_aborts_if_pidfile_not_locked(self):
+        """ Should raise SystemExit if PID file is not locked """
         instance = self.test_instance
-        pidfile_name = self.mock_pidfile_name
-        expect_mock_output = """\
-            ...
-            Called pidlockfile.abort_if_no_existing_pidfile(
-                %(pidfile_name)r)
-            ...
-            """ % vars()
-        instance.stop()
-        scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
+        self.mock_pidlockfile.i_am_locking.mock_returns = False
+        try:
+            instance.stop()
+        except SystemExit, exc:
+            pass
+        else:
+            raise self.failureException("Failed to raise SystemExit")
+        self.failUnlessIn(exc.message, self.mock_pidfile_name)
 
-    def test_removes_existing_pidfile(self):
-        """ Should request removal of existing PID file """
+    def test_releases_pidfile_lock(self):
+        """ Should release the PID file lock """
         instance = self.test_instance
-        pidfile_name = self.mock_pidfile_name
         expect_mock_output = """\
             ...
-            Called pidlockfile.remove_existing_pidfile(%(pidfile_name)r)
-            """ % vars()
+            Called pidlockfile.PIDLockFile.release()
+            """
         instance.stop()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(

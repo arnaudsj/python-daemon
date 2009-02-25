@@ -2,7 +2,7 @@
 
 # daemon/lockfile.py
 #
-# Copyright © 2008–2009 Ben Finney <ben@benfinney.id.au>
+# Copyright © 2008–2009 Ben Finney <ben+python@benfinney.id.au>
 #
 # This is free software: you may copy, modify, and/or distribute this work
 # under the terms of the Python Software Foundation License, version 2 or
@@ -23,6 +23,9 @@ from montanaro_lockfile import (
 
 class AlreadyLocked(Exception):
     """ Error raised when attempting to acquire a lock already held. """
+
+class LockFailed(Exception):
+    """ Error raised to report a failure acquiring a lock. """
 
 
 class PIDLockFile(LockBase):

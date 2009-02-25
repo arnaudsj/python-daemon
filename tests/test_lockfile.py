@@ -38,6 +38,10 @@ class Exception_TestCase(scaffold.Exception_TestCase):
                 min_args = 0,
                 types = [Exception,],
                 ),
+            lockfile.LockFailed: dict(
+                min_args = 0,
+                types = [Exception,],
+                ),
             }
 
 

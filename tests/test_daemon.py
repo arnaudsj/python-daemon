@@ -313,12 +313,6 @@ def setup_daemon_context_fixtures(testcase):
     testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
 
     scaffold.mock(
-        "pidlockfile.abort_if_existing_pidfile",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "pidlockfile.abort_if_no_existing_pidfile",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
         "pidlockfile.read_pid_from_pidfile",
         returns=testcase.mock_pid,
         tracker=testcase.mock_tracker)
@@ -451,6 +445,66 @@ class DaemonContext_start_TestCase(scaffold.TestCase):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
+    def test_detaches_process_context(self):
+        """ Should request detach of process context """
+        instance = self.test_instance
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.detach_process_context()
+            ...
+            """ % vars()
+        instance.start()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_prevents_core_dump(self):
+        """ Should request prevention of core dumps """
+        instance = self.test_instance
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.prevent_core_dump()
+            ...
+            """ % vars()
+        instance.start()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_redirects_standard_streams(self):
+        """ Should request redirection of standard stream files """
+        instance = self.test_instance
+        (system_stdin, system_stdout, system_stderr) = (
+            sys.stdin, sys.stdout, sys.stderr)
+        (target_stdin, target_stdout, target_stderr) = (
+            self.stream_files_by_name[name]
+            for name in ['stdin', 'stdout', 'stderr'])
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.redirect_stream(
+                %(system_stdin)r, %(target_stdin)r)
+            Called daemon.daemon.redirect_stream(
+                %(system_stdout)r, %(target_stdout)r)
+            Called daemon.daemon.redirect_stream(
+                %(system_stderr)r, %(target_stderr)r)
+            """ % vars()
+        instance.start()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+
+class DaemonContextWithPIDFile_start_TestCase(scaffold.TestCase):
+    """ Test cases for Daemon.start method, with PID file """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_daemon_context_fixtures(self)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
     def test_error_when_pidfile_path_not_string(self):
         """ Should raise ValueError when PID file path not a string """
         pidfile_path = object()
@@ -500,32 +554,6 @@ class DaemonContext_start_TestCase(scaffold.TestCase):
             raise self.failureException("Failed to raise SystemExit")
         self.failUnlessIn(exc.message, self.mock_pidfile_path)
 
-    def test_detaches_process_context(self):
-        """ Should request detach of process context """
-        instance = self.test_instance
-        expect_mock_output = """\
-            ...
-            Called daemon.daemon.detach_process_context()
-            ...
-            """ % vars()
-        instance.start()
-        scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
-
-    def test_prevents_core_dump(self):
-        """ Should request prevention of core dumps """
-        instance = self.test_instance
-        expect_mock_output = """\
-            ...
-            Called daemon.daemon.prevent_core_dump()
-            ...
-            """ % vars()
-        instance.start()
-        scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
-
     def test_acquires_pidfile_lock(self):
         """ Should acquire the PID file lock """
         instance = self.test_instance
@@ -539,31 +567,9 @@ class DaemonContext_start_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
-    def test_redirects_standard_streams(self):
-        """ Should request redirection of standard stream files """
-        instance = self.test_instance
-        (system_stdin, system_stdout, system_stderr) = (
-            sys.stdin, sys.stdout, sys.stderr)
-        (target_stdin, target_stdout, target_stderr) = (
-            self.stream_files_by_name[name]
-            for name in ['stdin', 'stdout', 'stderr'])
-        expect_mock_output = """\
-            ...
-            Called daemon.daemon.redirect_stream(
-                %(system_stdin)r, %(target_stdin)r)
-            Called daemon.daemon.redirect_stream(
-                %(system_stdout)r, %(target_stdout)r)
-            Called daemon.daemon.redirect_stream(
-                %(system_stderr)r, %(target_stderr)r)
-            """ % vars()
-        instance.start()
-        scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
-
 
-class DaemonContext_stop_TestCase(scaffold.TestCase):
-    """ Test cases for DaemonContext.stop method """
+class DaemonContextWithPIDFile_stop_TestCase(scaffold.TestCase):
+    """ Test cases for Daemon.stop method, with PID file """
 
     def setUp(self):
         """ Set up test fixtures """

@@ -115,14 +115,14 @@ class DaemonContext(object):
         stdout=None,
         stderr=None,
         ):
-        self.pidlockfile = make_pidlockfile(pidfile_path)
+        self.pidfile_path = pidfile_path
         self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
 
     def start(self):
         """ Become a daemon process. """
-
+        self.pidlockfile = make_pidlockfile(self.pidfile_path)
         if self.pidlockfile.is_locked():
             pidfile_path = self.pidlockfile.path
             error = SystemExit(

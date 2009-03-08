@@ -318,18 +318,6 @@ def setup_daemon_fixtures(testcase):
         tracker=testcase.mock_tracker)
 
     scaffold.mock(
-        "pidlockfile.abort_if_existing_pidfile",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "pidlockfile.abort_if_no_existing_pidfile",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "pidlockfile.write_pid_to_pidfile",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "pidlockfile.remove_existing_pidfile",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
         "pidlockfile.PIDLockFile",
         returns=testcase.mock_pidlockfile,
         tracker=testcase.mock_tracker)

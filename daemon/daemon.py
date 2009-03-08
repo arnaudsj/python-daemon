@@ -104,7 +104,7 @@ class Daemon(object):
 
     def __init__(self, instance):
         self.instance = instance
-        self.pidlockfile = pidlockfile.PIDLockFile(self.instance.pidfile)
+        self.pidlockfile = make_pidlockfile(self.instance.pidfile)
 
     def start(self):
         """ Become a daemon process. """
@@ -169,3 +169,16 @@ class Daemon(object):
                 return
         print "usage: %s start|stop|restart" % sys.argv[0]
         sys.exit(2)
+
+
+def make_pidlockfile(path):
+    """ Make a PIDLockFile instance with the given filesystem path """
+    if not isinstance(path, basestring):
+        error = ValueError("Not a filesystem path: %(path)r" % vars())
+        raise error
+    if not os.path.isabs(path):
+        error = ValueError("Not an absolute path: %(path)r" % vars())
+        raise error
+
+    lockfile = pidlockfile.PIDLockFile(path)
+    return lockfile

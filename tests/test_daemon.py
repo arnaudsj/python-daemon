@@ -387,6 +387,22 @@ class Daemon_TestCase(scaffold.TestCase):
         """ New instance of Daemon should be created """
         self.failIfIs(None, self.test_instance)
 
+    def test_error_when_pidfile_name_not_string(self):
+        """ Should raise ValueError when PID file name not a string """
+        test_app = self.TestApp(object())
+        expect_error = ValueError
+        self.failUnlessRaises(
+            expect_error,
+            daemon.Daemon, test_app)
+
+    def test_error_when_pidfile_name_not_absolute(self):
+        """ Should raise ValueError when PID file name not absolute """
+        test_app = self.TestApp("foo/bar.pid")
+        expect_error = ValueError
+        self.failUnlessRaises(
+            expect_error,
+            daemon.Daemon, test_app)
+
     def test_creates_pidlockfile(self):
         """ Should create a PIDLockFile with the specified PID file name """
         instance = self.test_instance

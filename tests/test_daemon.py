@@ -405,7 +405,7 @@ class DaemonContext_TestCase(scaffold.TestCase):
     def test_has_specified_pidfile_path(self):
         """ Should have specified pidlockfile """
         args = dict(
-            pidfile_path = object(),
+            pidfile_path = "/foo/bar",
             )
         expect_lockfile = self.mock_pidlockfile
         instance = daemon.daemon.DaemonContext(**args)
@@ -437,6 +437,28 @@ class DaemonContext_TestCase(scaffold.TestCase):
         expect_file = args['stderr']
         instance = daemon.daemon.DaemonContext(**args)
         self.failUnlessEqual(expect_file, instance.stderr)
+
+    def test_error_when_pidfile_path_not_string(self):
+        """ Should raise ValueError when PID file path not a string """
+        pidfile_path = object()
+        args = dict(
+            pidfile_path = pidfile_path,
+            )
+        expect_error = ValueError
+        self.failUnlessRaises(
+            expect_error,
+            daemon.DaemonContext, **args)
+
+    def test_error_when_pidfile_path_not_absolute(self):
+        """ Should raise ValueError when PID file path not absolute """
+        pidfile_path = "foo/bar.pid"
+        args = dict(
+            pidfile_path = pidfile_path,
+            )
+        expect_error = ValueError
+        self.failUnlessRaises(
+            expect_error,
+            daemon.DaemonContext, **args)
 
     def test_creates_pidlockfile(self):
         """ Should create a PIDLockFile with the specified PID file name """

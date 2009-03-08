@@ -387,33 +387,6 @@ class Daemon_TestCase(scaffold.TestCase):
         """ New instance of Daemon should be created """
         self.failIfIs(None, self.test_instance)
 
-    def test_error_when_pidfile_name_not_string(self):
-        """ Should raise ValueError when PID file name not a string """
-        test_app = self.TestApp(object())
-        expect_error = ValueError
-        self.failUnlessRaises(
-            expect_error,
-            daemon.Daemon, test_app)
-
-    def test_error_when_pidfile_name_not_absolute(self):
-        """ Should raise ValueError when PID file name not absolute """
-        test_app = self.TestApp("foo/bar.pid")
-        expect_error = ValueError
-        self.failUnlessRaises(
-            expect_error,
-            daemon.Daemon, test_app)
-
-    def test_creates_pidlockfile(self):
-        """ Should create a PIDLockFile with the specified PID file name """
-        instance = self.test_instance
-        pidfile_name = self.mock_pidfile_name
-        expect_mock_output = """\
-            Called pidlockfile.PIDLockFile(%(pidfile_name)r)
-            """ % vars()
-        scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
-
 
 class Daemon_start_TestCase(scaffold.TestCase):
     """ Test cases for Daemon start process """
@@ -430,6 +403,37 @@ class Daemon_start_TestCase(scaffold.TestCase):
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()
+
+    def test_creates_pidlockfile(self):
+        """ Should create a PIDLockFile with the specified PID file name """
+        instance = self.test_instance
+        pidfile_name = self.mock_pidfile_name
+        expect_mock_output = """\
+            Called pidlockfile.PIDLockFile(%(pidfile_name)r)
+            ...
+            """ % vars()
+        instance.start()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_error_when_pidfile_name_not_string(self):
+        """ Should raise ValueError when PID file name not a string """
+        test_app = self.TestApp(object())
+        instance = daemon.Daemon(test_app)
+        expect_error = ValueError
+        self.failUnlessRaises(
+            expect_error,
+            instance.start)
+
+    def test_error_when_pidfile_name_not_absolute(self):
+        """ Should raise ValueError when PID file name not absolute """
+        test_app = self.TestApp("foo/bar.pid")
+        instance = daemon.Daemon(test_app)
+        expect_error = ValueError
+        self.failUnlessRaises(
+            expect_error,
+            instance.start)
 
     def test_aborts_if_pidfile_locked(self):
         """ Should raise SystemExit if PID file is locked """
@@ -512,6 +516,7 @@ class Daemon_stop_TestCase(scaffold.TestCase):
     def setUp(self):
         """ Set up test fixtures """
         setup_daemon_fixtures(self)
+        self.test_instance.pidlockfile = self.mock_pidlockfile
         self.mock_pidlockfile.is_locked.mock_returns = True
         self.mock_pidlockfile.i_am_locking.mock_returns = True
 

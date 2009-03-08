@@ -104,11 +104,11 @@ class Daemon(object):
 
     def __init__(self, instance):
         self.instance = instance
-        self.pidlockfile = make_pidlockfile(self.instance.pidfile)
 
     def start(self):
         """ Become a daemon process. """
 
+        self.pidlockfile = make_pidlockfile(self.instance.pidfile)
         if self.pidlockfile.is_locked():
             pidfile_path = self.instance.pidfile
             error = SystemExit(

@@ -91,7 +91,7 @@ class prevent_core_dump_TestCase(scaffold.TestCase):
             daemon.daemon.prevent_core_dump)
 
 
-class detatch_process_context_TestCase(scaffold.TestCase):
+class detach_process_context_TestCase(scaffold.TestCase):
     """ Test cases for detach_process_context function """
 
     def setUp(self):

@@ -115,6 +115,7 @@ class DaemonContext(object):
         stdout=None,
         stderr=None,
         ):
+        self.pidlockfile = None
         self.pidfile_path = pidfile_path
         self.stdin = stdin
         self.stdout = stdout
@@ -123,12 +124,13 @@ class DaemonContext(object):
     def start(self):
         """ Become a daemon process. """
         self.pidlockfile = make_pidlockfile(self.pidfile_path)
-        if self.pidlockfile.is_locked():
-            pidfile_path = self.pidlockfile.path
-            error = SystemExit(
-                "PID file %(pidfile_path)r already locked"
-                % vars())
-            raise error
+        if self.pidlockfile is not None:
+            if self.pidlockfile.is_locked():
+                pidfile_path = self.pidlockfile.path
+                error = SystemExit(
+                    "PID file %(pidfile_path)r already locked"
+                    % vars())
+                raise error
 
         detach_process_context()
 
@@ -145,7 +147,8 @@ class DaemonContext(object):
         sys.stderr.write("\n%s\n" % self.startmsg % pid)
         sys.stderr.flush()
 
-        self.pidlockfile.acquire()
+        if self.pidlockfile is not None:
+            self.pidlockfile.acquire()
 
         redirect_stream(sys.stdin, self.stdin)
         redirect_stream(sys.stdout, self.stdout)
@@ -153,16 +156,21 @@ class DaemonContext(object):
 
     def stop(self):
         """ Stop the running daemon process. """
-        if not self.pidlockfile.i_am_locking():
-            pidfile_path = self.pidlockfile.path
-            error = SystemExit(
-                "PID file %(pidfile_path)r not locked by this process"
-                % vars())
-            raise error
+        if self.pidlockfile is None:
+            exception = SystemExit()
+            raise exception
 
-        pid = pidlockfile.read_pid_from_pidfile(self.pidlockfile.path)
-        self.pidlockfile.release()
-        os.kill(pid, signal.SIGTERM)
+        else:
+            if not self.pidlockfile.i_am_locking():
+                pidfile_path = self.pidlockfile.path
+                error = SystemExit(
+                    "PID file %(pidfile_path)r not locked by this process"
+                    % vars())
+                raise error
+
+            pid = pidlockfile.read_pid_from_pidfile(self.pidlockfile.path)
+            self.pidlockfile.release()
+            os.kill(pid, signal.SIGTERM)
 
     def startstop(self):
         """Start/stop/restart behaviour.
@@ -186,12 +194,15 @@ class DaemonContext(object):
 
 def make_pidlockfile(path):
     """ Make a PIDLockFile instance with the given filesystem path """
-    if not isinstance(path, basestring):
-        error = ValueError("Not a filesystem path: %(path)r" % vars())
-        raise error
-    if not os.path.isabs(path):
-        error = ValueError("Not an absolute path: %(path)r" % vars())
-        raise error
+    lockfile = None
 
-    lockfile = pidlockfile.PIDLockFile(path)
+    if path is not None:
+        if not isinstance(path, basestring):
+            error = ValueError("Not a filesystem path: %(path)r" % vars())
+            raise error
+        if not os.path.isabs(path):
+            error = ValueError("Not an absolute path: %(path)r" % vars())
+            raise error
+        lockfile = pidlockfile.PIDLockFile(path)
+
     return lockfile

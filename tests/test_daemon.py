@@ -302,30 +302,8 @@ def setup_daemon_context_fixtures(testcase):
     testcase.mock_tracker = scaffold.MockTracker(
         testcase.mock_outfile)
 
-    setup_pidfile_fixtures(testcase)
     setup_streams_fixtures(testcase)
 
-    testcase.mock_pidfile_path = tempfile.mktemp()
-
-    testcase.mock_pidlockfile = scaffold.Mock(
-        "pidlockfile.PIDLockFile",
-        tracker=testcase.mock_tracker)
-    testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
-
-    scaffold.mock(
-        "pidlockfile.read_pid_from_pidfile",
-        returns=testcase.mock_pid,
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "pidlockfile.write_pid_to_pidfile",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "pidlockfile.remove_existing_pidfile",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "pidlockfile.PIDLockFile",
-        returns=testcase.mock_pidlockfile,
-        tracker=testcase.mock_tracker)
     scaffold.mock(
         "daemon.daemon.detach_process_context",
         tracker=testcase.mock_tracker)
@@ -339,7 +317,6 @@ def setup_daemon_context_fixtures(testcase):
     testcase.mock_stderr = FakeFileDescriptorStringIO()
 
     testcase.daemon_context_args = dict(
-        pidfile_path = testcase.mock_pidfile_path,
         stdin = testcase.stream_files_by_name['stdin'],
         stdout = testcase.stream_files_by_name['stdout'],
         stderr = testcase.stream_files_by_name['stderr'],
@@ -398,7 +375,7 @@ class DaemonContext_TestCase(scaffold.TestCase):
 
     def test_has_specified_pidfile_path(self):
         """ Should have the specified pidfile_path """
-        pidfile_path = self.mock_pidfile_path
+        pidfile_path = object()
         args = dict(
             pidfile_path = pidfile_path,
             )
@@ -434,6 +411,39 @@ class DaemonContext_TestCase(scaffold.TestCase):
         self.failUnlessEqual(expect_file, instance.stderr)
 
 
+def setup_daemon_context_pidfile_fixtures(testcase):
+    """ Set up common test fixtures for test case with PID file """
+
+    setup_pidfile_fixtures(testcase)
+
+    testcase.mock_pidfile_path = tempfile.mktemp()
+
+    testcase.mock_pidlockfile = scaffold.Mock(
+        "pidlockfile.PIDLockFile",
+        tracker=testcase.mock_tracker)
+    testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
+
+    scaffold.mock(
+        "pidlockfile.read_pid_from_pidfile",
+        returns=testcase.mock_pid,
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "pidlockfile.write_pid_to_pidfile",
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "pidlockfile.remove_existing_pidfile",
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "pidlockfile.PIDLockFile",
+        returns=testcase.mock_pidlockfile,
+        tracker=testcase.mock_tracker)
+
+    testcase.daemon_context_args.update(dict(
+        pidfile_path = testcase.mock_pidfile_path))
+    testcase.test_instance = daemon.DaemonContext(
+        **testcase.daemon_context_args)
+
+
 class DaemonContext_start_TestCase(scaffold.TestCase):
     """ Test cases for DaemonContext.start method """
 
@@ -449,7 +459,6 @@ class DaemonContext_start_TestCase(scaffold.TestCase):
         """ Should request detach of process context """
         instance = self.test_instance
         expect_mock_output = """\
-            ...
             Called daemon.daemon.detach_process_context()
             ...
             """ % vars()
@@ -500,6 +509,7 @@ class DaemonContextWithPIDFile_start_TestCase(scaffold.TestCase):
     def setUp(self):
         """ Set up test fixtures """
         setup_daemon_context_fixtures(self)
+        setup_daemon_context_pidfile_fixtures(self)
 
     def tearDown(self):
         """ Tear down test fixtures """
@@ -560,7 +570,6 @@ class DaemonContextWithPIDFile_start_TestCase(scaffold.TestCase):
         expect_mock_output = """\
             ...
             Called pidlockfile.PIDLockFile.acquire()
-            ...
             """
         instance.start()
         scaffold.mock_restore()
@@ -568,12 +577,37 @@ class DaemonContextWithPIDFile_start_TestCase(scaffold.TestCase):
             expect_mock_output, self.mock_outfile.getvalue())
 
 
+class DaemonContext_stop_TestCase(scaffold.TestCase):
+    """ Test cases for Daemon.stop method, with PID file """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_daemon_context_fixtures(self)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_raises_system_exit(self):
+        """ Should raise SystemExit """
+        instance = self.test_instance
+        expect_exception = SystemExit
+        self.failUnlessRaises(
+            expect_exception,
+            instance.stop)
+
+
 class DaemonContextWithPIDFile_stop_TestCase(scaffold.TestCase):
     """ Test cases for Daemon.stop method, with PID file """
 
     def setUp(self):
         """ Set up test fixtures """
         setup_daemon_context_fixtures(self)
+        setup_daemon_context_pidfile_fixtures(self)
+        scaffold.mock(
+            "os.kill",
+            tracker=self.mock_tracker)
+
         self.test_instance.pidlockfile = self.mock_pidlockfile
         self.mock_pidlockfile.is_locked.mock_returns = True
         self.mock_pidlockfile.i_am_locking.mock_returns = True
@@ -594,6 +628,7 @@ class DaemonContextWithPIDFile_stop_TestCase(scaffold.TestCase):
             pass
         else:
             raise self.failureException("Failed to raise SystemExit")
+        scaffold.mock_restore()
         self.failUnlessIn(exc.message, self.mock_pidfile_path)
 
     def test_releases_pidfile_lock(self):
@@ -609,7 +644,7 @@ class DaemonContextWithPIDFile_stop_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
-    def test_sends_terminate_signal_to_process(self):
+    def test_sends_terminate_signal_to_process_from_pidfile(self):
         """ Should send SIGTERM to the daemon process """
         instance = self.test_instance
         pid = self.mock_pid

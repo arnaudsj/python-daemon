@@ -368,7 +368,7 @@ class DaemonContext_TestCase(scaffold.TestCase):
         self.failUnlessIsInstance(
             self.test_instance, daemon.daemon.DaemonContext)
 
-    def test_requires_no_arguments(self):
+    def test_minimum_zero_arguments(self):
         """ Initialiser should not require any arguments """
         instance = daemon.daemon.DaemonContext()
         self.failIfIs(None, instance)

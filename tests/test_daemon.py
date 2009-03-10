@@ -363,24 +363,10 @@ def setup_daemon_context_pidfile_fixtures(testcase):
         "pidlockfile.PIDLockFile",
         tracker=testcase.mock_tracker)
     testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
-
-    scaffold.mock(
-        "pidlockfile.read_pid_from_pidfile",
-        returns=testcase.mock_pid,
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "pidlockfile.write_pid_to_pidfile",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "pidlockfile.remove_existing_pidfile",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "pidlockfile.PIDLockFile",
-        returns=testcase.mock_pidlockfile,
-        tracker=testcase.mock_tracker)
+    testcase.mock_pidlockfile.pid = testcase.mock_pid
 
     testcase.daemon_context_args.update(dict(
-        pidfile_path = testcase.mock_pidfile_path))
+        pidfile = testcase.mock_pidlockfile))
     testcase.test_instance = daemon.DaemonContext(
         **testcase.daemon_context_args)
 
@@ -406,15 +392,14 @@ class DaemonContext_TestCase(scaffold.TestCase):
         instance = daemon.daemon.DaemonContext()
         self.failIfIs(None, instance)
 
-    def test_has_specified_pidfile_path(self):
-        """ Should have the specified pidfile_path """
-        pidfile_path = "/foo/bar.pid"
+    def test_has_specified_pidfile(self):
+        """ Should have the specified pidfile """
         args = dict(
-            pidfile_path = pidfile_path,
+            pidfile = object(),
             )
-        expect_pidfile_path = pidfile_path
+        expect_pidfile = args['pidfile']
         instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_pidfile_path, instance.pidfile_path)
+        self.failUnlessEqual(expect_pidfile, instance.pidfile)
 
     def test_has_specified_stdin(self):
         """ Should have specified stdin option """
@@ -442,52 +427,6 @@ class DaemonContext_TestCase(scaffold.TestCase):
         expect_file = args['stderr']
         instance = daemon.daemon.DaemonContext(**args)
         self.failUnlessEqual(expect_file, instance.stderr)
-
-
-class DaemonContextWithPIDFile_TestCase(scaffold.TestCase):
-    """ Test cases for DaemonContext class, with PID file """
-
-    def setUp(self):
-        """ Set up test fixtures """
-        setup_daemon_context_fixtures(self)
-        setup_daemon_context_pidfile_fixtures(self)
-
-    def tearDown(self):
-        """ Tear down test fixtures """
-        scaffold.mock_restore()
-
-    def test_error_when_pidfile_path_not_string(self):
-        """ Should raise ValueError when PID file path not a string """
-        pidfile_path = object()
-        args = dict(
-            pidfile_path = pidfile_path,
-            )
-        expect_error = ValueError
-        self.failUnlessRaises(
-            expect_error,
-            daemon.DaemonContext, **args)
-
-    def test_error_when_pidfile_path_not_absolute(self):
-        """ Should raise ValueError when PID file path not absolute """
-        pidfile_path = "foo/bar.pid"
-        args = dict(
-            pidfile_path = pidfile_path,
-            )
-        expect_error = ValueError
-        self.failUnlessRaises(
-            expect_error,
-            daemon.DaemonContext, **args)
-
-    def test_creates_pidlockfile(self):
-        """ Should create a PIDLockFile with the specified PID file name """
-        instance = self.test_instance
-        pidfile_path = self.mock_pidfile_path
-        expect_mock_output = """\
-            Called pidlockfile.PIDLockFile(%(pidfile_path)r)
-            """ % vars()
-        scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
 
 
 class DaemonContext_start_TestCase(scaffold.TestCase):

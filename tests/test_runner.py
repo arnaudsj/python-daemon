@@ -28,6 +28,7 @@ from test_daemon import (
     )
 import daemon.daemon
 
+from daemon import pidlockfile
 from daemon import runner
 
 
@@ -52,6 +53,11 @@ def setup_runner_fixtures(testcase):
         "pidlockfile.PIDLockFile",
         tracker=testcase.mock_tracker)
     testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
+
+    scaffold.mock(
+        "pidlockfile.PIDLockFile",
+        returns=testcase.mock_pidlockfile,
+        tracker=testcase.mock_tracker)
 
     class TestApp(object):
 
@@ -139,12 +145,48 @@ class Runner_TestCase(scaffold.TestCase):
         """ Should have specified application object """
         self.failUnlessIs(self.test_app, self.test_instance.app)
 
-    def test_daemon_context_has_specified_pidfile_path(self):
-        """ DaemonContext component should have specified PID file path """
-        expect_pidfile_path = self.test_app.pidfile_path
+    def test_error_when_pidfile_path_not_string(self):
+        """ Should raise ValueError when PID file path not a string """
+        pidfile_path = object()
+        self.test_app.pidfile_path = pidfile_path
+        expect_error = ValueError
+        self.failUnlessRaises(
+            expect_error,
+            runner.Runner, self.test_app)
+
+    def test_error_when_pidfile_path_not_absolute(self):
+        """ Should raise ValueError when PID file path not absolute """
+        pidfile_path = "foo/bar.pid"
+        self.test_app.pidfile_path = pidfile_path
+        expect_error = ValueError
+        self.failUnlessRaises(
+            expect_error,
+            runner.Runner, self.test_app)
+
+    def test_creates_pidlockfile(self):
+        """ Should create a PIDLockFile with the specified PID file path """
+        pidfile_path = self.mock_pidfile_path
+        expect_mock_output = """\
+            ...
+            Called pidlockfile.PIDLockFile(%(pidfile_path)r)
+            """ % vars()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+ 
+    def test_has_created_pidfile(self):
+        """ Should have new PID lock file as `pidfile` attribute """
+        expect_pidfile = self.mock_pidlockfile
+        instance = self.test_instance
+        self.failUnlessIs(
+            expect_pidfile, instance.pidfile)
+ 
+    def test_daemon_context_has_created_pidfile(self):
+        """ DaemonContext component should have new PID lock file """
+        expect_pidfile = self.mock_pidlockfile
         daemon_context = self.test_instance.daemon_context
-        self.failUnlessEqual(
-            expect_pidfile_path, daemon_context.pidfile_path)
+        self.failUnlessIs(
+            expect_pidfile, daemon_context.pidfile)
 
     def test_daemon_context_has_specified_stdin_stream(self):
         """ DaemonContext component should have specified stdin file """

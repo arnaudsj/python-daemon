@@ -16,6 +16,9 @@
     """
 
 import sys
+import os
+
+import pidlockfile
 
 from daemon import DaemonContext
 
@@ -50,11 +53,13 @@ class Runner(object):
         self.parse_args()
         self.app = app
         self.daemon_context = DaemonContext()
-        self.daemon_context.pidfile_path = app.pidfile_path
         self.daemon_context.stdin = open(app.stdin_path, 'r')
         self.daemon_context.stdout = open(app.stdout_path, 'w+')
         self.daemon_context.stderr = open(
             app.stderr_path, 'w+', buffering=0)
+
+        self.pidfile = make_pidlockfile(app.pidfile_path)
+        self.daemon_context.pidfile = self.pidfile
 
     def _usage_exit(self, argv):
         """ Emit a usage message, then exit.
@@ -110,3 +115,19 @@ class Runner(object):
         if func is None:
             raise ValueError("Unknown action: %(action)r" % vars(self))
         func(self)
+
+
+def make_pidlockfile(path):
+    """ Make a PIDLockFile instance with the given filesystem path """
+    lockfile = None
+
+    if path is not None:
+        if not isinstance(path, basestring):
+            error = ValueError("Not a filesystem path: %(path)r" % vars())
+            raise error
+        if not os.path.isabs(path):
+            error = ValueError("Not an absolute path: %(path)r" % vars())
+            raise error
+        lockfile = pidlockfile.PIDLockFile(path)
+
+    return lockfile

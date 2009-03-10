@@ -17,8 +17,6 @@ import resource
 import errno
 import signal
 
-import pidlockfile
-
 
 def prevent_core_dump():
     """ Prevent this process from generating a core dump.
@@ -110,13 +108,13 @@ class DaemonContext(object):
 
     def __init__(
         self,
-        pidfile_path=None,
+        pidfile=None,
         stdin=None,
         stdout=None,
         stderr=None,
         ):
-        self.pidfile_path = pidfile_path
-        self.pidlockfile = make_pidlockfile(self.pidfile_path)
+        self.pidfile = pidfile
+        self.pidlockfile = self.pidfile
         self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
@@ -167,7 +165,7 @@ class DaemonContext(object):
                     % vars())
                 raise error
 
-            pid = pidlockfile.read_pid_from_pidfile(self.pidlockfile.path)
+            pid = self.pidlockfile.pid
             self.pidlockfile.release()
             os.kill(pid, signal.SIGTERM)
 
@@ -189,19 +187,3 @@ class DaemonContext(object):
                 return
         print "usage: %s start|stop|restart" % sys.argv[0]
         sys.exit(2)
-
-
-def make_pidlockfile(path):
-    """ Make a PIDLockFile instance with the given filesystem path """
-    lockfile = None
-
-    if path is not None:
-        if not isinstance(path, basestring):
-            error = ValueError("Not a filesystem path: %(path)r" % vars())
-            raise error
-        if not os.path.isabs(path):
-            error = ValueError("Not an absolute path: %(path)r" % vars())
-            raise error
-        lockfile = pidlockfile.PIDLockFile(path)
-
-    return lockfile

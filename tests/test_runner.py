@@ -48,6 +48,11 @@ def setup_runner_fixtures(testcase):
 
     testcase.mock_pidfile_path = tempfile.mktemp()
 
+    testcase.mock_pidlockfile = scaffold.Mock(
+        "pidlockfile.PIDLockFile",
+        tracker=testcase.mock_tracker)
+    testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
+
     class TestApp(object):
 
         def __init__(self):
@@ -287,7 +292,7 @@ class Runner_do_action_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
-    def test_requests_app_run_if_start_Action(self):
+    def test_requests_app_run_if_start_action(self):
         """ Should request the application to run if action is 'start' """
         instance = self.test_instance
         instance.action = 'start'

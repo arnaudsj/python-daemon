@@ -352,6 +352,39 @@ def setup_daemon_context_fixtures(testcase):
         tracker=testcase.mock_tracker)
 
 
+def setup_daemon_context_pidfile_fixtures(testcase):
+    """ Set up common test fixtures for test case with PID file """
+
+    setup_pidfile_fixtures(testcase)
+
+    testcase.mock_pidfile_path = tempfile.mktemp()
+
+    testcase.mock_pidlockfile = scaffold.Mock(
+        "pidlockfile.PIDLockFile",
+        tracker=testcase.mock_tracker)
+    testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
+
+    scaffold.mock(
+        "pidlockfile.read_pid_from_pidfile",
+        returns=testcase.mock_pid,
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "pidlockfile.write_pid_to_pidfile",
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "pidlockfile.remove_existing_pidfile",
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "pidlockfile.PIDLockFile",
+        returns=testcase.mock_pidlockfile,
+        tracker=testcase.mock_tracker)
+
+    testcase.daemon_context_args.update(dict(
+        pidfile_path = testcase.mock_pidfile_path))
+    testcase.test_instance = daemon.DaemonContext(
+        **testcase.daemon_context_args)
+
+
 class DaemonContext_TestCase(scaffold.TestCase):
     """ Test cases for DaemonContext class """
 
@@ -375,7 +408,7 @@ class DaemonContext_TestCase(scaffold.TestCase):
 
     def test_has_specified_pidfile_path(self):
         """ Should have the specified pidfile_path """
-        pidfile_path = object()
+        pidfile_path = "/foo/bar.pid"
         args = dict(
             pidfile_path = pidfile_path,
             )
@@ -410,40 +443,53 @@ class DaemonContext_TestCase(scaffold.TestCase):
         instance = daemon.daemon.DaemonContext(**args)
         self.failUnlessEqual(expect_file, instance.stderr)
 
+
+class DaemonContextWithPIDFile_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext class, with PID file """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_daemon_context_fixtures(self)
+        setup_daemon_context_pidfile_fixtures(self)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_error_when_pidfile_path_not_string(self):
+        """ Should raise ValueError when PID file path not a string """
+        pidfile_path = object()
+        args = dict(
+            pidfile_path = pidfile_path,
+            )
+        expect_error = ValueError
+        self.failUnlessRaises(
+            expect_error,
+            daemon.DaemonContext, **args)
+
+    def test_error_when_pidfile_path_not_absolute(self):
+        """ Should raise ValueError when PID file path not absolute """
+        pidfile_path = "foo/bar.pid"
+        args = dict(
+            pidfile_path = pidfile_path,
+            )
+        expect_error = ValueError
+        self.failUnlessRaises(
+            expect_error,
+            daemon.DaemonContext, **args)
+
+    def test_creates_pidlockfile(self):
+        """ Should create a PIDLockFile with the specified PID file name """
+        instance = self.test_instance
+        pidfile_path = self.mock_pidfile_path
+        expect_mock_output = """\
+            Called pidlockfile.PIDLockFile(%(pidfile_path)r)
+            """ % vars()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
 
-def setup_daemon_context_pidfile_fixtures(testcase):
-    """ Set up common test fixtures for test case with PID file """
-
-    setup_pidfile_fixtures(testcase)
-
-    testcase.mock_pidfile_path = tempfile.mktemp()
-
-    testcase.mock_pidlockfile = scaffold.Mock(
-        "pidlockfile.PIDLockFile",
-        tracker=testcase.mock_tracker)
-    testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
-
-    scaffold.mock(
-        "pidlockfile.read_pid_from_pidfile",
-        returns=testcase.mock_pid,
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "pidlockfile.write_pid_to_pidfile",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "pidlockfile.remove_existing_pidfile",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "pidlockfile.PIDLockFile",
-        returns=testcase.mock_pidlockfile,
-        tracker=testcase.mock_tracker)
-
-    testcase.daemon_context_args.update(dict(
-        pidfile_path = testcase.mock_pidfile_path))
-    testcase.test_instance = daemon.DaemonContext(
-        **testcase.daemon_context_args)
-
-
 class DaemonContext_start_TestCase(scaffold.TestCase):
     """ Test cases for DaemonContext.start method """
 
@@ -514,43 +560,6 @@ class DaemonContextWithPIDFile_start_TestCase(scaffold.TestCase):
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()
-
-    def test_error_when_pidfile_path_not_string(self):
-        """ Should raise ValueError when PID file path not a string """
-        pidfile_path = object()
-        args = dict(
-            pidfile_path = pidfile_path,
-            )
-        instance = daemon.DaemonContext(**args)
-        expect_error = ValueError
-        self.failUnlessRaises(
-            expect_error,
-            instance.start)
-
-    def test_error_when_pidfile_path_not_absolute(self):
-        """ Should raise ValueError when PID file path not absolute """
-        pidfile_path = "foo/bar.pid"
-        args = dict(
-            pidfile_path = pidfile_path,
-            )
-        instance = daemon.DaemonContext(**args)
-        expect_error = ValueError
-        self.failUnlessRaises(
-            expect_error,
-            instance.start)
-
-    def test_creates_pidlockfile(self):
-        """ Should create a PIDLockFile with the specified PID file name """
-        instance = self.test_instance
-        pidfile_path = self.mock_pidfile_path
-        expect_mock_output = """\
-            Called pidlockfile.PIDLockFile(%(pidfile_path)r)
-            ...
-            """ % vars()
-        instance.start()
-        scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
 
     def test_aborts_if_pidfile_locked(self):
         """ Should raise SystemExit if PID file is locked """

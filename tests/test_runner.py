@@ -258,7 +258,7 @@ class Runner_parse_args_TestCase(scaffold.TestCase):
             instance.parse_args(argv)
             self.failUnlessEqual(expect_action, instance.action)
 
-
+
 class Runner_do_action_TestCase(scaffold.TestCase):
     """ Test cases for Runner.do_action method """
 
@@ -279,8 +279,21 @@ class Runner_do_action_TestCase(scaffold.TestCase):
             expect_error,
             instance.do_action)
 
-    def test_requests_daemon_start_if_start_action(self):
-        """ Should request the daemon to start if action is 'start' """
+
+class Runner_do_action_start_TestCase(scaffold.TestCase):
+    """ Test cases for Runner.do_action method, with action 'start' """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_runner_fixtures(self)
+        self.test_instance.action = 'start'
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_requests_daemon_start(self):
+        """ Should request the daemon to start """
         instance = self.test_instance
         instance.action = 'start'
         expect_mock_output = """\
@@ -292,8 +305,8 @@ class Runner_do_action_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
-    def test_requests_app_run_if_start_action(self):
-        """ Should request the application to run if action is 'start' """
+    def test_requests_app_run(self):
+        """ Should request the application to run """
         instance = self.test_instance
         instance.action = 'start'
         expect_mock_output = """\
@@ -304,10 +317,22 @@ class Runner_do_action_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
-    def test_requests_daemon_stop_if_stop_action(self):
+
+class Runner_do_action_stop_TestCase(scaffold.TestCase):
+    """ Test cases for Runner.do_action method, with action 'stop' """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_runner_fixtures(self)
+        self.test_instance.action = 'stop'
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_requests_daemon_stop(self):
         """ Should request the daemon to stop if action is 'stop' """
         instance = self.test_instance
-        instance.action = 'stop'
         expect_mock_output = """\
             ...
             Called DaemonContext.stop()
@@ -316,10 +341,22 @@ class Runner_do_action_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
-    def test_requests_stop_then_start_if_restart_action(self):
-        """ Should request stop, then start, if action is 'restart' """
+
+class Runner_do_action_restart_TestCase(scaffold.TestCase):
+    """ Test cases for Runner.do_action method, with action 'restart' """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_runner_fixtures(self)
+        self.test_instance.action = 'restart'
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_requests_stop_then_start(self):
+        """ Should request stop, then start """
         instance = self.test_instance
-        instance.action = 'restart'
         scaffold.mock(
             "daemon.runner.Runner._start",
             tracker=self.mock_tracker)

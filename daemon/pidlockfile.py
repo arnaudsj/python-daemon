@@ -32,6 +32,12 @@ class PIDLockFile(LockBase):
 
         """
 
+    def read_pid(self):
+        """ Get the PID from the lock file.
+            """
+        result = read_pid_from_pidfile(self.path)
+        return result
+
     def is_locked(self):
         """ Test if the lock is currently held.
 
@@ -50,16 +56,9 @@ class PIDLockFile(LockBase):
             """
         result = False
         current_pid = os.getpid()
-        if os.path.exists(self.path):
-            pidfile = open(self.path)
-            pidfile_line = pidfile.readline()
-            try:
-                pidfile_pid = int(pidfile_line.strip())
-            except ValueError:
-                pass
-            else:
-                if current_pid == pidfile_pid:
-                    result = True
+        pidfile_pid = self.read_pid()
+        if current_pid == pidfile_pid:
+            result = True
         return result
 
     def acquire(self):
@@ -114,15 +113,22 @@ def read_pid_from_pidfile(pidfile_path):
     """ Read the PID recorded in the named PID file.
 
         Read and return the numeric PID recorded as text in the named
-        PID file. If the PID file cannot be read, return ``None``.
+        PID file. If the PID file cannot be read, or if the content is
+        not a valid PID, return ``None``.
 
         """
+    pid = None
     try:
         pidfile = open(pidfile_path, 'r')
-        pid = int(pidfile.read().strip())
-        pidfile.close()
     except IOError:
-        pid = None
+        pass
+    else:
+        line = pidfile.read().strip()
+        try:
+            pid = int(line)
+        except ValueError:
+            pass
+        pidfile.close()
 
     return pid
 

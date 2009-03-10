@@ -33,7 +33,7 @@ from daemon import runner
 
 
 def setup_runner_fixtures(testcase):
-    """ Set up common test fixtures for Runner test case """
+    """ Set up common test fixtures for DaemonRunner test case """
 
     testcase.mock_outfile = StringIO()
     testcase.mock_tracker = scaffold.MockTracker(
@@ -107,11 +107,11 @@ def setup_runner_fixtures(testcase):
         mock_obj=testcase.valid_argv_params['start'],
         tracker=testcase.mock_tracker)
 
-    testcase.test_instance = runner.Runner(testcase.test_app)
+    testcase.test_instance = runner.DaemonRunner(testcase.test_app)
 
 
-class Runner_TestCase(scaffold.TestCase):
-    """ Test cases for Runner class """
+class DaemonRunner_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonRunner class """
 
     def setUp(self):
         """ Set up test fixtures """
@@ -119,23 +119,23 @@ class Runner_TestCase(scaffold.TestCase):
         self.mock_outfile.truncate(0)
 
         scaffold.mock(
-            "runner.Runner.parse_args",
+            "runner.DaemonRunner.parse_args",
             tracker=self.mock_tracker)
 
-        self.test_instance = runner.Runner(self.test_app)
+        self.test_instance = runner.DaemonRunner(self.test_app)
 
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
     def test_instantiate(self):
-        """ New instance of Runner should be created """
-        self.failUnlessIsInstance(self.test_instance, runner.Runner)
+        """ New instance of DaemonRunner should be created """
+        self.failUnlessIsInstance(self.test_instance, runner.DaemonRunner)
 
     def test_parses_commandline_args(self):
         """ Should parse commandline arguments """
         expect_mock_output = """\
-            Called runner.Runner.parse_args()
+            Called runner.DaemonRunner.parse_args()
             ...
             """
         self.failUnlessOutputCheckerMatch(
@@ -152,7 +152,7 @@ class Runner_TestCase(scaffold.TestCase):
         expect_error = ValueError
         self.failUnlessRaises(
             expect_error,
-            runner.Runner, self.test_app)
+            runner.DaemonRunner, self.test_app)
 
     def test_error_when_pidfile_path_not_absolute(self):
         """ Should raise ValueError when PID file path not absolute """
@@ -161,7 +161,7 @@ class Runner_TestCase(scaffold.TestCase):
         expect_error = ValueError
         self.failUnlessRaises(
             expect_error,
-            runner.Runner, self.test_app)
+            runner.DaemonRunner, self.test_app)
 
     def test_creates_pidlockfile(self):
         """ Should create a PIDLockFile with the specified PID file path """
@@ -235,8 +235,8 @@ class Runner_TestCase(scaffold.TestCase):
             expect_buffering, daemon_context.stderr.buffering)
 
 
-class Runner_parse_args_TestCase(scaffold.TestCase):
-    """ Test cases for Runner.parse_args method """
+class DaemonRunner_parse_args_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonRunner.parse_args method """
 
     def setUp(self):
         """ Set up test fixtures """
@@ -301,8 +301,8 @@ class Runner_parse_args_TestCase(scaffold.TestCase):
             self.failUnlessEqual(expect_action, instance.action)
 
 
-class Runner_do_action_TestCase(scaffold.TestCase):
-    """ Test cases for Runner.do_action method """
+class DaemonRunner_do_action_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonRunner.do_action method """
 
     def setUp(self):
         """ Set up test fixtures """
@@ -322,8 +322,8 @@ class Runner_do_action_TestCase(scaffold.TestCase):
             instance.do_action)
 
 
-class Runner_do_action_start_TestCase(scaffold.TestCase):
-    """ Test cases for Runner.do_action method, with action 'start' """
+class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonRunner.do_action method, action 'start' """
 
     def setUp(self):
         """ Set up test fixtures """
@@ -360,8 +360,8 @@ class Runner_do_action_start_TestCase(scaffold.TestCase):
             expect_mock_output, self.mock_outfile.getvalue())
 
 
-class Runner_do_action_stop_TestCase(scaffold.TestCase):
-    """ Test cases for Runner.do_action method, with action 'stop' """
+class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonRunner.do_action method, action 'stop' """
 
     def setUp(self):
         """ Set up test fixtures """
@@ -373,7 +373,7 @@ class Runner_do_action_stop_TestCase(scaffold.TestCase):
         scaffold.mock_restore()
 
     def test_requests_daemon_stop(self):
-        """ Should request the daemon to stop if action is 'stop' """
+        """ Should request the daemon to stop """
         instance = self.test_instance
         expect_mock_output = """\
             ...
@@ -384,8 +384,8 @@ class Runner_do_action_stop_TestCase(scaffold.TestCase):
             expect_mock_output, self.mock_outfile.getvalue())
 
 
-class Runner_do_action_restart_TestCase(scaffold.TestCase):
-    """ Test cases for Runner.do_action method, with action 'restart' """
+class DaemonRunner_do_action_restart_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonRunner.do_action method, action 'restart' """
 
     def setUp(self):
         """ Set up test fixtures """
@@ -400,15 +400,15 @@ class Runner_do_action_restart_TestCase(scaffold.TestCase):
         """ Should request stop, then start """
         instance = self.test_instance
         scaffold.mock(
-            "daemon.runner.Runner._start",
+            "daemon.runner.DaemonRunner._start",
             tracker=self.mock_tracker)
         scaffold.mock(
-            "daemon.runner.Runner._stop",
+            "daemon.runner.DaemonRunner._stop",
             tracker=self.mock_tracker)
         expect_mock_output = """\
             ...
-            Called daemon.runner.Runner._stop()
-            Called daemon.runner.Runner._start()
+            Called daemon.runner.DaemonRunner._stop()
+            Called daemon.runner.DaemonRunner._start()
             """
         instance.do_action()
         self.failUnlessOutputCheckerMatch(

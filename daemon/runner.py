@@ -23,7 +23,7 @@ import pidlockfile
 from daemon import DaemonContext
 
 
-class Runner(object):
+class DaemonRunner(object):
     """ Controller for a callable running in a separate background process.
 
         The first command-line arguments is the action to take:

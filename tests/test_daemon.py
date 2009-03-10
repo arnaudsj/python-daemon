@@ -363,7 +363,6 @@ def setup_daemon_context_pidfile_fixtures(testcase):
         "pidlockfile.PIDLockFile",
         tracker=testcase.mock_tracker)
     testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
-    testcase.mock_pidlockfile.pid = testcase.mock_pid
 
     testcase.daemon_context_args.update(dict(
         pidfile = testcase.mock_pidlockfile))
@@ -558,9 +557,8 @@ class DaemonContextWithPIDFile_stop_TestCase(scaffold.TestCase):
 
         self.test_instance.pidlockfile = self.mock_pidlockfile
         self.mock_pidlockfile.is_locked.mock_returns = True
-        self.mock_pidlockfile.i_am_locking.mock_returns = True
-
-        self.pidfile_open_func = self.mock_pidfile_open_exist
+        self.mock_pidlockfile.i_am_locking.mock_returns = False
+        self.mock_pidlockfile.read_pid.mock_returns = self.mock_other_pid
 
     def tearDown(self):
         """ Tear down test fixtures """
@@ -569,7 +567,9 @@ class DaemonContextWithPIDFile_stop_TestCase(scaffold.TestCase):
     def test_aborts_if_pidfile_not_locked(self):
         """ Should raise SystemExit if PID file is not locked """
         instance = self.test_instance
+        self.mock_pidlockfile.is_locked.mock_returns = False
         self.mock_pidlockfile.i_am_locking.mock_returns = False
+        self.mock_pidlockfile.read_pid.mock_returns = None
         try:
             instance.stop()
         except SystemExit, exc:
@@ -595,11 +595,11 @@ class DaemonContextWithPIDFile_stop_TestCase(scaffold.TestCase):
     def test_sends_terminate_signal_to_process_from_pidfile(self):
         """ Should send SIGTERM to the daemon process """
         instance = self.test_instance
-        pid = self.mock_pid
+        test_pid = self.mock_other_pid
         expect_signal = signal.SIGTERM
         expect_mock_output = """\
             ...
-            Called os.kill(%(pid)r, %(expect_signal)r)
+            Called os.kill(%(test_pid)r, %(expect_signal)r)
             """ % vars()
         instance.stop()
         scaffold.mock_restore()

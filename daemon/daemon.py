@@ -158,14 +158,14 @@ class DaemonContext(object):
             raise exception
 
         else:
-            if not self.pidlockfile.i_am_locking():
+            if not self.pidlockfile.is_locked():
                 pidfile_path = self.pidlockfile.path
                 error = SystemExit(
-                    "PID file %(pidfile_path)r not locked by this process"
+                    "PID file %(pidfile_path)r not locked"
                     % vars())
                 raise error
 
-            pid = self.pidlockfile.pid
+            pid = self.pidlockfile.read_pid()
             self.pidlockfile.release()
             os.kill(pid, signal.SIGTERM)
 

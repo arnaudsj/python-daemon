@@ -20,6 +20,7 @@ import itertools
 import tempfile
 import resource
 import errno
+import signal
 
 import scaffold
 from test_pidlockfile import (
@@ -105,6 +106,10 @@ def setup_runner_fixtures(testcase):
     scaffold.mock(
         "__builtin__.open",
         returns_func=mock_open,
+        tracker=testcase.mock_tracker)
+
+    scaffold.mock(
+        "os.kill",
         tracker=testcase.mock_tracker)
 
     scaffold.mock(
@@ -417,6 +422,21 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
                 "Failed to raise " + expect_error.__name__)
         scaffold.mock_restore()
         self.failUnlessIn(exc.message, self.mock_pidfile_path)
+
+    def test_sends_terminate_signal_to_process_from_pidfile(self):
+        """ Should send SIGTERM to the daemon process """
+        instance = self.test_instance
+        test_pid = self.mock_other_pid
+        expect_signal = signal.SIGTERM
+        expect_mock_output = """\
+            ...
+            Called os.kill(%(test_pid)r, %(expect_signal)r)
+            ...
+            """ % vars()
+        instance.do_action()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
 
     def test_requests_daemon_stop(self):
         """ Should request the daemon to stop """

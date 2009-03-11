@@ -17,6 +17,7 @@
 
 import sys
 import os
+import signal
 
 import pidlockfile
 
@@ -108,6 +109,8 @@ class DaemonRunner(object):
                 % vars())
             raise error
 
+        pid = self.pidfile.read_pid()
+        os.kill(pid, signal.SIGTERM)
         self.daemon_context.stop()
 
     def _restart(self):

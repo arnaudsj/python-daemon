@@ -150,6 +150,4 @@ class DaemonContext(object):
             raise exception
 
         else:
-            pid = self.pidlockfile.read_pid()
             self.pidlockfile.release()
-            os.kill(pid, signal.SIGTERM)

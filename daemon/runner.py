@@ -26,7 +26,7 @@ from daemon import DaemonContext
 class DaemonRunner(object):
     """ Controller for a callable running in a separate background process.
 
-        The first command-line arguments is the action to take:
+        The first command-line argument is the action to take:
 
         * 'start': Become a daemon and call `app.run()`.
         * 'stop': Stop the daemon.
@@ -64,7 +64,7 @@ class DaemonRunner(object):
     def _usage_exit(self, argv):
         """ Emit a usage message, then exit.
             """
-        progname = argv[0]
+        progname = os.path.basename(argv[0])
         usage_exit_code = 2
         action_usage = "|".join(self.action_funcs.keys())
         sys.stderr.write(

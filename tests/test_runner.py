@@ -367,7 +367,6 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
     def test_requests_daemon_context_open(self):
         """ Should request the daemon context to open """
         instance = self.test_instance
-        instance.action = 'start'
         expect_mock_output = """\
             ...
             Called DaemonContext.open()
@@ -377,10 +376,20 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
+    def test_emits_start_message_to_stderr(self):
+        """ Should emit start message to stderr """
+        instance = self.test_instance
+        current_pid = self.mock_current_pid
+        expect_stderr = """\
+            started with pid %(current_pid)d
+            """ % vars()
+        instance.do_action()
+        self.failUnlessOutputCheckerMatch(
+            expect_stderr, self.mock_stderr.getvalue())
+
     def test_requests_app_run(self):
         """ Should request the application to run """
         instance = self.test_instance
-        instance.action = 'start'
         expect_mock_output = """\
             ...
             Called TestApp.run()

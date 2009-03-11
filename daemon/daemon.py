@@ -104,7 +104,6 @@ class DaemonContext(object):
 
     UMASK = 0
     WORKDIR = "."
-    startmsg = 'started with pid %s'
 
     def __init__(
         self,
@@ -129,11 +128,6 @@ class DaemonContext(object):
 
         if not self.stderr:
             self.stderr = self.stdout
-
-        pid = str(os.getpid())
-
-        sys.stderr.write("\n%s\n" % self.startmsg % pid)
-        sys.stderr.flush()
 
         if self.pidfile is not None:
             self.pidfile.__enter__()

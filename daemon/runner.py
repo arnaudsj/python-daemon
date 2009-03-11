@@ -35,6 +35,8 @@ class DaemonRunner(object):
 
         """
 
+    start_message = "started with pid %(pid)d"
+
     def __init__(self, app):
         """ Set up the parameters of a new runner.
 
@@ -97,6 +99,12 @@ class DaemonRunner(object):
             raise error
 
         self.daemon_context.open()
+
+        pid = os.getpid()
+        message = self.start_message % vars()
+        sys.stderr.write("%(message)s\n" % vars())
+        sys.stderr.flush()
+
         self.app.run()
 
     def _stop(self):

@@ -45,6 +45,7 @@ setup(
     test_suite="tests.suite",
     install_requires=[
         'setuptools',
+        'lockfile >=0.7',
         ],
     tests_require=[
         'MiniMock >=1.0',

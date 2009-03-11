@@ -428,8 +428,8 @@ class DaemonContext_TestCase(scaffold.TestCase):
         self.failUnlessEqual(expect_file, instance.stderr)
 
 
-class DaemonContext_start_TestCase(scaffold.TestCase):
-    """ Test cases for DaemonContext.start method """
+class DaemonContext_open_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext.open method """
 
     def setUp(self):
         """ Set up test fixtures """
@@ -446,7 +446,7 @@ class DaemonContext_start_TestCase(scaffold.TestCase):
             Called daemon.daemon.detach_process_context()
             ...
             """ % vars()
-        instance.start()
+        instance.open()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
@@ -459,7 +459,7 @@ class DaemonContext_start_TestCase(scaffold.TestCase):
             Called daemon.daemon.prevent_core_dump()
             ...
             """ % vars()
-        instance.start()
+        instance.open()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
@@ -481,14 +481,14 @@ class DaemonContext_start_TestCase(scaffold.TestCase):
             Called daemon.daemon.redirect_stream(
                 %(system_stderr)r, %(target_stderr)r)
             """ % vars()
-        instance.start()
+        instance.open()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
 
-class DaemonContextWithPIDFile_start_TestCase(scaffold.TestCase):
-    """ Test cases for Daemon.start method, with PID file """
+class DaemonContextWithPIDFile_open_TestCase(scaffold.TestCase):
+    """ Test cases for Daemon.open method, with PID file """
 
     def setUp(self):
         """ Set up test fixtures """
@@ -504,7 +504,7 @@ class DaemonContextWithPIDFile_start_TestCase(scaffold.TestCase):
         instance = self.test_instance
         self.mock_pidlockfile.is_locked.mock_returns = True
         try:
-            instance.start()
+            instance.open()
         except SystemExit, exc:
             pass
         else:
@@ -518,14 +518,14 @@ class DaemonContextWithPIDFile_start_TestCase(scaffold.TestCase):
             ...
             Called pidlockfile.PIDLockFile.acquire()
             """
-        instance.start()
+        instance.open()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
 
-class DaemonContext_stop_TestCase(scaffold.TestCase):
-    """ Test cases for Daemon.stop method, with PID file """
+class DaemonContext_close_TestCase(scaffold.TestCase):
+    """ Test cases for Daemon.close method, with PID file """
 
     def setUp(self):
         """ Set up test fixtures """
@@ -541,11 +541,11 @@ class DaemonContext_stop_TestCase(scaffold.TestCase):
         expect_exception = SystemExit
         self.failUnlessRaises(
             expect_exception,
-            instance.stop)
+            instance.close)
 
 
-class DaemonContextWithPIDFile_stop_TestCase(scaffold.TestCase):
-    """ Test cases for Daemon.stop method, with PID file """
+class DaemonContextWithPIDFile_close_TestCase(scaffold.TestCase):
+    """ Test cases for Daemon.close method, with PID file """
 
     def setUp(self):
         """ Set up test fixtures """
@@ -571,7 +571,7 @@ class DaemonContextWithPIDFile_stop_TestCase(scaffold.TestCase):
         self.mock_pidlockfile.i_am_locking.mock_returns = False
         self.mock_pidlockfile.read_pid.mock_returns = None
         try:
-            instance.stop()
+            instance.close()
         except SystemExit, exc:
             pass
         else:
@@ -587,7 +587,7 @@ class DaemonContextWithPIDFile_stop_TestCase(scaffold.TestCase):
             Called pidlockfile.PIDLockFile.release()
             ...
             """
-        instance.stop()
+        instance.close()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
@@ -601,7 +601,7 @@ class DaemonContextWithPIDFile_stop_TestCase(scaffold.TestCase):
             ...
             Called os.kill(%(test_pid)r, %(expect_signal)r)
             """ % vars()
-        instance.stop()
+        instance.close()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())

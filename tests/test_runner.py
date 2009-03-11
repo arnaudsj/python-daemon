@@ -334,13 +334,13 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
-    def test_requests_daemon_start(self):
-        """ Should request the daemon to start """
+    def test_requests_daemon_context_open(self):
+        """ Should request the daemon context to open """
         instance = self.test_instance
         instance.action = 'start'
         expect_mock_output = """\
             ...
-            Called DaemonContext.start()
+            Called DaemonContext.open()
             ...
             """
         instance.do_action()
@@ -372,12 +372,12 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
-    def test_requests_daemon_stop(self):
-        """ Should request the daemon to stop """
+    def test_requests_daemon_context_close(self):
+        """ Should request the daemon context to close """
         instance = self.test_instance
         expect_mock_output = """\
             ...
-            Called DaemonContext.stop()
+            Called DaemonContext.close()
             """
         instance.do_action()
         self.failUnlessOutputCheckerMatch(

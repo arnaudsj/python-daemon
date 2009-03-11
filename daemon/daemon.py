@@ -119,7 +119,7 @@ class DaemonContext(object):
         self.stdout = stdout
         self.stderr = stderr
 
-    def start(self):
+    def open(self):
         """ Become a daemon process. """
         if self.pidlockfile is not None:
             if self.pidlockfile.is_locked():
@@ -151,8 +151,8 @@ class DaemonContext(object):
         redirect_stream(sys.stdout, self.stdout)
         redirect_stream(sys.stderr, self.stderr)
 
-    def stop(self):
-        """ Stop the running daemon process. """
+    def close(self):
+        """ Exit the daemon process context. """
         if self.pidlockfile is None:
             exception = SystemExit()
             raise exception
@@ -175,15 +175,15 @@ class DaemonContext(object):
         if len(sys.argv) > 1:
             action = sys.argv[1]
             if 'stop' == action:
-                self.stop()
+                self.close()
                 sys.exit(0)
                 return
             if 'start' == action:
-                self.start()
+                self.open()
                 return
             if 'restart' == action:
-                self.stop()
-                self.start()
+                self.close()
+                self.open()
                 return
         print "usage: %s start|stop|restart" % sys.argv[0]
         sys.exit(2)

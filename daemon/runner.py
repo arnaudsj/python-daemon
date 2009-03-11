@@ -86,15 +86,15 @@ class DaemonRunner(object):
             self._usage_exit(argv)
 
     def _start(self):
-        """ Start the daemon and run the application.
+        """ Open the daemon context and run the application.
             """
-        self.daemon_context.start()
+        self.daemon_context.open()
         self.app.run()
 
     def _stop(self):
-        """ Stop the daemon.
+        """ Close the daemon context.
             """
-        self.daemon_context.stop()
+        self.daemon_context.close()
 
     def _restart(self):
         """ Stop, then start.

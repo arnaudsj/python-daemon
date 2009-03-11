@@ -101,6 +101,13 @@ class DaemonRunner(object):
     def _stop(self):
         """ Stop the daemon.
             """
+        if not self.pidfile.is_locked():
+            pidfile_path = self.pidfile.path
+            error = SystemExit(
+                "PID file %(pidfile_path)r not locked"
+                % vars())
+            raise error
+
         self.daemon_context.stop()
 
     def _restart(self):

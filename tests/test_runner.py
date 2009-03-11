@@ -22,8 +22,11 @@ import resource
 import errno
 
 import scaffold
-from test_daemon import (
+from test_pidlockfile import (
     FakeFileDescriptorStringIO,
+    setup_pidfile_fixtures,
+    )
+from test_daemon import (
     setup_streams_fixtures,
     )
 import daemon.daemon
@@ -38,6 +41,8 @@ def setup_runner_fixtures(testcase):
     testcase.mock_outfile = StringIO()
     testcase.mock_tracker = scaffold.MockTracker(
         testcase.mock_outfile)
+
+    setup_pidfile_fixtures(testcase)
 
     setup_streams_fixtures(testcase)
 
@@ -330,6 +335,10 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
         setup_runner_fixtures(self)
         self.test_instance.action = 'start'
 
+        self.mock_pidlockfile.is_locked.mock_returns = True
+        self.mock_pidlockfile.i_am_locking.mock_returns = False
+        self.mock_pidlockfile.read_pid.mock_returns = self.mock_other_pid
+
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()
@@ -337,8 +346,6 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
     def test_aborts_if_pidfile_locked(self):
         """ Should raise SystemExit if PID file is locked """
         instance = self.test_instance
-        self.mock_pidlockfile.is_locked.mock_returns = True
-        self.mock_pidlockfile.i_am_locking.mock_returns = False
         expect_error = SystemExit
         try:
             instance.do_action()
@@ -383,9 +390,30 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
         setup_runner_fixtures(self)
         self.test_instance.action = 'stop'
 
+        self.mock_pidlockfile.is_locked.mock_returns = True
+        self.mock_pidlockfile.i_am_locking.mock_returns = False
+        self.mock_pidlockfile.read_pid.mock_returns = self.mock_other_pid
+
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()
+
+    def test_aborts_if_pidfile_not_locked(self):
+        """ Should raise SystemExit if PID file is not locked """
+        instance = self.test_instance
+        self.mock_pidlockfile.is_locked.mock_returns = False
+        self.mock_pidlockfile.i_am_locking.mock_returns = False
+        self.mock_pidlockfile.read_pid.mock_returns = None
+        expect_error = SystemExit
+        try:
+            instance.do_action()
+        except expect_error, exc:
+            pass
+        else:
+            raise self.failureException(
+                "Failed to raise " + expect_error.__name__)
+        scaffold.mock_restore()
+        self.failUnlessIn(exc.message, self.mock_pidfile_path)
 
     def test_requests_daemon_stop(self):
         """ Should request the daemon to stop """

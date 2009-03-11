@@ -552,21 +552,6 @@ class DaemonContextWithPIDFile_stop_TestCase(scaffold.TestCase):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
-    def test_aborts_if_pidfile_not_locked(self):
-        """ Should raise SystemExit if PID file is not locked """
-        instance = self.test_instance
-        self.mock_pidlockfile.is_locked.mock_returns = False
-        self.mock_pidlockfile.i_am_locking.mock_returns = False
-        self.mock_pidlockfile.read_pid.mock_returns = None
-        try:
-            instance.stop()
-        except SystemExit, exc:
-            pass
-        else:
-            raise self.failureException("Failed to raise SystemExit")
-        scaffold.mock_restore()
-        self.failUnlessIn(exc.message, self.mock_pidfile_path)
-
     def test_releases_pidfile_lock(self):
         """ Should release the PID file lock """
         instance = self.test_instance

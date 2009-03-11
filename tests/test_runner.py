@@ -109,7 +109,7 @@ def setup_runner_fixtures(testcase):
 
     testcase.test_instance = runner.DaemonRunner(testcase.test_app)
 
-
+
 class DaemonRunner_TestCase(scaffold.TestCase):
     """ Test cases for DaemonRunner class """
 
@@ -234,7 +234,7 @@ class DaemonRunner_TestCase(scaffold.TestCase):
         self.failUnlessEqual(
             expect_buffering, daemon_context.stderr.buffering)
 
-
+
 class DaemonRunner_parse_args_TestCase(scaffold.TestCase):
     """ Test cases for DaemonRunner.parse_args method """
 

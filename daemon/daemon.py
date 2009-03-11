@@ -114,7 +114,6 @@ class DaemonContext(object):
         stderr=None,
         ):
         self.pidfile = pidfile
-        self.pidlockfile = self.pidfile
         self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
@@ -136,8 +135,8 @@ class DaemonContext(object):
         sys.stderr.write("\n%s\n" % self.startmsg % pid)
         sys.stderr.flush()
 
-        if self.pidlockfile is not None:
-            self.pidlockfile.acquire()
+        if self.pidfile is not None:
+            self.pidfile.__enter__()
 
         redirect_stream(sys.stdin, self.stdin)
         redirect_stream(sys.stdout, self.stdout)
@@ -145,9 +144,9 @@ class DaemonContext(object):
 
     def close(self):
         """ Exit the daemon process context. """
-        if self.pidlockfile is None:
+        if self.pidfile is None:
             exception = SystemExit()
             raise exception
 
         else:
-            self.pidlockfile.release()
+            self.pidfile.__exit__()

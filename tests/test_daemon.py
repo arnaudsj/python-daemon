@@ -304,6 +304,15 @@ def setup_daemon_context_fixtures(testcase):
 
     setup_streams_fixtures(testcase)
 
+    setup_pidfile_fixtures(testcase)
+
+    testcase.mock_pidfile_path = tempfile.mktemp()
+
+    testcase.mock_pidlockfile = scaffold.Mock(
+        "pidlockfile.PIDLockFile",
+        tracker=testcase.mock_tracker)
+    testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
+
     scaffold.mock(
         "daemon.daemon.detach_process_context",
         tracker=testcase.mock_tracker)
@@ -346,24 +355,6 @@ def setup_daemon_context_fixtures(testcase):
         "sys.stderr",
         mock_obj=testcase.mock_stderr,
         tracker=testcase.mock_tracker)
-
-
-def setup_daemon_context_pidfile_fixtures(testcase):
-    """ Set up common test fixtures for test case with PID file """
-
-    setup_pidfile_fixtures(testcase)
-
-    testcase.mock_pidfile_path = tempfile.mktemp()
-
-    testcase.mock_pidlockfile = scaffold.Mock(
-        "pidlockfile.PIDLockFile",
-        tracker=testcase.mock_tracker)
-    testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
-
-    testcase.daemon_context_args.update(dict(
-        pidfile = testcase.mock_pidlockfile))
-    testcase.test_instance = daemon.DaemonContext(
-        **testcase.daemon_context_args)
 
 
 class DaemonContext_TestCase(scaffold.TestCase):
@@ -463,10 +454,11 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
     def test_enters_pidfile_context(self):
         """ Should enter the PID file context manager """
         instance = self.test_instance
-        instance.daemon_context.pidfile = self.mock_pidlockfile
+        instance.pidfile = self.mock_pidlockfile
         expect_mock_output = """\
             ...
             Called pidlockfile.PIDLockFile.__enter__()
+            ...
             """
         instance.open()
         scaffold.mock_restore()
@@ -522,7 +514,7 @@ class DaemonContext_close_TestCase(scaffold.TestCase):
     def test_exits_pidfile_context(self):
         """ Should exit the PID file context manager """
         instance = self.test_instance
-        instance.daemon_context.pidfile = self.mock_pidlockfile
+        instance.pidfile = self.mock_pidlockfile
         expect_mock_output = """\
             Called pidlockfile.PIDLockFile.__exit__()
             """

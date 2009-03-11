@@ -334,6 +334,21 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
+    def test_aborts_if_pidfile_locked(self):
+        """ Should raise SystemExit if PID file is locked """
+        instance = self.test_instance
+        self.mock_pidlockfile.is_locked.mock_returns = True
+        self.mock_pidlockfile.i_am_locking.mock_returns = False
+        expect_error = SystemExit
+        try:
+            instance.do_action()
+        except expect_error, exc:
+            pass
+        else:
+            raise self.failureException(
+                "Failed to raise " + expect_error.__name__)
+        self.failUnlessIn(exc.message, self.mock_pidfile_path)
+
     def test_requests_daemon_start(self):
         """ Should request the daemon to start """
         instance = self.test_instance

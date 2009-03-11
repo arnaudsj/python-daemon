@@ -88,6 +88,13 @@ class DaemonRunner(object):
     def _start(self):
         """ Start the daemon and run the application.
             """
+        if self.pidfile.is_locked():
+            pidfile_path = self.pidfile.path
+            error = SystemExit(
+                "PID file %(pidfile_path)r already locked"
+                % vars())
+            raise error
+
         self.daemon_context.start()
         self.app.run()
 

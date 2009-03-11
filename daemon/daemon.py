@@ -121,14 +121,6 @@ class DaemonContext(object):
 
     def start(self):
         """ Become a daemon process. """
-        if self.pidlockfile is not None:
-            if self.pidlockfile.is_locked():
-                pidfile_path = self.pidlockfile.path
-                error = SystemExit(
-                    "PID file %(pidfile_path)r already locked"
-                    % vars())
-                raise error
-
         detach_process_context()
 
         os.chdir(self.WORKDIR)

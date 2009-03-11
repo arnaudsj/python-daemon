@@ -29,7 +29,7 @@ class DaemonRunner(object):
         The first command-line argument is the action to take:
 
         * 'start': Become a daemon and call `app.run()`.
-        * 'stop': Stop the daemon.
+        * 'stop': Close the daemon context.
         * 'restart': Stop, then start.
 
         """
@@ -118,7 +118,7 @@ class DaemonRunner(object):
 
 
 def make_pidlockfile(path):
-    """ Make a PIDLockFile instance with the given filesystem path """
+    """ Make a PIDLockFile instance with the given filesystem path. """
     lockfile = None
 
     if path is not None:

@@ -335,9 +335,9 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
         setup_runner_fixtures(self)
         self.test_instance.action = 'start'
 
-        self.mock_pidlockfile.is_locked.mock_returns = True
+        self.mock_pidlockfile.is_locked.mock_returns = False
         self.mock_pidlockfile.i_am_locking.mock_returns = False
-        self.mock_pidlockfile.read_pid.mock_returns = self.mock_other_pid
+        self.mock_pidlockfile.read_pid.mock_returns = None
 
     def tearDown(self):
         """ Tear down test fixtures """
@@ -346,6 +346,9 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
     def test_aborts_if_pidfile_locked(self):
         """ Should raise SystemExit if PID file is locked """
         instance = self.test_instance
+        self.mock_pidlockfile.is_locked.mock_returns = True
+        self.mock_pidlockfile.i_am_locking.mock_returns = False
+        self.mock_pidlockfile.read_pid.mock_returns = self.mock_other_pid
         expect_error = SystemExit
         try:
             instance.do_action()

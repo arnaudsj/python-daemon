@@ -168,22 +168,3 @@ class DaemonContext(object):
             pid = self.pidlockfile.read_pid()
             self.pidlockfile.release()
             os.kill(pid, signal.SIGTERM)
-
-    def startstop(self):
-        """Start/stop/restart behaviour.
-        """
-        if len(sys.argv) > 1:
-            action = sys.argv[1]
-            if 'stop' == action:
-                self.stop()
-                sys.exit(0)
-                return
-            if 'start' == action:
-                self.start()
-                return
-            if 'restart' == action:
-                self.stop()
-                self.start()
-                return
-        print "usage: %s start|stop|restart" % sys.argv[0]
-        sys.exit(2)

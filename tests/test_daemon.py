@@ -304,6 +304,15 @@ def setup_daemon_context_fixtures(testcase):
 
     setup_streams_fixtures(testcase)
 
+    setup_pidfile_fixtures(testcase)
+
+    testcase.mock_pidfile_path = tempfile.mktemp()
+
+    testcase.mock_pidlockfile = scaffold.Mock(
+        "pidlockfile.PIDLockFile",
+        tracker=testcase.mock_tracker)
+    testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
+
     scaffold.mock(
         "daemon.daemon.detach_process_context",
         tracker=testcase.mock_tracker)
@@ -346,24 +355,6 @@ def setup_daemon_context_fixtures(testcase):
         "sys.stderr",
         mock_obj=testcase.mock_stderr,
         tracker=testcase.mock_tracker)
-
-
-def setup_daemon_context_pidfile_fixtures(testcase):
-    """ Set up common test fixtures for test case with PID file """
-
-    setup_pidfile_fixtures(testcase)
-
-    testcase.mock_pidfile_path = tempfile.mktemp()
-
-    testcase.mock_pidlockfile = scaffold.Mock(
-        "pidlockfile.PIDLockFile",
-        tracker=testcase.mock_tracker)
-    testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
-
-    testcase.daemon_context_args.update(dict(
-        pidfile = testcase.mock_pidlockfile))
-    testcase.test_instance = daemon.DaemonContext(
-        **testcase.daemon_context_args)
 
 
 class DaemonContext_TestCase(scaffold.TestCase):
@@ -462,11 +453,12 @@ class DaemonContext_start_TestCase(scaffold.TestCase):
 
     def test_acquires_pidfile_lock(self):
         """ Should acquire the PID file lock """
-        setup_daemon_context_pidfile_fixtures(self)
         instance = self.test_instance
+        self.test_instance.pidfile = self.mock_pidlockfile
         expect_mock_output = """\
             ...
             Called pidlockfile.PIDLockFile.acquire()
+            ...
             """
         instance.start()
         scaffold.mock_restore()
@@ -521,9 +513,8 @@ class DaemonContext_stop_TestCase(scaffold.TestCase):
 
     def test_releases_pidfile_lock(self):
         """ Should release the PID file lock """
-        setup_daemon_context_pidfile_fixtures(self)
         instance = self.test_instance
-        self.test_instance.pidlockfile = self.mock_pidlockfile
+        self.test_instance.pidfile = self.mock_pidlockfile
         expect_mock_output = """\
             Called pidlockfile.PIDLockFile.release()
             """

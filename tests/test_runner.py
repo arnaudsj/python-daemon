@@ -109,7 +109,7 @@ def setup_runner_fixtures(testcase):
 
     testcase.test_instance = runner.DaemonRunner(testcase.test_app)
 
-
+
 class DaemonRunner_TestCase(scaffold.TestCase):
     """ Test cases for DaemonRunner class """
 
@@ -234,7 +234,7 @@ class DaemonRunner_TestCase(scaffold.TestCase):
         self.failUnlessEqual(
             expect_buffering, daemon_context.stderr.buffering)
 
-
+
 class DaemonRunner_parse_args_TestCase(scaffold.TestCase):
     """ Test cases for DaemonRunner.parse_args method """
 
@@ -333,6 +333,21 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()
+
+    def test_aborts_if_pidfile_locked(self):
+        """ Should raise SystemExit if PID file is locked """
+        instance = self.test_instance
+        self.mock_pidlockfile.is_locked.mock_returns = True
+        self.mock_pidlockfile.i_am_locking.mock_returns = False
+        expect_error = SystemExit
+        try:
+            instance.do_action()
+        except expect_error, exc:
+            pass
+        else:
+            raise self.failureException(
+                "Failed to raise " + expect_error.__name__)
+        self.failUnlessIn(exc.message, self.mock_pidfile_path)
 
     def test_requests_daemon_context_open(self):
         """ Should request the daemon context to open """

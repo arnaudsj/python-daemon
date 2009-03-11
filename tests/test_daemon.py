@@ -460,13 +460,13 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
-    def test_acquires_pidfile_lock(self):
-        """ Should acquire the PID file lock """
-        setup_daemon_context_pidfile_fixtures(self)
+    def test_enters_pidfile_context(self):
+        """ Should enter the PID file context manager """
         instance = self.test_instance
+        instance.daemon_context.pidfile = self.mock_pidlockfile
         expect_mock_output = """\
             ...
-            Called pidlockfile.PIDLockFile.acquire()
+            Called pidlockfile.PIDLockFile.__enter__()
             """
         instance.open()
         scaffold.mock_restore()
@@ -519,13 +519,12 @@ class DaemonContext_close_TestCase(scaffold.TestCase):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
-    def test_releases_pidfile_lock(self):
-        """ Should release the PID file lock """
-        setup_daemon_context_pidfile_fixtures(self)
+    def test_exits_pidfile_context(self):
+        """ Should exit the PID file context manager """
         instance = self.test_instance
-        self.test_instance.pidlockfile = self.mock_pidlockfile
+        instance.daemon_context.pidfile = self.mock_pidlockfile
         expect_mock_output = """\
-            Called pidlockfile.PIDLockFile.release()
+            Called pidlockfile.PIDLockFile.__exit__()
             """
         instance.close()
         scaffold.mock_restore()

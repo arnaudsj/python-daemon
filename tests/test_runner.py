@@ -392,6 +392,7 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
         self.mock_pidlockfile.is_locked.mock_returns = True
         self.mock_pidlockfile.i_am_locking.mock_returns = False
         self.mock_pidlockfile.read_pid.mock_returns = self.mock_other_pid
+        pidfile_path = self.mock_pidfile_path
         expect_error = SystemExit
         try:
             instance.do_action()
@@ -400,7 +401,29 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
         else:
             raise self.failureException(
                 "Failed to raise " + expect_error.__name__)
-        self.failUnlessIn(exc.message, self.mock_pidfile_path)
+        self.failUnlessIn(exc.message, pidfile_path)
+
+    def test_breaks_lock_if_no_such_process(self):
+        """ Should request breaking lock if PID file process is not running """
+        instance = self.test_instance
+        self.mock_pidlockfile.is_locked.mock_returns = True
+        self.mock_pidlockfile.i_am_locking.mock_returns = False
+        self.mock_pidlockfile.read_pid.mock_returns = self.mock_other_pid
+        pidfile_path = self.mock_pidfile_path
+        test_pid = self.mock_other_pid
+        expect_signal = signal.SIG_DFL
+        error = OSError(errno.ESRCH, "Not running")
+        os.kill.mock_raises = error
+        expect_mock_output = """\
+            ...
+            Called os.kill(%(test_pid)r, %(expect_signal)r)
+            Called pidlockfile.PIDLockFile.break_lock()
+            ...
+            """ % vars()
+        instance.do_action()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
 
     def test_requests_daemon_start(self):
         """ Should request the daemon to start """
@@ -454,11 +477,12 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
         scaffold.mock_restore()
 
     def test_aborts_if_pidfile_not_locked(self):
-        """ Should raise SystemExit if PID file is not locked """
+        """ Should report failure and exit if PID file is not locked """
         instance = self.test_instance
         self.mock_pidlockfile.is_locked.mock_returns = False
         self.mock_pidlockfile.i_am_locking.mock_returns = False
         self.mock_pidlockfile.read_pid.mock_returns = None
+        pidfile_path = self.mock_pidfile_path
         expect_error = SystemExit
         try:
             instance.do_action()
@@ -468,7 +492,26 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
             raise self.failureException(
                 "Failed to raise " + expect_error.__name__)
         scaffold.mock_restore()
-        self.failUnlessIn(exc.message, self.mock_pidfile_path)
+        self.failUnlessIn(exc.message, pidfile_path)
+
+    def test_breaks_lock_if_pidfile_lock_stale(self):
+        """ Should break lock if PID file lock is stale """
+        instance = self.test_instance
+        pidfile_path = self.mock_pidfile_path
+        test_pid = self.mock_other_pid
+        expect_signal = signal.SIG_DFL
+        error = OSError(errno.ESRCH, "Not running")
+        os.kill.mock_raises = error
+        expect_mock_output = """\
+            ...
+            Called os.kill(%(test_pid)r, %(expect_signal)r)
+            Called pidlockfile.PIDLockFile.break_lock()
+            ...
+            """ % vars()
+        instance.do_action()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
 
     def test_sends_terminate_signal_to_process_from_pidfile(self):
         """ Should send SIGTERM to the daemon process """
@@ -484,6 +527,18 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_aborts_if_cannot_send_signal_to_process(self):
+        """ Should raise SystemExit if cannot send signal to daemon process """
+        instance = self.test_instance
+        test_pid = self.mock_other_pid
+        pidfile_path = self.mock_pidfile_path
+        error = OSError(errno.EPERM, "Nice try")
+        os.kill.mock_raises = error
+        expect_error = SystemExit
+        self.failUnlessRaises(
+            expect_error,
+            instance.do_action)
 
     def test_requests_daemon_stop(self):
         """ Should request the daemon to stop """

@@ -88,10 +88,13 @@ def setup_runner_fixtures(testcase):
 
     testcase.test_app = testcase.TestApp()
 
+    testcase.test_program_name = "bazprog"
+    testcase.test_program_path = (
+        "/foo/bar/%(test_program_name)s" % vars(testcase))
     testcase.valid_argv_params = {
-        'start': ['fooprog', 'start'],
-        'stop': ['fooprog', 'stop'],
-        'restart': ['fooprog', 'restart'],
+        'start': [testcase.test_program_path, 'start'],
+        'stop': [testcase.test_program_path, 'stop'],
+        'restart': [testcase.test_program_path, 'restart'],
         }
 
     def mock_open(filename, mode=None, buffering=None):
@@ -259,14 +262,15 @@ class DaemonRunner_parse_args_TestCase(scaffold.TestCase):
     def test_emits_usage_message_if_insufficient_args(self):
         """ Should emit a usage message and exit if too few arguments """
         instance = self.test_instance
-        argv = ['fooprog']
+        progname = self.test_program_name
+        argv = [self.test_program_path]
         scaffold.mock(
             "sys.argv",
             mock_obj=argv,
             tracker=self.mock_tracker)
         expect_stderr_output = """\
-            usage: ...
-            """
+            usage: %(progname)s ...
+            """ % vars()
         self.failUnlessRaises(
             SystemExit,
             instance.parse_args)
@@ -276,14 +280,15 @@ class DaemonRunner_parse_args_TestCase(scaffold.TestCase):
     def test_emits_usage_message_if_unknown_action_arg(self):
         """ Should emit a usage message and exit if unknown action """
         instance = self.test_instance
-        argv = ['fooprog', 'bogus']
+        progname = self.test_program_name
+        argv = [self.test_program_path, 'bogus']
         scaffold.mock(
             "sys.argv",
             mock_obj=argv,
             tracker=self.mock_tracker)
         expect_stderr_output = """\
-            usage: ...
-            """
+            usage: %(progname)s ...
+            """ % vars()
         self.failUnlessRaises(
             SystemExit,
             instance.parse_args)

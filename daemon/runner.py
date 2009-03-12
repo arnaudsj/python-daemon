@@ -132,7 +132,6 @@ class DaemonRunner(object):
                     "Failed to terminate %(pid)d: %(exc)s"
                     % vars())
                 raise error
-            self.daemon_context.close()
 
     def _restart(self):
         """ Stop, then start.

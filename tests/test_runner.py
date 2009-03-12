@@ -520,7 +520,6 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
         expect_mock_output = """\
             ...
             Called os.kill(%(test_pid)r, %(expect_signal)r)
-            ...
             """ % vars()
         instance.do_action()
         scaffold.mock_restore()
@@ -538,17 +537,6 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
         self.failUnlessRaises(
             expect_error,
             instance.do_action)
-
-    def test_requests_daemon_context_close(self):
-        """ Should request the daemon context to close """
-        instance = self.test_instance
-        expect_mock_output = """\
-            ...
-            Called DaemonContext.close()
-            """
-        instance.do_action()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
 
 
 class DaemonRunner_do_action_restart_TestCase(scaffold.TestCase):

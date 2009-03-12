@@ -248,8 +248,8 @@ class DaemonRunner_TestCase(scaffold.TestCase):
             expect_buffering, daemon_context.stderr.buffering)
 
 
-class DaemonRunner_parse_args_TestCase(scaffold.TestCase):
-    """ Test cases for DaemonRunner.parse_args method """
+class DaemonRunner_usage_exit_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonRunner.usage_exit method """
 
     def setUp(self):
         """ Set up test fixtures """
@@ -259,41 +259,74 @@ class DaemonRunner_parse_args_TestCase(scaffold.TestCase):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
-    def test_emits_usage_message_if_insufficient_args(self):
-        """ Should emit a usage message and exit if too few arguments """
+    def test_raises_system_exit(self):
+        """ Should raise SystemExit exception """
+        instance = self.test_instance
+        argv = [self.test_program_path]
+        self.failUnlessRaises(
+            SystemExit,
+            instance._usage_exit, argv)
+
+    def test_message_follows_conventional_format(self):
+        """ Should emit a conventional usage message """
         instance = self.test_instance
         progname = self.test_program_name
         argv = [self.test_program_path]
-        scaffold.mock(
-            "sys.argv",
-            mock_obj=argv,
-            tracker=self.mock_tracker)
         expect_stderr_output = """\
             usage: %(progname)s ...
             """ % vars()
         self.failUnlessRaises(
             SystemExit,
-            instance.parse_args)
+            instance._usage_exit, argv)
         self.failUnlessOutputCheckerMatch(
             expect_stderr_output, self.mock_stderr.getvalue())
+
+
+class DaemonRunner_parse_args_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonRunner.parse_args method """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_runner_fixtures(self)
+        scaffold.mock(
+            "daemon.runner.DaemonRunner._usage_exit",
+            raises=NotImplementedError,
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_emits_usage_message_if_insufficient_args(self):
+        """ Should emit a usage message and exit if too few arguments """
+        instance = self.test_instance
+        argv = [self.test_program_path]
+        expect_mock_output = """\
+            ...
+            Called daemon.runner.DaemonRunner._usage_exit(%(argv)r)
+            """ % vars()
+        try:
+            instance.parse_args(argv)
+        except NotImplementedError:
+            pass
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
 
     def test_emits_usage_message_if_unknown_action_arg(self):
         """ Should emit a usage message and exit if unknown action """
         instance = self.test_instance
         progname = self.test_program_name
         argv = [self.test_program_path, 'bogus']
-        scaffold.mock(
-            "sys.argv",
-            mock_obj=argv,
-            tracker=self.mock_tracker)
-        expect_stderr_output = """\
-            usage: %(progname)s ...
+        expect_mock_output = """\
+            ...
+            Called daemon.runner.DaemonRunner._usage_exit(%(argv)r)
             """ % vars()
-        self.failUnlessRaises(
-            SystemExit,
-            instance.parse_args)
+        try:
+            instance.parse_args(argv)
+        except NotImplementedError:
+            pass
         self.failUnlessOutputCheckerMatch(
-            expect_stderr_output, self.mock_stderr.getvalue())
+            expect_mock_output, self.mock_outfile.getvalue())
 
     def test_should_parse_system_argv_by_default(self):
         """ Should parse sys.argv by default """

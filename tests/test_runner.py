@@ -539,17 +539,6 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
             expect_error,
             instance.do_action)
 
-    def test_requests_daemon_stop(self):
-        """ Should request the daemon to stop """
-        instance = self.test_instance
-        expect_mock_output = """\
-            ...
-            Called DaemonContext.stop()
-            """
-        instance.do_action()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
-
 
 class DaemonRunner_do_action_restart_TestCase(scaffold.TestCase):
     """ Test cases for DaemonRunner.do_action method, action 'restart' """

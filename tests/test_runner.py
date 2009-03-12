@@ -506,7 +506,6 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
             ...
             Called os.kill(%(test_pid)r, %(expect_signal)r)
             Called pidlockfile.PIDLockFile.break_lock()
-            ...
             """ % vars()
         instance.do_action()
         scaffold.mock_restore()

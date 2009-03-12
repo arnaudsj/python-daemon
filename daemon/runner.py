@@ -18,6 +18,7 @@
 import sys
 import os
 import signal
+import errno
 
 import pidlockfile
 
@@ -93,10 +94,13 @@ class DaemonRunner(object):
             """
         if self.pidfile.is_locked():
             pidfile_path = self.pidfile.path
-            error = SystemExit(
-                "PID file %(pidfile_path)r already locked"
-                % vars())
-            raise error
+            if pidfile_lock_is_stale(self.pidfile):
+                self.pidfile.break_lock()
+            else:
+                error = SystemExit(
+                    "PID file %(pidfile_path)r already locked"
+                    % vars())
+                raise error
 
         self.daemon_context.open()
 
@@ -117,8 +121,18 @@ class DaemonRunner(object):
                 % vars())
             raise error
 
-        pid = self.pidfile.read_pid()
-        os.kill(pid, signal.SIGTERM)
+        if pidfile_lock_is_stale(self.pidfile):
+            self.pidfile.break_lock()
+        else:
+            pid = self.pidfile.read_pid()
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except OSError, exc:
+                error = SystemExit(
+                    "Failed to terminate %(pid)d: %(exc)s"
+                    % vars())
+                raise error
+
         self.daemon_context.close()
 
     def _restart(self):
@@ -156,3 +170,17 @@ def make_pidlockfile(path):
         lockfile = pidlockfile.PIDLockFile(path)
 
     return lockfile
+
+def pidfile_lock_is_stale(pidfile):
+    """ Determine whether a PID file refers to a nonexistent PID. """
+    result = False
+
+    pidfile_pid = pidfile.read_pid()
+    try:
+        os.kill(pidfile_pid, signal.SIG_DFL)
+    except OSError, exc:
+        if exc.errno == errno.ESRCH:
+            # The specified PID does not exist
+            result = True
+
+    return result

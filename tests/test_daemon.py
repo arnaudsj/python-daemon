@@ -627,6 +627,13 @@ class DaemonContext_TestCase(scaffold.TestCase):
         instance = daemon.daemon.DaemonContext(**args)
         self.failUnlessEqual(expect_files_preserve, instance.files_preserve)
 
+    def test_files_preserve_defaults_to_empty_list(self):
+        """ Should have empty list for `files_preserve` if not specified """
+        args = dict()
+        expect_files_preserve = []
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_files_preserve, instance.files_preserve)
+
     def test_has_specified_pidfile(self):
         """ Should have the specified pidfile """
         args = dict(

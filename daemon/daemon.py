@@ -182,6 +182,9 @@ class DaemonContext(object):
         stdout=None,
         stderr=None,
         ):
+        """ Set up a new instance. """
+        if files_preserve is None:
+            files_preserve = []
         self.files_preserve = files_preserve
         self.pidfile = pidfile
         self.stdin = stdin

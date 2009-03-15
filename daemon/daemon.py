@@ -138,20 +138,6 @@ class DaemonContext(object):
         [no number yet].
 
         """
-    
-    """Class Daemon is used to run any routine in the background on unix
-    environments as daemon.
-    
-    There are several things to consider:
-    
-    * The instance object MUST provide global file descriptors for
-      (and named as):
-        -stdin
-        -stdout
-        -stderr
-    
-    * The instance object MUST provide a global (and named as) pidfile.
-    """
 
     UMASK = 0
     WORKDIR = "."

@@ -69,24 +69,6 @@ def detach_process_context():
         sys.exit(1)
 
 
-def get_file_descriptors(files=None):
-    """ Return the file descriptor for each item.
-
-        Returns a list containing the file descriptor for each item in
-        `files`. If the item was already a positive integer, that
-        integer is in the return list verbatim; otherwise the item is
-        treated as a ``file`` object, and its file descriptor (via the
-        ``fileno()`` method) is in the return list.
-
-        """
-    if files is None:
-        files = []
-    file_descriptors = [
-        (f if int(f) == f else f.fileno())
-        for f in files]
-    return file_descriptors
-
-
 def close_file_descriptor_if_open(fd):
     """ Close a file descriptor if already open.
 
@@ -206,7 +188,7 @@ class DaemonContext(object):
         if self.pidfile is not None:
             self.pidfile.__enter__()
 
-        exclude_fds = get_file_descriptors(self.files_preserve)
+        exclude_fds = self.get_exclude_file_descriptors()
         close_all_open_files(exclude=exclude_fds)
 
         redirect_stream(sys.stdin, self.stdin)
@@ -221,3 +203,19 @@ class DaemonContext(object):
 
         else:
             self.pidfile.__exit__()
+
+    def get_exclude_file_descriptors(self):
+        """ Return the list of file descriptors to exclude closing.
+
+            Returns a list containing the file descriptor for each
+            item in `files_exclude`. If the item was already a
+            positive integer, that integer is in the return list
+            verbatim; otherwise the item is treated as a ``file``
+            object, and its file descriptor (via the ``fileno()``
+            method) is in the return list.
+
+            """
+        file_descriptors = [
+            (f if int(f) == f else f.fileno())
+            for f in self.files_exclude]
+        return file_descriptors

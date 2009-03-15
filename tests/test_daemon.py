@@ -324,46 +324,6 @@ class close_file_descriptor_if_open_TestCase(scaffold.TestCase):
             daemon.daemon.close_file_descriptor_if_open, fd)
 
 
-class get_file_descriptors_TestCase(scaffold.TestCase):
-    """ Test cases for get_file_descriptors function """
-
-    def setUp(self):
-        """ Set up test fixtures """
-        self.mock_outfile = StringIO()
-        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
-
-        self.test_files = {
-            2: FakeFileDescriptorStringIO(),
-            5: 5,
-            11: FakeFileDescriptorStringIO(),
-            23: FakeFileDescriptorStringIO(),
-            37: 37,
-            42: FakeFileDescriptorStringIO(),
-            }
-        for (fileno, f) in self.test_files.items():
-            if hasattr(f, '_fileno'):
-                f._fileno = fileno
-        self.test_file_descriptors = self.test_files.keys()
-
-    def tearDown(self):
-        """ Tear down test fixtures """
-        scaffold.mock_restore()
-
-    def test_returns_expected_file_descriptors(self):
-        """ Should return expected list of file descriptors """
-        test_files = self.test_files
-        expect_result = self.test_file_descriptors
-        result = daemon.daemon.get_file_descriptors(test_files)
-        self.failUnlessEqual(sorted(expect_result), sorted(result))
-
-    def test_returns_empty_list_from_no_files(self):
-        """ Should return empty list if no `files` argument """
-        test_files = None
-        expect_result = []
-        result = daemon.daemon.get_file_descriptors(test_files)
-        self.failUnlessEqual(sorted(expect_result), sorted(result))
-
-
 class maxfd_TestCase(scaffold.TestCase):
     """ Test cases for module MAXFD """
 
@@ -543,18 +503,11 @@ def setup_daemon_context_fixtures(testcase):
         tracker=testcase.mock_tracker)
     testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
 
-    testcase.test_files_preserve = object()
-    testcase.test_files_preserve_fds = object()
-
     scaffold.mock(
         "daemon.daemon.detach_process_context",
         tracker=testcase.mock_tracker)
     scaffold.mock(
         "daemon.daemon.prevent_core_dump",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "daemon.daemon.get_file_descriptors",
-        returns=testcase.test_files_preserve_fds,
         tracker=testcase.mock_tracker)
     scaffold.mock(
         "daemon.daemon.close_all_open_files",
@@ -678,6 +631,13 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         """ Set up test fixtures """
         setup_daemon_context_fixtures(self)
 
+        self.test_files_preserve = object()
+        self.test_files_preserve_fds = object()
+        scaffold.mock(
+            "daemon.daemon.DaemonContext.get_exclude_file_descriptors",
+            returns=self.test_files_preserve_fds,
+            tracker=self.mock_tracker)
+
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()
@@ -760,7 +720,7 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
 
 
 class DaemonContext_close_TestCase(scaffold.TestCase):
-    """ Test cases for Daemon.close method, with PID file """
+    """ Test cases for DaemonContext.close method """
 
     def setUp(self):
         """ Set up test fixtures """
@@ -789,3 +749,44 @@ class DaemonContext_close_TestCase(scaffold.TestCase):
         self.failUnlessRaises(
             expect_exception,
             instance.close)
+
+
+class DaemonContext_get_exclude_file_descriptors_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext.get_exclude_file_descriptors function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_daemon_context_fixtures(self)
+
+        self.test_files = {
+            2: FakeFileDescriptorStringIO(),
+            5: 5,
+            11: FakeFileDescriptorStringIO(),
+            23: FakeFileDescriptorStringIO(),
+            37: 37,
+            42: FakeFileDescriptorStringIO(),
+            }
+        for (fileno, f) in self.test_files.items():
+            if hasattr(f, '_fileno'):
+                f._fileno = fileno
+        self.test_file_descriptors = self.test_files.keys()
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_returns_expected_file_descriptors(self):
+        """ Should return expected list of file descriptors """
+        instance = self.test_instance
+        instance.files_exclude = self.test_files
+        expect_result = self.test_file_descriptors
+        result = instance.get_exclude_file_descriptors()
+        self.failUnlessEqual(sorted(expect_result), sorted(result))
+
+    def test_returns_empty_list_from_no_files(self):
+        """ Should return empty list if no `files` argument """
+        instance = self.test_instance
+        instance.files_exclude = []
+        expect_result = []
+        result = instance.get_exclude_file_descriptors()
+        self.failUnlessEqual(sorted(expect_result), sorted(result))

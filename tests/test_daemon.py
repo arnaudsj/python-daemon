@@ -751,18 +751,6 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
-
-class DaemonContextWithPIDFile_open_TestCase(scaffold.TestCase):
-    """ Test cases for Daemon.open method, with PID file """
-
-    def setUp(self):
-        """ Set up test fixtures """
-        setup_daemon_context_fixtures(self)
-
-    def tearDown(self):
-        """ Tear down test fixtures """
-        scaffold.mock_restore()
-
 
 class DaemonContext_close_TestCase(scaffold.TestCase):
     """ Test cases for Daemon.close method, with PID file """
@@ -794,15 +782,3 @@ class DaemonContext_close_TestCase(scaffold.TestCase):
         self.failUnlessRaises(
             expect_exception,
             instance.close)
-
-
-class DaemonContextWithPIDFile_close_TestCase(scaffold.TestCase):
-    """ Test cases for Daemon.close method, with PID file """
-
-    def setUp(self):
-        """ Set up test fixtures """
-        setup_daemon_context_fixtures(self)
-
-    def tearDown(self):
-        """ Tear down test fixtures """
-        scaffold.mock_restore()

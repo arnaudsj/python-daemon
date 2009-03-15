@@ -51,22 +51,22 @@ def detach_process_context():
     try:
         pid = os.fork()
         if pid > 0:
-            sys.exit(0)
+            os._exit(0)
     except OSError, e:
         msg = "fork #1 failed: (%d) %s\n" % (e.errno, e.strerror)
         sys.stderr.write(msg)
-        sys.exit(1)
+        os._exit(1)
 
     os.setsid()
 
     try:
         pid = os.fork()
         if pid > 0:
-            sys.exit(0)
+            os._exit(0)
     except OSError, e:
         msg = "fork #2 failed: (%d) %s\n" % (e.errno, e.strerror)
         sys.stderr.write(msg)
-        sys.exit(1)
+        os._exit(1)
 
 
 def close_file_descriptor_if_open(fd):

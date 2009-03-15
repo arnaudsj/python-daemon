@@ -86,6 +86,9 @@ class prevent_core_dump_TestCase(scaffold.TestCase):
 class detach_process_context_TestCase(scaffold.TestCase):
     """ Test cases for detach_process_context function """
 
+    class FakeOSExit(SystemExit):
+        """ Fake exception raised for os._exit() """
+
     def setUp(self):
         """ Set up test fixtures """
         self.mock_outfile = StringIO()
@@ -101,11 +104,11 @@ class detach_process_context_TestCase(scaffold.TestCase):
             "os.setsid",
             tracker=self.mock_tracker)
 
-        def raise_system_exit(status=None):
-            raise SystemExit(status)
+        def raise_os_exit(status=None):
+            raise self.FakeOSExit(status)
 
         scaffold.mock(
-            "sys.exit", returns_func=raise_system_exit,
+            "os._exit", returns_func=raise_os_exit,
             tracker=self.mock_tracker)
 
         scaffold.mock(
@@ -122,13 +125,13 @@ class detach_process_context_TestCase(scaffold.TestCase):
         parent_pid = 23
         scaffold.mock("os.fork", returns_iter=[parent_pid],
             tracker=self.mock_tracker)
-        self.failUnlessRaises(
-            SystemExit,
-            daemon.daemon.detach_process_context)
         expect_mock_output = """\
             Called os.fork()
-            Called sys.exit(0)
+            Called os._exit(0)
             """
+        self.failUnlessRaises(
+            self.FakeOSExit,
+            daemon.daemon.detach_process_context)
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
@@ -149,16 +152,16 @@ class detach_process_context_TestCase(scaffold.TestCase):
 
         scaffold.mock("os.fork", returns_func=mock_fork,
             tracker=self.mock_tracker)
-        self.failUnlessRaises(
-            SystemExit,
-            daemon.daemon.detach_process_context)
         expect_mock_output = """\
             Called os.fork()
-            Called sys.exit(1)
+            Called os._exit(1)
             """
         expect_stderr = """\
             fork #1 failed: ...%(fork_errno)d...%(fork_strerror)s...
             """ % vars()
+        self.failUnlessRaises(
+            self.FakeOSExit,
+            daemon.daemon.detach_process_context)
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
@@ -182,15 +185,15 @@ class detach_process_context_TestCase(scaffold.TestCase):
         test_pids = [0, 42]
         scaffold.mock("os.fork", returns_iter=test_pids,
             tracker=self.mock_tracker)
-        self.failUnlessRaises(
-            SystemExit,
-            daemon.daemon.detach_process_context)
         expect_mock_output = """\
             Called os.fork()
             Called os.setsid()
             Called os.fork()
-            Called sys.exit(0)
+            Called os._exit(0)
             """
+        self.failUnlessRaises(
+            self.FakeOSExit,
+            daemon.daemon.detach_process_context)
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
@@ -211,18 +214,18 @@ class detach_process_context_TestCase(scaffold.TestCase):
 
         scaffold.mock("os.fork", returns_func=mock_fork,
             tracker=self.mock_tracker)
-        self.failUnlessRaises(
-            SystemExit,
-            daemon.daemon.detach_process_context)
         expect_mock_output = """\
             Called os.fork()
             Called os.setsid()
             Called os.fork()
-            Called sys.exit(1)
+            Called os._exit(1)
             """
         expect_stderr = """\
             fork #2 failed: ...%(fork_errno)d...%(fork_strerror)s...
             """ % vars()
+        self.failUnlessRaises(
+            self.FakeOSExit,
+            daemon.daemon.detach_process_context)
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())

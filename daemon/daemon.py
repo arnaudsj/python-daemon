@@ -69,6 +69,75 @@ def detach_process_context():
         sys.exit(1)
 
 
+def get_file_descriptors(files=None):
+    """ Return the file descriptor for each item.
+
+        Returns a list containing the file descriptor for each item in
+        `files`. If the item was already a positive integer, that
+        integer is in the return list verbatim; otherwise the item is
+        treated as a ``file`` object, and its file descriptor (via the
+        ``fileno()`` method) is in the return list.
+
+        """
+    if files is None:
+        files = []
+    file_descriptors = [
+        (f if int(f) == f else f.fileno())
+        for f in files]
+    return file_descriptors
+
+
+def close_file_descriptor_if_open(fd):
+    """ Close a file descriptor if already open.
+
+        Close the file descriptor `fd`, suppressing an error in the
+        case the file was not open.
+
+        """
+    try:
+        os.close(fd)
+    except OSError, exc:
+        if exc.errno == errno.EBADF:
+            # File descriptor was not open
+            pass
+        else:
+            raise
+
+
+MAXFD = 1
+
+def get_maximum_file_descriptors():
+    """ Return the maximum number of open file descriptors for this process.
+
+        Return the process hard resource limit of maximum number of
+        open file descriptors. If the limit is “infinity”, a default
+        value of ``MAXFD`` is returned.
+
+        """
+    limits = resource.getrlimit(resource.RLIMIT_NOFILE)
+    result = limits[1]
+    if result == resource.RLIM_INFINITY:
+        result = MAXFD
+    return result
+
+
+def close_all_open_files(exclude=set()):
+    """ Close all open file descriptors.
+
+        Closes every file descriptor (if open) of this process. If
+        specified, `exclude` is a set of file descriptors to *not*
+        close.
+
+        The standard streams (stdin, stdout, stderr) are then
+        re-opened to the system defaults.
+
+        """
+    maxfd = get_maximum_file_descriptors()
+    for fd in reversed(range(maxfd)):
+        if fd not in exclude:
+            close_file_descriptor_if_open(fd)
+
+
 def redirect_stream(system_stream, target_stream):
     """ Redirect a system stream to a specified file.
 
@@ -107,11 +176,13 @@ class DaemonContext(object):
 
     def __init__(
         self,
+        files_preserve=None,
         pidfile=None,
         stdin=None,
         stdout=None,
         stderr=None,
         ):
+        self.files_preserve = files_preserve
         self.pidfile = pidfile
         self.stdin = stdin
         self.stdout = stdout
@@ -131,6 +202,9 @@ class DaemonContext(object):
 
         if self.pidfile is not None:
             self.pidfile.__enter__()
+
+        exclude_fds = get_file_descriptors(self.files_preserve)
+        close_all_open_files(exclude=exclude_fds)
 
         redirect_stream(sys.stdin, self.stdin)
         redirect_stream(sys.stdout, self.stdout)

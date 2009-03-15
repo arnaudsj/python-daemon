@@ -269,7 +269,237 @@ def setup_streams_fixtures(testcase):
         "os.dup2",
         tracker=testcase.mock_tracker)
 
+
+class close_file_descriptor_if_open_TestCase(scaffold.TestCase):
+    """ Test cases for close_file_descriptor_if_open function """
 
+    def setUp(self):
+        """ Set up test fixtures """
+        self.mock_outfile = StringIO()
+        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
+
+        self.test_fd = 274
+
+        scaffold.mock(
+            "os.close",
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_requests_file_descriptor_close(self):
+        """ Should request close of file descriptor """
+        fd = self.test_fd
+        expect_mock_output = """\
+            Called os.close(%(fd)r)
+            """ % vars()
+        daemon.daemon.close_file_descriptor_if_open(fd)
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_ignores_badfd_error_on_close(self):
+        """ Should ignore OSError EBADF when closing """
+        fd = self.test_fd
+        test_error = OSError(errno.EBADF, "Bad file descriptor")
+        def os_close(fd):
+            raise test_error
+        os.close.mock_returns_func = os_close
+        expect_mock_output = """\
+            Called os.close(%(fd)r)
+            """ % vars()
+        daemon.daemon.close_file_descriptor_if_open(fd)
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_propagates_error_on_close(self):
+        """ Should propagate OSError when closing """
+        fd = self.test_fd
+        test_error = OSError(object(), "Unexpected error")
+        def os_close(fd):
+            raise test_error
+        os.close.mock_returns_func = os_close
+        self.failUnlessRaises(
+            test_error.__class__,
+            daemon.daemon.close_file_descriptor_if_open, fd)
+
+
+class get_file_descriptors_TestCase(scaffold.TestCase):
+    """ Test cases for get_file_descriptors function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        self.mock_outfile = StringIO()
+        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
+
+        self.test_files = {
+            2: FakeFileDescriptorStringIO(),
+            5: 5,
+            11: FakeFileDescriptorStringIO(),
+            23: FakeFileDescriptorStringIO(),
+            37: 37,
+            42: FakeFileDescriptorStringIO(),
+            }
+        for (fileno, f) in self.test_files.items():
+            if hasattr(f, '_fileno'):
+                f._fileno = fileno
+        self.test_file_descriptors = self.test_files.keys()
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_returns_expected_file_descriptors(self):
+        """ Should return expected list of file descriptors """
+        test_files = self.test_files
+        expect_result = self.test_file_descriptors
+        result = daemon.daemon.get_file_descriptors(test_files)
+        self.failUnlessEqual(sorted(expect_result), sorted(result))
+
+    def test_returns_empty_list_from_no_files(self):
+        """ Should return empty list if no `files` argument """
+        test_files = None
+        expect_result = []
+        result = daemon.daemon.get_file_descriptors(test_files)
+        self.failUnlessEqual(sorted(expect_result), sorted(result))
+
+
+class maxfd_TestCase(scaffold.TestCase):
+    """ Test cases for module MAXFD """
+
+    def test_positive(self):
+        """ Should be a positive number """
+        maxfd = daemon.daemon.MAXFD
+        self.failUnless(maxfd > 0)
+
+    def test_integer(self):
+        """ Should be an integer """
+        maxfd = daemon.daemon.MAXFD
+        self.failUnlessEqual(int(maxfd), maxfd)
+
+
+class get_maximum_file_descriptors_TestCase(scaffold.TestCase):
+    """ Test cases for get_maximum_file_descriptors function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        self.mock_outfile = StringIO()
+        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
+
+        self.RLIMIT_NOFILE = object()
+        self.RLIM_INFINITY = object()
+        self.test_rlimit_nofile = 2468
+
+        def mock_getrlimit(resource):
+            result = (object(), self.test_rlimit_nofile)
+            if resource != self.RLIMIT_NOFILE:
+                result = NotImplemented
+            return result
+
+        self.test_maxfd = object()
+        scaffold.mock(
+            "daemon.daemon.MAXFD", mock_obj=self.test_maxfd,
+            tracker=self.mock_tracker)
+
+        scaffold.mock(
+            "resource.RLIMIT_NOFILE", mock_obj=self.RLIMIT_NOFILE,
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "resource.RLIM_INFINITY", mock_obj=self.RLIM_INFINITY,
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "resource.getrlimit", returns_func=mock_getrlimit,
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_returns_system_hard_limit(self):
+        """ Should return process hard limit on number of files """
+        expect_result = self.test_rlimit_nofile
+        result = daemon.daemon.get_maximum_file_descriptors()
+        self.failUnlessEqual(expect_result, result)
+
+    def test_returns_module_default_if_hard_limit_infinity(self):
+        """ Should return module MAXFD if hard limit is infinity """
+        self.test_rlimit_nofile = self.RLIM_INFINITY
+        expect_result = self.test_maxfd
+        result = daemon.daemon.get_maximum_file_descriptors()
+        self.failUnlessEqual(expect_result, result)
+
+
+class close_all_open_files_TestCase(scaffold.TestCase):
+    """ Test cases for close_all_open_files function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        self.mock_outfile = StringIO()
+        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
+
+        self.RLIMIT_NOFILE = object()
+        self.RLIM_INFINITY = object()
+        self.test_rlimit_nofile = self.RLIM_INFINITY
+
+        def mock_getrlimit(resource):
+            result = (self.test_rlimit_nofile, object())
+            if resource != self.RLIMIT_NOFILE:
+                result = NotImplemented
+            return result
+
+        self.test_maxfd = 8
+        scaffold.mock(
+            "daemon.daemon.get_maximum_file_descriptors",
+            returns=self.test_maxfd,
+            tracker=self.mock_tracker)
+
+        scaffold.mock(
+            "resource.RLIMIT_NOFILE", mock_obj=self.RLIMIT_NOFILE,
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "resource.RLIM_INFINITY", mock_obj=self.RLIM_INFINITY,
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "resource.getrlimit", returns_func=mock_getrlimit,
+            tracker=self.mock_tracker)
+
+        scaffold.mock(
+            "daemon.daemon.close_file_descriptor_if_open",
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_requests_all_open_files_to_close(self):
+        """ Should request close of all open files """
+        expect_file_descriptors = reversed(range(self.test_maxfd))
+        expect_mock_output = "...\n" + "".join(
+            "Called daemon.daemon.close_file_descriptor_if_open(%(fd)r)\n"
+                % vars()
+            for fd in expect_file_descriptors)
+        daemon.daemon.close_all_open_files()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_requests_all_but_excluded_files_to_close(self):
+        """ Should request close of all open files but those excluded """
+        test_exclude = set([3, 7])
+        args = dict(
+            exclude = test_exclude,
+            )
+        expect_file_descriptors = (
+            fd for fd in reversed(range(self.test_maxfd))
+            if fd not in test_exclude)
+        expect_mock_output = "...\n" + "".join(
+            "Called daemon.daemon.close_file_descriptor_if_open(%(fd)r)\n"
+                % vars()
+            for fd in expect_file_descriptors)
+        daemon.daemon.close_all_open_files(**args)
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+
 class redirect_stream_TestCase(scaffold.TestCase):
     """ Test cases for redirect_stream function """
 
@@ -313,11 +543,21 @@ def setup_daemon_context_fixtures(testcase):
         tracker=testcase.mock_tracker)
     testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
 
+    testcase.test_files_preserve = object()
+    testcase.test_files_preserve_fds = object()
+
     scaffold.mock(
         "daemon.daemon.detach_process_context",
         tracker=testcase.mock_tracker)
     scaffold.mock(
         "daemon.daemon.prevent_core_dump",
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "daemon.daemon.get_file_descriptors",
+        returns=testcase.test_files_preserve_fds,
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "daemon.daemon.close_all_open_files",
         tracker=testcase.mock_tracker)
     scaffold.mock(
         "daemon.daemon.redirect_stream",
@@ -377,6 +617,15 @@ class DaemonContext_TestCase(scaffold.TestCase):
         """ Initialiser should not require any arguments """
         instance = daemon.daemon.DaemonContext()
         self.failIfIs(None, instance)
+
+    def test_has_specified_files_preserve(self):
+        """ Should have specified files_preserve option """
+        args = dict(
+            files_preserve = object(),
+            )
+        expect_files_preserve = args['files_preserve']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_files_preserve, instance.files_preserve)
 
     def test_has_specified_pidfile(self):
         """ Should have the specified pidfile """
@@ -460,6 +709,21 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
             Called pidlockfile.PIDLockFile.__enter__()
             ...
             """
+        instance.open()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_closes_open_files(self):
+        """ Should close all open files, excluding `files_preserve` """
+        instance = self.test_instance
+        expect_exclude = self.test_files_preserve_fds
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.close_all_open_files(
+                exclude=%(expect_exclude)r)
+            ...
+            """ % vars()
         instance.open()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(

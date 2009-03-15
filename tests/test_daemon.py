@@ -580,13 +580,6 @@ class DaemonContext_TestCase(scaffold.TestCase):
         instance = daemon.daemon.DaemonContext(**args)
         self.failUnlessEqual(expect_files_preserve, instance.files_preserve)
 
-    def test_files_preserve_defaults_to_empty_list(self):
-        """ Should have empty list for `files_preserve` if not specified """
-        args = dict()
-        expect_files_preserve = []
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_files_preserve, instance.files_preserve)
-
     def test_has_specified_pidfile(self):
         """ Should have the specified pidfile """
         args = dict(
@@ -762,14 +755,21 @@ class DaemonContext_get_exclude_file_descriptors_TestCase(scaffold.TestCase):
             2: FakeFileDescriptorStringIO(),
             5: 5,
             11: FakeFileDescriptorStringIO(),
+            17: None,
             23: FakeFileDescriptorStringIO(),
             37: 37,
             42: FakeFileDescriptorStringIO(),
             }
-        for (fileno, f) in self.test_files.items():
-            if hasattr(f, '_fileno'):
-                f._fileno = fileno
-        self.test_file_descriptors = self.test_files.keys()
+        for (fileno, item) in self.test_files.items():
+            if hasattr(item, '_fileno'):
+                item._fileno = fileno
+        self.test_file_descriptors = [
+            fd for (fd, item) in self.test_files.items()
+            if item is not None]
+        self.test_file_descriptors.extend([
+            self.stream_files_by_name[name].fileno()
+            for name in ['stdin', 'stdout', 'stderr']
+            ])
 
     def tearDown(self):
         """ Tear down test fixtures """
@@ -778,15 +778,26 @@ class DaemonContext_get_exclude_file_descriptors_TestCase(scaffold.TestCase):
     def test_returns_expected_file_descriptors(self):
         """ Should return expected list of file descriptors """
         instance = self.test_instance
-        instance.files_exclude = self.test_files
+        instance.files_preserve = self.test_files.values()
         expect_result = self.test_file_descriptors
         result = instance.get_exclude_file_descriptors()
         self.failUnlessEqual(sorted(expect_result), sorted(result))
 
-    def test_returns_empty_list_from_no_files(self):
-        """ Should return empty list if no `files` argument """
+    def test_returns_stream_redirects_if_no_files_preserve(self):
+        """ Should return only stream redirects if no files_preserve """
         instance = self.test_instance
-        instance.files_exclude = []
+        instance.files_preserve = None
+        expect_result = [
+            self.stream_files_by_name[name].fileno()
+            for name in ['stdin', 'stdout', 'stderr']]
+        result = instance.get_exclude_file_descriptors()
+        self.failUnlessEqual(sorted(expect_result), sorted(result))
+
+    def test_returns_empty_list_if_no_files(self):
+        """ Should return empty list if no file options """
+        instance = self.test_instance
+        for name in ['files_preserve', 'stdin', 'stdout', 'stderr']:
+            setattr(instance, name, None)
         expect_result = []
         result = instance.get_exclude_file_descriptors()
         self.failUnlessEqual(sorted(expect_result), sorted(result))

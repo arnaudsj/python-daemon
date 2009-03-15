@@ -165,8 +165,6 @@ class DaemonContext(object):
         stderr=None,
         ):
         """ Set up a new instance. """
-        if files_preserve is None:
-            files_preserve = []
         self.files_preserve = files_preserve
         self.pidfile = pidfile
         self.stdin = stdin
@@ -207,15 +205,29 @@ class DaemonContext(object):
     def get_exclude_file_descriptors(self):
         """ Return the list of file descriptors to exclude closing.
 
-            Returns a list containing the file descriptor for each
-            item in `files_exclude`. If the item was already a
-            positive integer, that integer is in the return list
-            verbatim; otherwise the item is treated as a ``file``
-            object, and its file descriptor (via the ``fileno()``
-            method) is in the return list.
+            Returns a list containing the file descriptors for the
+            items in `files_preserve`, and also each of `stdin`,
+            `stdout`, and `stderr`:
+
+            * If the item is ``None``, it is omitted from the return
+              list.
+
+            * If the item has a ``fileno()`` method, that method's
+              return value is in the return list.
+
+            * Otherwise, the item is in the return list verbatim.
 
             """
-        file_descriptors = [
-            (f if int(f) == f else f.fileno())
-            for f in self.files_exclude]
-        return file_descriptors
+        files_preserve = self.files_preserve
+        if files_preserve is None:
+            files_preserve = []
+        files_preserve.extend([self.stdin, self.stdout, self.stderr])
+        exclude_descriptors = []
+        for item in files_preserve:
+            if item is None:
+                continue
+            if hasattr(item, 'fileno'):
+                exclude_descriptors.append(item.fileno())
+            else:
+                exclude_descriptors.append(item)
+        return exclude_descriptors

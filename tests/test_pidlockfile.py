@@ -502,7 +502,7 @@ class remove_existing_pidfile_TestCase(scaffold.TestCase):
         mock_error = OSError(errno.EACCES, "Denied", pidfile_path)
         os.remove.mock_raises = mock_error
         self.failUnlessRaises(
-            mock_error.__class__,
+            type(mock_error),
             pidlockfile.remove_existing_pidfile,
             pidfile_path)
 

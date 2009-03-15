@@ -323,7 +323,7 @@ class close_file_descriptor_if_open_TestCase(scaffold.TestCase):
             raise test_error
         os.close.mock_returns_func = os_close
         self.failUnlessRaises(
-            test_error.__class__,
+            type(test_error),
             daemon.daemon.close_file_descriptor_if_open, fd)
 
 

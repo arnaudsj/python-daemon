@@ -16,6 +16,7 @@ import time
 import resource
 import errno
 import signal
+import socket
 
 
 def prevent_core_dump():
@@ -67,6 +68,74 @@ def detach_process_context():
         msg = "fork #2 failed: (%d) %s\n" % (e.errno, e.strerror)
         sys.stderr.write(msg)
         os._exit(1)
+
+
+def is_process_started_by_init():
+    """ Determine if the current process is started by `init`.
+
+        The `init` process has the process ID of 1; if that is our
+        parent process ID, return ``True``, otherwise ``False``.
+    
+        """
+    result = False
+
+    init_pid = 1
+    if os.getppid() == init_pid:
+        result = True
+
+    return result
+
+
+def is_socket(fd):
+    """ Determine if the file descriptor is a socket. """
+    result = False
+
+    file_socket = socket.fromfd(fd, socket.AF_INET, socket.SOCK_RAW)
+
+    try:
+        socket_type = file_socket.getsockopt(
+            socket.SOL_SOCKET, socket.SO_TYPE)
+    except socket.error, exc:
+        exc_errno = exc.args[0]
+        if exc_errno == errno.ENOTSOCK:
+            # Socket operation on non-socket
+            pass
+        else:
+            # Some other socket error
+            result = True
+    else:
+        # No error getting socket type
+        result = True
+
+    return result
+
+
+def is_process_started_by_superserver():
+    """ Determine if the current process is started by the superserver.
+
+        The internet superserver creates a network socket, and
+        attaches it to the standard streams of the child process. If
+        that is the case for this process, return ``True``, otherwise
+        ``False``.
+    
+        """
+    result = False
+
+    stdin_fd = sys.__stdin__.fileno()
+    if is_socket(stdin_fd):
+        result = True
+
+    return result
+
+
+def is_detach_process_context_required():
+    """ Determine whether detaching process context is required.
+        """
+    result = True
+    if is_process_started_by_init() or is_process_started_by_superserver():
+        result = False
+
+    return result
 
 
 def close_file_descriptor_if_open(fd):
@@ -155,6 +224,7 @@ class DaemonContext(object):
         chroot_directory=None,
         working_directory='/',
         umask=0,
+        detach_process=None,
         files_preserve=None,
         pidfile=None,
         stdin=None,
@@ -173,6 +243,10 @@ class DaemonContext(object):
         self.stderr = stderr
         self.signal_map = signal_map
 
+        if detach_process is None:
+            detach_process = is_detach_process_context_required()
+        self.detach_process = detach_process
+
     def open(self):
         """ Become a daemon process. """
         if self.chroot_directory is not None:
@@ -184,7 +258,8 @@ class DaemonContext(object):
         os.umask(self.umask)
         os.chdir(self.working_directory)
 
-        detach_process_context()
+        if self.detach_process:
+            detach_process_context()
 
         if not self.stderr:
             self.stderr = self.stdout

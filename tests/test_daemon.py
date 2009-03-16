@@ -20,6 +20,7 @@ import tempfile
 import resource
 import errno
 import signal
+import socket
 
 import scaffold
 from test_pidlockfile import (
@@ -243,6 +244,185 @@ class detach_process_context_TestCase(scaffold.TestCase):
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
+
+
+class is_process_started_by_init_TestCase(scaffold.TestCase):
+    """ Test cases for is_process_started_by_init function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        self.mock_outfile = StringIO()
+        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
+
+        self.test_ppid = 765
+
+        scaffold.mock(
+            "os.getppid",
+            returns=self.test_ppid,
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_returns_false_by_default(self):
+        """ Should return False under normal circumstances """
+        expect_result = False
+        result = daemon.daemon.is_process_started_by_init()
+        self.failUnlessIs(expect_result, result)
+
+    def test_returns_true_if_parent_process_is_init(self):
+        """ Should return True if parent process is `init` """
+        init_pid = 1
+        os.getppid.mock_returns = init_pid
+        expect_result = True
+        result = daemon.daemon.is_process_started_by_init()
+        self.failUnlessIs(expect_result, result)
+
+
+class is_socket_TestCase(scaffold.TestCase):
+    """ Test cases for is_socket function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        self.mock_outfile = StringIO()
+        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
+
+        def mock_getsockopt(level, optname, buflen=None):
+            result = object()
+            if optname is socket.SO_TYPE:
+                result = socket.SOCK_RAW
+            return result
+
+        self.mock_socket_getsockopt_func = mock_getsockopt
+
+        self.mock_socket_error = socket.error(
+            errno.ENOTSOCK,
+            "Socket operation on non-socket")
+
+        self.mock_socket = scaffold.Mock(
+            "socket.socket",
+            tracker=self.mock_tracker)
+        self.mock_socket.getsockopt.mock_raises = self.mock_socket_error
+
+        def mock_socket_fromfd(fd, family, type, proto=None):
+            return self.mock_socket
+
+        scaffold.mock(
+            "socket.fromfd",
+            returns_func=mock_socket_fromfd,
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_returns_false_by_default(self):
+        """ Should return False under normal circumstances """
+        test_fd = 23
+        expect_result = False
+        result = daemon.daemon.is_socket(test_fd)
+        self.failUnlessIs(expect_result, result)
+
+    def test_returns_true_if_stdin_is_socket(self):
+        """ Should return True if `stdin` is a socket """
+        test_fd = 23
+        getsockopt = self.mock_socket.getsockopt
+        getsockopt.mock_raises = None
+        getsockopt.mock_returns_func = self.mock_socket_getsockopt_func
+        expect_result = True
+        result = daemon.daemon.is_socket(test_fd)
+        self.failUnlessIs(expect_result, result)
+
+    def test_returns_false_if_stdin_socket_raises_error(self):
+        """ Should return True if `stdin` is a socket and raises error """
+        test_fd = 23
+        getsockopt = self.mock_socket.getsockopt
+        getsockopt.mock_raises = socket.error(
+            object(), "Weird socket stuff")
+        expect_result = True
+        result = daemon.daemon.is_socket(test_fd)
+        self.failUnlessIs(expect_result, result)
+
+
+class is_process_started_by_superserver_TestCase(scaffold.TestCase):
+    """ Test cases for is_process_started_by_superserver function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        self.mock_outfile = StringIO()
+        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
+
+        def mock_is_socket(fd):
+            if sys.__stdin__.fileno() == fd:
+                result = self.mock_stdin_is_socket_func()
+            else:
+                result = False
+            return result
+
+        self.mock_stdin_is_socket_func = (lambda: False)
+
+        scaffold.mock(
+            "daemon.daemon.is_socket",
+            returns_func=mock_is_socket,
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_returns_false_by_default(self):
+        """ Should return False under normal circumstances """
+        expect_result = False
+        result = daemon.daemon.is_process_started_by_superserver()
+        self.failUnlessIs(expect_result, result)
+
+    def test_returns_true_if_stdin_is_socket(self):
+        """ Should return True if `stdin` is a socket """
+        self.mock_stdin_is_socket_func = (lambda: True)
+        expect_result = True
+        result = daemon.daemon.is_process_started_by_superserver()
+        self.failUnlessIs(expect_result, result)
+
+
+class is_detach_process_context_required_TestCase(scaffold.TestCase):
+    """ Test cases for is_detach_process_context_required function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        self.mock_outfile = StringIO()
+        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
+
+        scaffold.mock(
+            "daemon.daemon.is_process_started_by_init",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.is_process_started_by_superserver",
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_returns_true_by_default(self):
+        """ Should return False under normal circumstances. """
+        expect_result = True
+        result = daemon.daemon.is_detach_process_context_required()
+        self.failUnlessIs(expect_result, result)
+
+    def test_returns_false_if_started_by_init(self):
+        """ Should return False if current process started by init. """
+        daemon.daemon.is_process_started_by_init.mock_returns = True
+        expect_result = False
+        result = daemon.daemon.is_detach_process_context_required()
+        self.failUnlessIs(expect_result, result)
+
+    def test_returns_true_if_started_by_superserver(self):
+        """ Should return False if current process started by superserver. """
+        daemon.daemon.is_process_started_by_superserver.mock_returns = True
+        expect_result = False
+        result = daemon.daemon.is_detach_process_context_required()
+        self.failUnlessIs(expect_result, result)
 
 
 def setup_streams_fixtures(testcase):
@@ -541,6 +721,10 @@ def setup_daemon_context_fixtures(testcase):
     testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
 
     scaffold.mock(
+        "daemon.daemon.is_detach_process_context_required",
+        returns=True,
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
         "daemon.daemon.detach_process_context",
         tracker=testcase.mock_tracker)
     scaffold.mock(
@@ -637,7 +821,7 @@ class DaemonContext_TestCase(scaffold.TestCase):
         self.failUnlessEqual(expect_directory, instance.working_directory)
 
     def test_has_specified_creation_mask(self):
-        """ Should have default umask option. """
+        """ Should have specified umask option. """
         args = dict(
             umask = object(),
             )
@@ -651,6 +835,23 @@ class DaemonContext_TestCase(scaffold.TestCase):
         expect_mask = 0
         instance = daemon.daemon.DaemonContext(**args)
         self.failUnlessEqual(expect_mask, instance.umask)
+
+    def test_has_specified_detach_process(self):
+        """ Should have specified detach_process option. """
+        args = dict(
+            detach_process = object(),
+            )
+        expect_value = args['detach_process']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_value, instance.detach_process)
+
+    def test_has_derived_detach_process(self):
+        """ Should have detach_process option derived from environment. """
+        args = dict()
+        func = daemon.daemon.is_detach_process_context_required
+        expect_value = func()
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_value, instance.detach_process)
 
     def test_has_specified_files_preserve(self):
         """ Should have specified files_preserve option """
@@ -747,6 +948,7 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         chroot_directory = object()
         instance.chroot_directory = chroot_directory
         expect_mock_output = """\
+            ...
             Called os.chdir(%(chroot_directory)r)
             Called os.chroot(%(chroot_directory)r)
             ...
@@ -770,6 +972,7 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         """ Should request prevention of core dumps """
         instance = self.test_instance
         expect_mock_output = """\
+            ...
             Called daemon.daemon.prevent_core_dump()
             ...
             """ % vars()
@@ -820,6 +1023,16 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_omits_process_detach_if_not_required(self):
+        """ Should omit detach of process context if not required """
+        instance = self.test_instance
+        instance.detach_process = False
+        instance.open()
+        scaffold.mock_restore()
+        self.failIfIn(
+            self.mock_outfile.getvalue(),
+            "Called daemon.daemon.detach_process_context")
 
     def test_enters_pidfile_context(self):
         """ Should enter the PID file context manager """
@@ -914,6 +1127,7 @@ class DaemonContext_close_TestCase(scaffold.TestCase):
         instance = self.test_instance
         instance.pidfile = self.mock_pidlockfile
         expect_mock_output = """\
+            ...
             Called pidlockfile.PIDLockFile.__exit__()
             """
         instance.close()

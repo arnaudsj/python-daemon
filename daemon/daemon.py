@@ -150,12 +150,11 @@ class DaemonContext(object):
 
         """
 
-    UMASK = 0
-
     def __init__(
         self,
         chroot_directory=None,
         working_directory='/',
+        umask=0,
         files_preserve=None,
         pidfile=None,
         stdin=None,
@@ -166,6 +165,7 @@ class DaemonContext(object):
         """ Set up a new instance. """
         self.chroot_directory = chroot_directory
         self.working_directory = working_directory
+        self.umask = umask
         self.files_preserve = files_preserve
         self.pidfile = pidfile
         self.stdin = stdin
@@ -181,11 +181,10 @@ class DaemonContext(object):
 
         prevent_core_dump()
 
+        os.umask(self.umask)
         os.chdir(self.working_directory)
 
         detach_process_context()
-
-        os.umask(self.UMASK)
 
         if not self.stderr:
             self.stderr = self.stdout

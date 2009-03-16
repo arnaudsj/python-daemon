@@ -636,6 +636,22 @@ class DaemonContext_TestCase(scaffold.TestCase):
         instance = daemon.daemon.DaemonContext(**args)
         self.failUnlessEqual(expect_directory, instance.working_directory)
 
+    def test_has_specified_creation_mask(self):
+        """ Should have default umask option. """
+        args = dict(
+            umask = object(),
+            )
+        expect_mask = args['umask']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_mask, instance.umask)
+
+    def test_has_default_creation_mask(self):
+        """ Should have default umask option. """
+        args = dict()
+        expect_mask = 0
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_mask, instance.umask)
+
     def test_has_specified_files_preserve(self):
         """ Should have specified files_preserve option """
         args = dict(
@@ -712,6 +728,9 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
             tracker=self.mock_tracker)
 
         scaffold.mock(
+            "os.umask",
+            tracker=self.mock_tracker)
+        scaffold.mock(
             "os.chdir",
             tracker=self.mock_tracker)
         scaffold.mock(
@@ -752,6 +771,21 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         instance = self.test_instance
         expect_mock_output = """\
             Called daemon.daemon.prevent_core_dump()
+            ...
+            """ % vars()
+        instance.open()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_changes_creation_mask_to_umask(self):
+        """ Should change file creation mask to `umask` option. """
+        instance = self.test_instance
+        umask = object()
+        instance.umask = umask
+        expect_mock_output = """\
+            ...
+            Called os.umask(%(umask)r)
             ...
             """ % vars()
         instance.open()

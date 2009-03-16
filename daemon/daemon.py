@@ -185,7 +185,7 @@ class DaemonContext(object):
         if self.pidfile is not None:
             self.pidfile.__enter__()
 
-        exclude_fds = self.get_exclude_file_descriptors()
+        exclude_fds = self._get_exclude_file_descriptors()
         close_all_open_files(exclude=exclude_fds)
 
         redirect_stream(sys.stdin, self.stdin)
@@ -193,7 +193,7 @@ class DaemonContext(object):
         redirect_stream(sys.stderr, self.stderr)
 
         if self.signal_map is not None:
-            signal_handler_map = self.make_signal_handler_map()
+            signal_handler_map = self._make_signal_handler_map()
             set_signal_handlers(signal_handler_map)
 
     def close(self):
@@ -205,7 +205,7 @@ class DaemonContext(object):
         else:
             self.pidfile.__exit__()
 
-    def get_exclude_file_descriptors(self):
+    def _get_exclude_file_descriptors(self):
         """ Return the list of file descriptors to exclude closing.
 
             Returns a list containing the file descriptors for the
@@ -235,7 +235,7 @@ class DaemonContext(object):
                 exclude_descriptors.append(item)
         return exclude_descriptors
 
-    def make_signal_handler(self, target):
+    def _make_signal_handler(self, target):
         """ Make the signal handler for a specified target object.
 
             If `target` is ``None``, returns ``signal.SIG_IGN``. If
@@ -254,7 +254,7 @@ class DaemonContext(object):
 
         return result
 
-    def make_signal_handler_map(self):
+    def _make_signal_handler_map(self):
         """ Make the map from signals to handlers for this instance.
 
             Constructs a map from signal numbers to handlers for this
@@ -263,6 +263,6 @@ class DaemonContext(object):
 
             """
         signal_handler_map = dict(
-            (signal_number, self.make_signal_handler(target))
+            (signal_number, self._make_signal_handler(target))
             for (signal_number, target) in self.signal_map.items())
         return signal_handler_map

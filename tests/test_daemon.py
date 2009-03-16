@@ -676,13 +676,13 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         self.test_files_preserve = object()
         self.test_files_preserve_fds = object()
         scaffold.mock(
-            "daemon.daemon.DaemonContext.get_exclude_file_descriptors",
+            "daemon.daemon.DaemonContext._get_exclude_file_descriptors",
             returns=self.test_files_preserve_fds,
             tracker=self.mock_tracker)
 
         self.test_signal_handler_map = object()
         scaffold.mock(
-            "daemon.daemon.DaemonContext.make_signal_handler_map",
+            "daemon.daemon.DaemonContext._make_signal_handler_map",
             returns=self.test_signal_handler_map,
             tracker=self.mock_tracker)
 
@@ -825,7 +825,7 @@ class DaemonContext_close_TestCase(scaffold.TestCase):
 
 
 class DaemonContext_get_exclude_file_descriptors_TestCase(scaffold.TestCase):
-    """ Test cases for DaemonContext.get_exclude_file_descriptors function """
+    """ Test cases for DaemonContext._get_exclude_file_descriptors function """
 
     def setUp(self):
         """ Set up test fixtures """
@@ -860,7 +860,7 @@ class DaemonContext_get_exclude_file_descriptors_TestCase(scaffold.TestCase):
         instance = self.test_instance
         instance.files_preserve = self.test_files.values()
         expect_result = self.test_file_descriptors
-        result = instance.get_exclude_file_descriptors()
+        result = instance._get_exclude_file_descriptors()
         self.failUnlessEqual(sorted(expect_result), sorted(result))
 
     def test_returns_stream_redirects_if_no_files_preserve(self):
@@ -870,7 +870,7 @@ class DaemonContext_get_exclude_file_descriptors_TestCase(scaffold.TestCase):
         expect_result = [
             self.stream_files_by_name[name].fileno()
             for name in ['stdin', 'stdout', 'stderr']]
-        result = instance.get_exclude_file_descriptors()
+        result = instance._get_exclude_file_descriptors()
         self.failUnlessEqual(sorted(expect_result), sorted(result))
 
     def test_returns_empty_list_if_no_files(self):
@@ -879,12 +879,12 @@ class DaemonContext_get_exclude_file_descriptors_TestCase(scaffold.TestCase):
         for name in ['files_preserve', 'stdin', 'stdout', 'stderr']:
             setattr(instance, name, None)
         expect_result = []
-        result = instance.get_exclude_file_descriptors()
+        result = instance._get_exclude_file_descriptors()
         self.failUnlessEqual(sorted(expect_result), sorted(result))
 
 
 class DaemonContext_make_signal_handler_TestCase(scaffold.TestCase):
-    """ Test cases for DaemonContext.make_signal_handler function """
+    """ Test cases for DaemonContext._make_signal_handler function """
 
     def setUp(self):
         """ Set up test fixtures """
@@ -899,7 +899,7 @@ class DaemonContext_make_signal_handler_TestCase(scaffold.TestCase):
         instance = self.test_instance
         target = None
         expect_result = signal.SIG_IGN
-        result = instance.make_signal_handler(target)
+        result = instance._make_signal_handler(target)
         self.failUnlessEqual(expect_result, result)
 
     def test_returns_method_for_name(self):
@@ -907,7 +907,7 @@ class DaemonContext_make_signal_handler_TestCase(scaffold.TestCase):
         instance = self.test_instance
         target = 'close'
         expect_result = instance.close
-        result = instance.make_signal_handler(target)
+        result = instance._make_signal_handler(target)
         self.failUnlessEqual(expect_result, result)
 
     def test_raises_error_for_unknown_name(self):
@@ -917,19 +917,19 @@ class DaemonContext_make_signal_handler_TestCase(scaffold.TestCase):
         expect_error = AttributeError
         self.failUnlessRaises(
             expect_error,
-            instance.make_signal_handler, target)
+            instance._make_signal_handler, target)
 
     def test_returns_object_for_object(self):
         """ Should return same object for any other object """
         instance = self.test_instance
         target = object()
         expect_result = target
-        result = instance.make_signal_handler(target)
+        result = instance._make_signal_handler(target)
         self.failUnlessEqual(expect_result, result)
 
 
 class DaemonContext_make_signal_handler_map_TestCase(scaffold.TestCase):
-    """ Test cases for DaemonContext.make_signal_handler_map function """
+    """ Test cases for DaemonContext._make_signal_handler_map function """
 
     def setUp(self):
         """ Set up test fixtures """
@@ -951,7 +951,7 @@ class DaemonContext_make_signal_handler_map_TestCase(scaffold.TestCase):
         def mock_make_signal_handler(target):
             return self.test_signal_handlers[target]
         scaffold.mock(
-            "daemon.daemon.DaemonContext.make_signal_handler",
+            "daemon.daemon.DaemonContext._make_signal_handler",
             returns_func=mock_make_signal_handler,
             tracker=self.mock_tracker)
 
@@ -963,5 +963,5 @@ class DaemonContext_make_signal_handler_map_TestCase(scaffold.TestCase):
         """ Should return items as constructed via make_signal_handler """
         instance = self.test_instance
         expect_result = self.test_signal_handler_map
-        result = instance.make_signal_handler_map()
+        result = instance._make_signal_handler_map()
         self.failUnlessEqual(expect_result, result)

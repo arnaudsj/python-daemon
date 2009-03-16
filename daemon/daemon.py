@@ -151,10 +151,11 @@ class DaemonContext(object):
         """
 
     UMASK = 0
-    WORKDIR = "."
 
     def __init__(
         self,
+        chroot_directory=None,
+        working_directory='/',
         files_preserve=None,
         pidfile=None,
         stdin=None,
@@ -163,6 +164,8 @@ class DaemonContext(object):
         signal_map=None,
         ):
         """ Set up a new instance. """
+        self.chroot_directory = chroot_directory
+        self.working_directory = working_directory
         self.files_preserve = files_preserve
         self.pidfile = pidfile
         self.stdin = stdin
@@ -172,12 +175,17 @@ class DaemonContext(object):
 
     def open(self):
         """ Become a daemon process. """
-        detach_process_context()
-
-        os.chdir(self.WORKDIR)
-        os.umask(self.UMASK)
+        if self.chroot_directory is not None:
+            os.chdir(self.chroot_directory)
+            os.chroot(self.chroot_directory)
 
         prevent_core_dump()
+
+        os.chdir(self.working_directory)
+
+        detach_process_context()
+
+        os.umask(self.UMASK)
 
         if not self.stderr:
             self.stderr = self.stdout

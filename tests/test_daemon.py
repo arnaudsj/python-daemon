@@ -611,6 +611,31 @@ class DaemonContext_TestCase(scaffold.TestCase):
         instance = daemon.daemon.DaemonContext()
         self.failIfIs(None, instance)
 
+    def test_has_specified_chroot_directory(self):
+        """ Should have specified chroot_directory option. """
+        args = dict(
+            chroot_directory = object(),
+            )
+        expect_directory = args['chroot_directory']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_directory, instance.chroot_directory)
+
+    def test_has_specified_working_directory(self):
+        """ Should have specified working_directory option. """
+        args = dict(
+            working_directory = object(),
+            )
+        expect_directory = args['working_directory']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_directory, instance.working_directory)
+
+    def test_has_default_working_directory(self):
+        """ Should have default working_directory option. """
+        args = dict()
+        expect_directory = '/'
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_directory, instance.working_directory)
+
     def test_has_specified_files_preserve(self):
         """ Should have specified files_preserve option """
         args = dict(
@@ -686,15 +711,25 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
             returns=self.test_signal_handler_map,
             tracker=self.mock_tracker)
 
+        scaffold.mock(
+            "os.chdir",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "os.chroot",
+            tracker=self.mock_tracker)
+
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
-    def test_detaches_process_context(self):
-        """ Should request detach of process context """
+    def test_changes_root_directory_to_chroot_directory(self):
+        """ Should change root directory to `chroot_directory` option. """
         instance = self.test_instance
+        chroot_directory = object()
+        instance.chroot_directory = chroot_directory
         expect_mock_output = """\
-            Called daemon.daemon.detach_process_context()
+            Called os.chdir(%(chroot_directory)r)
+            Called os.chroot(%(chroot_directory)r)
             ...
             """ % vars()
         instance.open()
@@ -702,12 +737,49 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
+    def test_omits_chroot_if_no_chroot_directory(self):
+        """ Should omit changing root directory if no `chroot_directory`. """
+        instance = self.test_instance
+        instance.chroot_directory = None
+        instance.open()
+        scaffold.mock_restore()
+        self.failIfIn(
+            self.mock_outfile.getvalue(),
+            "Called os.chroot")
+
     def test_prevents_core_dump(self):
         """ Should request prevention of core dumps """
         instance = self.test_instance
         expect_mock_output = """\
-            ...
             Called daemon.daemon.prevent_core_dump()
+            ...
+            """ % vars()
+        instance.open()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_changes_directory_to_working_directory(self):
+        """ Should change current directory to `working_directory` option. """
+        instance = self.test_instance
+        working_directory = object()
+        instance.working_directory = working_directory
+        expect_mock_output = """\
+            ...
+            Called os.chdir(%(working_directory)r)
+            ...
+            """ % vars()
+        instance.open()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_detaches_process_context(self):
+        """ Should request detach of process context """
+        instance = self.test_instance
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.detach_process_context()
             ...
             """ % vars()
         instance.open()

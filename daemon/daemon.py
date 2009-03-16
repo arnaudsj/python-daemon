@@ -255,6 +255,12 @@ class DaemonContext(object):
 
         prevent_core_dump()
 
+        exclude_fds = self._get_exclude_file_descriptors()
+        close_all_open_files(exclude=exclude_fds)
+
+        if self.pidfile is not None:
+            self.pidfile.__enter__()
+
         os.umask(self.umask)
         os.chdir(self.working_directory)
 
@@ -264,19 +270,13 @@ class DaemonContext(object):
         if not self.stderr:
             self.stderr = self.stdout
 
-        if self.pidfile is not None:
-            self.pidfile.__enter__()
-
-        exclude_fds = self._get_exclude_file_descriptors()
-        close_all_open_files(exclude=exclude_fds)
+        if self.signal_map is not None:
+            signal_handler_map = self._make_signal_handler_map()
+            set_signal_handlers(signal_handler_map)
 
         redirect_stream(sys.stdin, self.stdin)
         redirect_stream(sys.stdout, self.stdout)
         redirect_stream(sys.stderr, self.stderr)
-
-        if self.signal_map is not None:
-            signal_handler_map = self._make_signal_handler_map()
-            set_signal_handlers(signal_handler_map)
 
     def close(self):
         """ Exit the daemon process context. """

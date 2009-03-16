@@ -488,6 +488,40 @@ class redirect_stream_TestCase(scaffold.TestCase):
             expect_mock_output, self.mock_outfile.getvalue())
 
 
+class set_signal_handlers_TestCase(scaffold.TestCase):
+    """ Test cases for set_signal_handlers function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        self.mock_outfile = StringIO()
+        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
+
+        scaffold.mock(
+            "signal.signal",
+            tracker=self.mock_tracker)
+
+        self.signal_map = {
+            signal.SIGQUIT: object(),
+            signal.SIGSEGV: object(),
+            signal.SIGINT: object(),
+            }
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_sets_signal_handler_for_each_item(self):
+        """ Should set signal handler for each item in map """
+        signal_map = self.signal_map
+        expect_mock_output = "".join(
+            "Called signal.signal(%(signal_number)r, %(handler)r)\n"
+                % vars()
+            for (signal_number, handler) in signal_map.items())
+        daemon.daemon.set_signal_handlers(signal_map)
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+
 def setup_daemon_context_fixtures(testcase):
     """ Set up common test fixtures for DaemonContext test case """
 
@@ -517,6 +551,9 @@ def setup_daemon_context_fixtures(testcase):
         tracker=testcase.mock_tracker)
     scaffold.mock(
         "daemon.daemon.redirect_stream",
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "daemon.daemon.set_signal_handlers",
         tracker=testcase.mock_tracker)
 
     testcase.mock_stderr = FakeFileDescriptorStringIO()
@@ -619,6 +656,15 @@ class DaemonContext_TestCase(scaffold.TestCase):
         instance = daemon.daemon.DaemonContext(**args)
         self.failUnlessEqual(expect_file, instance.stderr)
 
+    def test_has_specified_signal_map(self):
+        """ Should have specified signal_map option """
+        args = dict(
+            signal_map = object(),
+            )
+        expect_signal_map = args['signal_map']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_signal_map, instance.signal_map)
+
 
 class DaemonContext_open_TestCase(scaffold.TestCase):
     """ Test cases for DaemonContext.open method """
@@ -632,6 +678,12 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         scaffold.mock(
             "daemon.daemon.DaemonContext.get_exclude_file_descriptors",
             returns=self.test_files_preserve_fds,
+            tracker=self.mock_tracker)
+
+        self.test_signal_handler_map = object()
+        scaffold.mock(
+            "daemon.daemon.DaemonContext.make_signal_handler_map",
+            returns=self.test_signal_handler_map,
             tracker=self.mock_tracker)
 
     def tearDown(self):
@@ -708,6 +760,31 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
                 %(system_stdout)r, %(target_stdout)r)
             Called daemon.daemon.redirect_stream(
                 %(system_stderr)r, %(target_stderr)r)
+            """ % vars()
+        instance.open()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_omits_signal_handlers_if_no_signal_map(self):
+        """ Should omit signal handler setting if `signal_map` is None """
+        instance = self.test_instance
+        instance.signal_map = None
+        instance.open()
+        scaffold.mock_restore()
+        self.failIfIn(
+            self.mock_outfile.getvalue(),
+            "Called daemon.daemon.set_signal_handlers")
+
+    def test_sets_signal_handlers_from_signal_map(self):
+        """ Should set signal handlers according to `signal_map` """
+        instance = self.test_instance
+        instance.signal_map = object()
+        expect_signal_handler_map = self.test_signal_handler_map
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.set_signal_handlers(
+                %(expect_signal_handler_map)r)
             """ % vars()
         instance.open()
         scaffold.mock_restore()
@@ -804,3 +881,87 @@ class DaemonContext_get_exclude_file_descriptors_TestCase(scaffold.TestCase):
         expect_result = []
         result = instance.get_exclude_file_descriptors()
         self.failUnlessEqual(sorted(expect_result), sorted(result))
+
+
+class DaemonContext_make_signal_handler_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext.make_signal_handler function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_daemon_context_fixtures(self)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_returns_ignore_for_none(self):
+        """ Should return SIG_IGN when None handler specified """
+        instance = self.test_instance
+        target = None
+        expect_result = signal.SIG_IGN
+        result = instance.make_signal_handler(target)
+        self.failUnlessEqual(expect_result, result)
+
+    def test_returns_method_for_name(self):
+        """ Should return method of DaemonContext when name specified """
+        instance = self.test_instance
+        target = 'close'
+        expect_result = instance.close
+        result = instance.make_signal_handler(target)
+        self.failUnlessEqual(expect_result, result)
+
+    def test_raises_error_for_unknown_name(self):
+        """ Should raise AttributeError for unknown method name """
+        instance = self.test_instance
+        target = 'b0gUs'
+        expect_error = AttributeError
+        self.failUnlessRaises(
+            expect_error,
+            instance.make_signal_handler, target)
+
+    def test_returns_object_for_object(self):
+        """ Should return same object for any other object """
+        instance = self.test_instance
+        target = object()
+        expect_result = target
+        result = instance.make_signal_handler(target)
+        self.failUnlessEqual(expect_result, result)
+
+
+class DaemonContext_make_signal_handler_map_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext.make_signal_handler_map function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_daemon_context_fixtures(self)
+
+        self.test_instance.signal_map = {
+            object(): object(),
+            object(): object(),
+            object(): object(),
+            }
+
+        self.test_signal_handlers = dict(
+            (key, object())
+            for key in self.test_instance.signal_map.values())
+        self.test_signal_handler_map = dict(
+            (key, self.test_signal_handlers[target])
+            for (key, target) in self.test_instance.signal_map.items())
+
+        def mock_make_signal_handler(target):
+            return self.test_signal_handlers[target]
+        scaffold.mock(
+            "daemon.daemon.DaemonContext.make_signal_handler",
+            returns_func=mock_make_signal_handler,
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_returns_constructed_signal_handler_items(self):
+        """ Should return items as constructed via make_signal_handler """
+        instance = self.test_instance
+        expect_result = self.test_signal_handler_map
+        result = instance.make_signal_handler_map()
+        self.failUnlessEqual(expect_result, result)

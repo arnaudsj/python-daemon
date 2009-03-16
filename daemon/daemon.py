@@ -131,6 +131,17 @@ def redirect_stream(system_stream, target_stream):
     os.dup2(target_stream.fileno(), system_stream.fileno())
 
 
+def set_signal_handlers(signal_map):
+    """ Set the signal handlers as specified.
+
+        The `signal_map` argument maps signal numbers to the signal
+        handler which should be set for that signal.
+
+        """
+    for (signal_number, handler) in signal_map.items():
+        signal.signal(signal_number, handler)
+
+
 class DaemonContext(object):
     """ Context for turning the current program into a daemon process.
 
@@ -149,6 +160,7 @@ class DaemonContext(object):
         stdin=None,
         stdout=None,
         stderr=None,
+        signal_map=None,
         ):
         """ Set up a new instance. """
         self.files_preserve = files_preserve
@@ -156,6 +168,7 @@ class DaemonContext(object):
         self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
+        self.signal_map = signal_map
 
     def open(self):
         """ Become a daemon process. """
@@ -178,6 +191,10 @@ class DaemonContext(object):
         redirect_stream(sys.stdin, self.stdin)
         redirect_stream(sys.stdout, self.stdout)
         redirect_stream(sys.stderr, self.stderr)
+
+        if self.signal_map is not None:
+            signal_handler_map = self.make_signal_handler_map()
+            set_signal_handlers(signal_handler_map)
 
     def close(self):
         """ Exit the daemon process context. """
@@ -217,3 +234,35 @@ class DaemonContext(object):
             else:
                 exclude_descriptors.append(item)
         return exclude_descriptors
+
+    def make_signal_handler(self, target):
+        """ Make the signal handler for a specified target object.
+
+            If `target` is ``None``, returns ``signal.SIG_IGN``. If
+            `target` is a string, returns the attribute of this
+            instance named by that string. Otherwise, returns `target`
+            itself.
+
+            """
+        if target is None:
+            result = signal.SIG_IGN
+        elif isinstance(target, basestring):
+            name = target
+            result = getattr(self, name)
+        else:
+            result = target
+
+        return result
+
+    def make_signal_handler_map(self):
+        """ Make the map from signals to handlers for this instance.
+
+            Constructs a map from signal numbers to handlers for this
+            context instance, suitable for passing to
+            `set_signal_handlers`.
+
+            """
+        signal_handler_map = dict(
+            (signal_number, self.make_signal_handler(target))
+            for (signal_number, target) in self.signal_map.items())
+        return signal_handler_map

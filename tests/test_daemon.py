@@ -1273,14 +1273,6 @@ class DaemonContext_close_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
-    def test_raises_system_exit(self):
-        """ Should raise SystemExit """
-        instance = self.test_instance
-        expect_exception = SystemExit
-        self.failUnlessRaises(
-            expect_exception,
-            instance.close)
-
 
 class DaemonContext_terminate_TestCase(scaffold.TestCase):
     """ Test cases for DaemonContext.terminate method """
@@ -1288,6 +1280,10 @@ class DaemonContext_terminate_TestCase(scaffold.TestCase):
     def setUp(self):
         """ Set up test fixtures """
         setup_daemon_context_fixtures(self)
+
+        self.test_signal = signal.SIGTERM
+        self.test_frame = None
+        self.test_args = (self.test_signal, self.test_frame)
 
         scaffold.mock(
             "daemon.daemon.DaemonContext.close",
@@ -1300,17 +1296,41 @@ class DaemonContext_terminate_TestCase(scaffold.TestCase):
     def test_closes_daemon_context(self):
         """ Should close the DaemonContext """
         instance = self.test_instance
-        test_signal = signal.SIGTERM
-        test_frame = None
-        args = (test_signal, test_frame)
+        args = self.test_args
         expect_mock_output = """\
             ...
             Called daemon.daemon.DaemonContext.close()
             """
-        instance.terminate(*args)
+        expect_exception = SystemExit
+        try:
+            instance.terminate(*args)
+        except expect_exception:
+            pass
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_raises_system_exit(self):
+        """ Should raise SystemExit """
+        instance = self.test_instance
+        args = self.test_args
+        expect_exception = SystemExit
+        self.failUnlessRaises(
+            expect_exception,
+            instance.terminate, *args)
+
+    def test_exception_message_contains_signal_number(self):
+        """ Should raise exception with a message containing signal number """
+        instance = self.test_instance
+        args = self.test_args
+        signal_number = self.test_signal
+        expect_exception = SystemExit
+        try:
+            instance.terminate(*args)
+        except expect_exception, exc:
+            pass
+        scaffold.mock_restore()
+        self.failUnlessIn(str(exc), str(signal_number))
 
 
 class DaemonContext_get_exclude_file_descriptors_TestCase(scaffold.TestCase):

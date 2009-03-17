@@ -315,16 +315,16 @@ class DaemonContext(object):
 
     def close(self):
         """ Exit the daemon process context. """
-        if self.pidfile is None:
-            exception = SystemExit()
-            raise exception
-
-        else:
+        if self.pidfile is not None:
             self.pidfile.__exit__()
 
     def terminate(self, signal_number, stack_frame):
         """ Signal handler for end-process signals """
         self.close()
+        exception = SystemExit(
+            "Terminating on signal %(signal_number)r"
+                % vars())
+        raise exception
 
     def _get_exclude_file_descriptors(self):
         """ Return the list of file descriptors to exclude closing.

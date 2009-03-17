@@ -300,9 +300,6 @@ class DaemonContext(object):
         if self.detach_process:
             detach_process_context()
 
-        if not self.stderr:
-            self.stderr = self.stdout
-
         signal_handler_map = self._make_signal_handler_map()
         set_signal_handlers(signal_handler_map)
 

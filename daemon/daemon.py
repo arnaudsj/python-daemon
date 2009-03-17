@@ -292,9 +292,6 @@ class DaemonContext(object):
         exclude_fds = self._get_exclude_file_descriptors()
         close_all_open_files(exclude=exclude_fds)
 
-        if self.pidfile is not None:
-            self.pidfile.__enter__()
-
         os.umask(self.umask)
         os.chdir(self.working_directory)
         os.setuid(self.uid)
@@ -312,6 +309,9 @@ class DaemonContext(object):
         redirect_stream(sys.stdin, self.stdin)
         redirect_stream(sys.stdout, self.stdout)
         redirect_stream(sys.stderr, self.stderr)
+
+        if self.pidfile is not None:
+            self.pidfile.__enter__()
 
     def close(self):
         """ Exit the daemon process context. """

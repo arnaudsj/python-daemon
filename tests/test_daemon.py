@@ -1114,20 +1114,6 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
-    def test_enters_pidfile_context(self):
-        """ Should enter the PID file context manager """
-        instance = self.test_instance
-        instance.pidfile = self.mock_pidlockfile
-        expect_mock_output = """\
-            ...
-            Called pidlockfile.PIDLockFile.__enter__()
-            ...
-            """
-        instance.open()
-        scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
-
     def test_changes_directory_to_working_directory(self):
         """ Should change current directory to `working_directory` option. """
         instance = self.test_instance
@@ -1244,6 +1230,19 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
             Called daemon.daemon.redirect_stream(
                 %(system_stderr)r, %(target_stderr)r)
             """ % vars()
+        instance.open()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_enters_pidfile_context(self):
+        """ Should enter the PID file context manager """
+        instance = self.test_instance
+        instance.pidfile = self.mock_pidlockfile
+        expect_mock_output = """\
+            ...
+            Called pidlockfile.PIDLockFile.__enter__()
+            """
         instance.open()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(

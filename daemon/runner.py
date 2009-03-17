@@ -2,7 +2,8 @@
 
 # daemon/runner.py
 #
-# Copyright © 2007–2009 Robert Niederreiter, Jens Klein, Ben Finney
+# Copyright © 2009 Ben Finney <ben+python@benfinney.id.au>
+# Copyright © 2007–2008 Robert Niederreiter, Jens Klein
 # Copyright © 2003 Clark Evans
 # Copyright © 2002 Noah Spurrier
 # Copyright © 2001 Jürgen Hermann

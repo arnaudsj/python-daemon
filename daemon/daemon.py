@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 
-# Copyright © 2007–2009 Robert Niederreiter, Jens Klein, Ben Finney
+# daemon/daemon.py
+#
+# Copyright © 2008–2009 Ben Finney <ben+python@benfinney.id.au>
+# Copyright © 2007–2008 Robert Niederreiter, Jens Klein
+# Copyright © 2004–2005 Chad J. Schroeder
 # Copyright © 2003 Clark Evans
 # Copyright © 2002 Noah Spurrier
 # Copyright © 2001 Jürgen Hermann

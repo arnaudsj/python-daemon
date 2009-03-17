@@ -18,6 +18,13 @@ import signal
 import socket
 
 
+class DaemonError(Exception):
+    """ Base exception class for errors from this module. """
+
+class DaemonProcessDetachError(DaemonError, OSError):
+    """ Exception raised when process detach fails. """
+
+
 def prevent_core_dump():
     """ Prevent this process from generating a core dump.
 
@@ -52,10 +59,12 @@ def detach_process_context():
         pid = os.fork()
         if pid > 0:
             os._exit(0)
-    except OSError, e:
-        msg = "fork #1 failed: (%d) %s\n" % (e.errno, e.strerror)
-        sys.stderr.write(msg)
-        os._exit(1)
+    except OSError, exc:
+        exc_errno = exc.errno
+        exc_strerror = exc.strerror
+        error = DaemonProcessDetachError(
+            "Failed first fork: [%(exc_errno)d] %(exc_strerror)s" % vars())
+        raise error
 
     os.setsid()
 
@@ -63,10 +72,12 @@ def detach_process_context():
         pid = os.fork()
         if pid > 0:
             os._exit(0)
-    except OSError, e:
-        msg = "fork #2 failed: (%d) %s\n" % (e.errno, e.strerror)
-        sys.stderr.write(msg)
-        os._exit(1)
+    except OSError, exc:
+        exc_errno = exc.errno
+        exc_strerror = exc.strerror
+        error = DaemonProcessDetachError(
+            "Failed second fork: [%(exc_errno)d] %(exc_strerror)s" % vars())
+        raise error
 
 
 def is_process_started_by_init():

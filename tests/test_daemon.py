@@ -33,6 +33,25 @@ from daemon import pidlockfile
 import daemon
 
 
+class Exception_TestCase(scaffold.Exception_TestCase):
+    """ Test cases for module exception classes """
+
+    def __init__(self, *args, **kwargs):
+        """ Set up a new instance. """
+        super(Exception_TestCase, self).__init__(*args, **kwargs)
+
+        self.valid_exceptions = {
+            daemon.daemon.DaemonError: dict(
+                min_args = 0,
+                types = (Exception,),
+            ),
+            daemon.daemon.DaemonProcessDetachError: dict(
+                min_args = 0,
+                types = (daemon.daemon.DaemonError, OSError),
+            ),
+        }
+
+
 class prevent_core_dump_TestCase(scaffold.TestCase):
     """ Test cases for prevent_core_dump function """
 
@@ -286,8 +305,6 @@ class detach_process_context_TestCase(scaffold.TestCase):
         self.mock_outfile = StringIO()
         self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
 
-        self.mock_stderr = FakeFileDescriptorStringIO()
-
         test_pids = [0, 0]
         scaffold.mock(
             "os.fork", returns_iter=test_pids,
@@ -301,11 +318,6 @@ class detach_process_context_TestCase(scaffold.TestCase):
 
         scaffold.mock(
             "os._exit", returns_func=raise_os_exit,
-            tracker=self.mock_tracker)
-
-        scaffold.mock(
-            "sys.stderr",
-            mock_obj=self.mock_stderr,
             tracker=self.mock_tracker)
 
     def tearDown(self):
@@ -328,8 +340,8 @@ class detach_process_context_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
-    def test_first_fork_error_reports_to_stderr(self):
-        """ Error on first fork should cause report to stderr """
+    def test_first_fork_error_raises_error(self):
+        """ Error on first fork should raise DaemonProcessDetachError """
         fork_errno = 13
         fork_strerror = "Bad stuff happened"
         fork_error = OSError(fork_errno, fork_strerror)
@@ -346,19 +358,13 @@ class detach_process_context_TestCase(scaffold.TestCase):
             tracker=self.mock_tracker)
         expect_mock_output = """\
             Called os.fork()
-            Called os._exit(1)
             """
-        expect_stderr = """\
-            fork #1 failed: ...%(fork_errno)d...%(fork_strerror)s...
-            """ % vars()
         self.failUnlessRaises(
-            self.FakeOSExit,
+            daemon.daemon.DaemonProcessDetachError,
             daemon.daemon.detach_process_context)
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
-        self.failUnlessOutputCheckerMatch(
-            expect_stderr, self.mock_stderr.getvalue())
 
     def test_child_starts_new_process_group(self):
         """ Child should start new process group """
@@ -410,19 +416,13 @@ class detach_process_context_TestCase(scaffold.TestCase):
             Called os.fork()
             Called os.setsid()
             Called os.fork()
-            Called os._exit(1)
             """
-        expect_stderr = """\
-            fork #2 failed: ...%(fork_errno)d...%(fork_strerror)s...
-            """ % vars()
         self.failUnlessRaises(
-            self.FakeOSExit,
+            daemon.daemon.DaemonProcessDetachError,
             daemon.daemon.detach_process_context)
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
-        self.failUnlessOutputCheckerMatch(
-            expect_stderr, self.mock_stderr.getvalue())
 
     def test_child_forks_next_child_continues(self):
         """ Child should fork, then continue if child """

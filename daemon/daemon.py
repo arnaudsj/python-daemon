@@ -12,7 +12,6 @@
 
 import os
 import sys
-import time
 import resource
 import errno
 import signal

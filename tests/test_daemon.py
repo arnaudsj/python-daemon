@@ -827,6 +827,15 @@ def setup_daemon_context_fixtures(testcase):
         tracker=testcase.mock_tracker)
 
     scaffold.mock(
+        "os.getuid",
+        returns=object(),
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "os.getgid",
+        returns=object(),
+        tracker=testcase.mock_tracker)
+
+    scaffold.mock(
         "sys.stdin",
         tracker=testcase.mock_tracker)
     scaffold.mock(
@@ -899,6 +908,38 @@ class DaemonContext_TestCase(scaffold.TestCase):
         expect_mask = 0
         instance = daemon.daemon.DaemonContext(**args)
         self.failUnlessEqual(expect_mask, instance.umask)
+
+    def test_has_specified_uid(self):
+        """ Should have specified uid option. """
+        args = dict(
+            uid = object(),
+            )
+        expect_id = args['uid']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_id, instance.uid)
+
+    def test_has_derived_uid(self):
+        """ Should have uid option derived from process. """
+        args = dict()
+        expect_id = os.getuid()
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_id, instance.uid)
+
+    def test_has_specified_gid(self):
+        """ Should have specified gid option. """
+        args = dict(
+            gid = object(),
+            )
+        expect_id = args['gid']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_id, instance.gid)
+
+    def test_has_derived_gid(self):
+        """ Should have gid option derived from process. """
+        args = dict()
+        expect_id = os.getgid()
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_id, instance.gid)
 
     def test_has_specified_detach_process(self):
         """ Should have specified detach_process option. """
@@ -1008,6 +1049,12 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         scaffold.mock(
             "os.chroot",
             tracker=self.mock_tracker)
+        scaffold.mock(
+            "os.setuid",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "os.setgid",
+            tracker=self.mock_tracker)
 
     def tearDown(self):
         """ Tear down test fixtures """
@@ -1104,6 +1151,36 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         expect_mock_output = """\
             ...
             Called os.umask(%(umask)r)
+            ...
+            """ % vars()
+        instance.open()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_changes_user_id_to_uid(self):
+        """ Should change process UID to `uid` option. """
+        instance = self.test_instance
+        uid = object()
+        instance.uid = uid
+        expect_mock_output = """\
+            ...
+            Called os.setuid(%(uid)r)
+            ...
+            """ % vars()
+        instance.open()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_changes_group_id_to_gid(self):
+        """ Should change process GID to `gid` option. """
+        instance = self.test_instance
+        gid = object()
+        instance.gid = gid
+        expect_mock_output = """\
+            ...
+            Called os.setgid(%(gid)r)
             ...
             """ % vars()
         instance.open()

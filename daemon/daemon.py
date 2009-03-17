@@ -246,6 +246,8 @@ class DaemonContext(object):
         chroot_directory=None,
         working_directory='/',
         umask=0,
+        uid=None,
+        gid=None,
         detach_process=None,
         files_preserve=None,
         pidfile=None,
@@ -263,6 +265,13 @@ class DaemonContext(object):
         self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
+
+        if uid is None:
+            uid = os.getuid()
+        self.uid = uid
+        if gid is None:
+            gid = os.getgid()
+        self.gid = gid
 
         if detach_process is None:
             detach_process = is_detach_process_context_required()
@@ -288,6 +297,8 @@ class DaemonContext(object):
 
         os.umask(self.umask)
         os.chdir(self.working_directory)
+        os.setuid(self.uid)
+        os.setgid(self.gid)
 
         if self.detach_process:
             detach_process_context()

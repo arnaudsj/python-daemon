@@ -202,13 +202,17 @@ def redirect_stream(system_stream, target_stream):
 
 def make_default_signal_map():
     """ Make the default signal map for this system.
+
+        The signals available differ by system. The map will not
+        contain any signals not defined on the running system.
+
         """
     name_map = {
         'SIGCLD': None,
         'SIGTSTP': None,
         'SIGTTIN': None,
         'SIGTTOU': None,
-        'SIGTERM': 'close',
+        'SIGTERM': 'terminate',
         }
     signal_map = dict(
         (getattr(signal, name), target)
@@ -306,6 +310,10 @@ class DaemonContext(object):
 
         else:
             self.pidfile.__exit__()
+
+    def terminate(self, signal_number, stack_frame):
+        """ Signal handler for end-process signals """
+        self.close()
 
     def _get_exclude_file_descriptors(self):
         """ Return the list of file descriptors to exclude closing.

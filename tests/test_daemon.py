@@ -682,7 +682,7 @@ class make_default_signal_map_TestCase(scaffold.TestCase):
             'SIGTSTP': None,
             'SIGTTIN': None,
             'SIGTTOU': None,
-            'SIGTERM': 'close',
+            'SIGTERM': 'terminate',
             }
 
         mock_signal_module = ModuleType('signal')
@@ -1206,6 +1206,37 @@ class DaemonContext_close_TestCase(scaffold.TestCase):
             instance.close)
 
 
+class DaemonContext_terminate_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext.terminate method """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_daemon_context_fixtures(self)
+
+        scaffold.mock(
+            "daemon.daemon.DaemonContext.close",
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_closes_daemon_context(self):
+        """ Should close the DaemonContext """
+        instance = self.test_instance
+        test_signal = signal.SIGTERM
+        test_frame = None
+        args = (test_signal, test_frame)
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.DaemonContext.close()
+            """
+        instance.terminate(*args)
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+
 class DaemonContext_get_exclude_file_descriptors_TestCase(scaffold.TestCase):
     """ Test cases for DaemonContext._get_exclude_file_descriptors function """
 
@@ -1287,8 +1318,8 @@ class DaemonContext_make_signal_handler_TestCase(scaffold.TestCase):
     def test_returns_method_for_name(self):
         """ Should return method of DaemonContext when name specified """
         instance = self.test_instance
-        target = 'close'
-        expect_result = instance.close
+        target = 'terminate'
+        expect_result = instance.terminate
         result = instance._make_signal_handler(target)
         self.failUnlessEqual(expect_result, result)
 

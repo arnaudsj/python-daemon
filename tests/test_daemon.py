@@ -21,6 +21,7 @@ import resource
 import errno
 import signal
 import socket
+from types import ModuleType
 
 import scaffold
 from test_pidlockfile import (
@@ -668,6 +669,65 @@ class redirect_stream_TestCase(scaffold.TestCase):
             expect_mock_output, self.mock_outfile.getvalue())
 
 
+class make_default_signal_map_TestCase(scaffold.TestCase):
+    """ Test cases for make_default_signal_map function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        self.mock_outfile = StringIO()
+        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
+
+        default_signal_map_by_name = {
+            'SIGCLD': None,
+            'SIGTSTP': None,
+            'SIGTTIN': None,
+            'SIGTTOU': None,
+            'SIGTERM': 'close',
+            }
+
+        mock_signal_module = ModuleType('signal')
+        for name in default_signal_map_by_name:
+            setattr(mock_signal_module, name, object())
+
+        scaffold.mock(
+            "signal",
+            mock_obj=mock_signal_module,
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.signal",
+            mock_obj=mock_signal_module,
+            tracker=self.mock_tracker)
+
+        self.default_signal_map = dict(
+            (getattr(signal, name), target)
+            for (name, target) in default_signal_map_by_name.items())
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_returns_constructed_signal_map(self):
+        """ Should return map per default """
+        expect_result = self.default_signal_map
+        result = daemon.daemon.make_default_signal_map()
+        self.failUnlessEqual(expect_result, result)
+
+    def test_returns_signal_map_with_only_ids_in_signal_module(self):
+        """ Should return map with only signals in the `signal` module
+
+            The `signal` module is documented to only define those
+            signals which exist on the running system. Therefore the
+            default map should not contain any signals which are not
+            defined in the `signal` module.
+
+            """
+        del(self.default_signal_map[signal.SIGCLD])
+        del(signal.SIGCLD)
+        expect_result = self.default_signal_map
+        result = daemon.daemon.make_default_signal_map()
+        self.failUnlessEqual(expect_result, result)
+
+
 class set_signal_handlers_TestCase(scaffold.TestCase):
     """ Test cases for set_signal_handlers function """
 
@@ -735,6 +795,10 @@ def setup_daemon_context_fixtures(testcase):
         tracker=testcase.mock_tracker)
     scaffold.mock(
         "daemon.daemon.redirect_stream",
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "daemon.daemon.make_default_signal_map",
+        returns=object(),
         tracker=testcase.mock_tracker)
     scaffold.mock(
         "daemon.daemon.set_signal_handlers",
@@ -904,6 +968,13 @@ class DaemonContext_TestCase(scaffold.TestCase):
             signal_map = object(),
             )
         expect_signal_map = args['signal_map']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_signal_map, instance.signal_map)
+
+    def test_has_derived_signal_map(self):
+        """ Should have signal_map option derived from system. """
+        args = dict()
+        expect_signal_map = daemon.daemon.make_default_signal_map()
         instance = daemon.daemon.DaemonContext(**args)
         self.failUnlessEqual(expect_signal_map, instance.signal_map)
 
@@ -1078,16 +1149,6 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
-
-    def test_omits_signal_handlers_if_no_signal_map(self):
-        """ Should omit signal handler setting if `signal_map` is None """
-        instance = self.test_instance
-        instance.signal_map = None
-        instance.open()
-        scaffold.mock_restore()
-        self.failIfIn(
-            self.mock_outfile.getvalue(),
-            "Called daemon.daemon.set_signal_handlers")
 
     def test_redirects_standard_streams(self):
         """ Should request redirection of standard stream files """

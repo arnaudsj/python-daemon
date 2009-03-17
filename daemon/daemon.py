@@ -200,6 +200,24 @@ def redirect_stream(system_stream, target_stream):
     os.dup2(target_stream.fileno(), system_stream.fileno())
 
 
+def make_default_signal_map():
+    """ Make the default signal map for this system.
+        """
+    name_map = {
+        'SIGCLD': None,
+        'SIGTSTP': None,
+        'SIGTTIN': None,
+        'SIGTTOU': None,
+        'SIGTERM': 'close',
+        }
+    signal_map = dict(
+        (getattr(signal, name), target)
+        for (name, target) in name_map.items()
+        if hasattr(signal, name))
+
+    return signal_map
+
+
 def set_signal_handlers(signal_map):
     """ Set the signal handlers as specified.
 
@@ -241,11 +259,14 @@ class DaemonContext(object):
         self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
-        self.signal_map = signal_map
 
         if detach_process is None:
             detach_process = is_detach_process_context_required()
         self.detach_process = detach_process
+
+        if signal_map is None:
+            signal_map = make_default_signal_map()
+        self.signal_map = signal_map
 
     def open(self):
         """ Become a daemon process. """
@@ -270,9 +291,8 @@ class DaemonContext(object):
         if not self.stderr:
             self.stderr = self.stdout
 
-        if self.signal_map is not None:
-            signal_handler_map = self._make_signal_handler_map()
-            set_signal_handlers(signal_handler_map)
+        signal_handler_map = self._make_signal_handler_map()
+        set_signal_handlers(signal_handler_map)
 
         redirect_stream(sys.stdin, self.stdin)
         redirect_stream(sys.stdout, self.stdout)

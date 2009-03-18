@@ -101,7 +101,12 @@ def is_process_started_by_init():
 
 
 def is_socket(fd):
-    """ Determine if the file descriptor is a socket. """
+    """ Determine if the file descriptor is a socket.
+
+        Return ``False`` if querying the socket type of `fd` raises an
+        error; otherwise return ``True``.
+
+        """
     result = False
 
     file_socket = socket.fromfd(fd, socket.AF_INET, socket.SOCK_RAW)
@@ -144,6 +149,14 @@ def is_process_started_by_superserver():
 
 def is_detach_process_context_required():
     """ Determine whether detaching process context is required.
+
+        Return ``True`` if the process environment indicates the
+        process is already detached:
+
+        * Process was started by `init`; or
+
+        * Process was started by `inetd`.
+
         """
     result = True
     if is_process_started_by_init() or is_process_started_by_superserver():
@@ -330,7 +343,7 @@ class DaemonContext(object):
             self.pidfile.__exit__()
 
     def terminate(self, signal_number, stack_frame):
-        """ Signal handler for end-process signals """
+        """ Signal handler for end-process signals. """
         self.close()
         exception = SystemExit(
             "Terminating on signal %(signal_number)r"

@@ -1274,6 +1274,86 @@ class DaemonContext_close_TestCase(scaffold.TestCase):
             expect_mock_output, self.mock_outfile.getvalue())
 
 
+class DaemonContext_context_manager_enter_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext.__enter__ method """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_daemon_context_fixtures(self)
+
+        scaffold.mock(
+            "daemon.daemon.DaemonContext.open",
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_opens_daemon_context(self):
+        """ Should open the DaemonContext. """
+        instance = self.test_instance
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.DaemonContext.open()
+            """
+        instance.__enter__()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_returns_self_instance(self):
+        """ Should return DaemonContext instance. """
+        instance = self.test_instance
+        expect_result = instance
+        result = instance.__enter__()
+        scaffold.mock_restore()
+        self.failUnlessIs(expect_result, result)
+
+
+class DaemonContext_context_manager_exit_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext.__exit__ method """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        setup_daemon_context_fixtures(self)
+
+        self.test_args = dict(
+            exc_type = object(),
+            exc_value = object(),
+            traceback = object(),
+            )
+
+        scaffold.mock(
+            "daemon.daemon.DaemonContext.close",
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_closes_daemon_context(self):
+        """ Should close the DaemonContext. """
+        instance = self.test_instance
+        args = self.test_args
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.DaemonContext.close()
+            """
+        instance.__exit__(**args)
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_returns_none(self):
+        """ Should return None, indicating exception was not handled. """
+        instance = self.test_instance
+        args = self.test_args
+        expect_result = None
+        result = instance.__exit__(**args)
+        scaffold.mock_restore()
+        self.failUnlessIs(expect_result, result)
+
+
 class DaemonContext_terminate_TestCase(scaffold.TestCase):
     """ Test cases for DaemonContext.terminate method """
 

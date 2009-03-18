@@ -740,7 +740,7 @@ class set_signal_handlers_TestCase(scaffold.TestCase):
             "signal.signal",
             tracker=self.mock_tracker)
 
-        self.signal_map = {
+        self.signal_handler_map = {
             signal.SIGQUIT: object(),
             signal.SIGSEGV: object(),
             signal.SIGINT: object(),
@@ -752,12 +752,12 @@ class set_signal_handlers_TestCase(scaffold.TestCase):
 
     def test_sets_signal_handler_for_each_item(self):
         """ Should set signal handler for each item in map """
-        signal_map = self.signal_map
+        signal_handler_map = self.signal_handler_map
         expect_mock_output = "".join(
             "Called signal.signal(%(signal_number)r, %(handler)r)\n"
                 % vars()
-            for (signal_number, handler) in signal_map.items())
-        daemon.daemon.set_signal_handlers(signal_map)
+            for (signal_number, handler) in signal_handler_map.items())
+        daemon.daemon.set_signal_handlers(signal_handler_map)
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 

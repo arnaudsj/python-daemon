@@ -236,14 +236,14 @@ def make_default_signal_map():
     return signal_map
 
 
-def set_signal_handlers(signal_map):
+def set_signal_handlers(signal_handler_map):
     """ Set the signal handlers as specified.
 
-        The `signal_map` argument maps signal numbers to the signal
-        handler which should be set for that signal.
+        The `signal_handler_map` argument is a map from signal number
+        to signal handler. See the `signal` module for details.
 
         """
-    for (signal_number, handler) in signal_map.items():
+    for (signal_number, handler) in signal_handler_map.items():
         signal.signal(signal_number, handler)
 
 

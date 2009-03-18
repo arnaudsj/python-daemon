@@ -344,8 +344,6 @@ class DaemonContext(object):
 
     def close(self):
         """ Exit the daemon process context. """
-        if self.pidfile is not None:
-            self.pidfile.__exit__()
 
     def __exit__(self, exc_type, exc_value, traceback):
         """ Context manager exit point. """

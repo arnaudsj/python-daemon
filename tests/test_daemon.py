@@ -1260,18 +1260,13 @@ class DaemonContext_close_TestCase(scaffold.TestCase):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
-    def test_exits_pidfile_context(self):
-        """ Should exit the PID file context manager """
+    def test_returns_none(self):
+        """ Should return None. """
         instance = self.test_instance
-        instance.pidfile = self.mock_pidlockfile
-        expect_mock_output = """\
-            ...
-            Called pidlockfile.PIDLockFile.__exit__()
-            """
-        instance.close()
+        expect_result = None
+        result = instance.close()
         scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
+        self.failUnlessIs(expect_result, result)
 
 
 class DaemonContext_context_manager_enter_TestCase(scaffold.TestCase):

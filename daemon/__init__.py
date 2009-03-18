@@ -13,9 +13,24 @@
     This library implements PEP [no number yet], Standard daemon
     process library.
 
+    A well-behaved Unix daemon process is tricky to get right, but the
+    required steps are much the same for every daemon program. An
+    instance of the `DaemonContext` holds the behaviour and configured
+    process environment for the program; use the instance as a context
+    manager to enter a daemon state.
+
+    Simple example of usage::
+
+        import daemon
+
+        from spam import do_main_program
+
+        with daemon.DaemonContext() as daemon_context:
+            do_main_program()
+
     """
 
 from daemon import DaemonContext
 
 
-version = "1.4"
+version = "1.4.1"

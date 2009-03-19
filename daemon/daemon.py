@@ -351,6 +351,8 @@ class DaemonContext(object):
 
     def terminate(self, signal_number, stack_frame):
         """ Signal handler for end-process signals. """
+        if self.pidfile is not None:
+            self.pidfile.__exit__()
         self.close()
         exception = SystemExit(
             "Terminating on signal %(signal_number)r"

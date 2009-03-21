@@ -10,12 +10,11 @@
 
 """ Library to implement a well-behaved Unix daemon process
 
-    This library implements PEP [no number yet], Standard daemon
-    process library.
+    This library implements PEP 3143: Standard daemon process library.
 
     A well-behaved Unix daemon process is tricky to get right, but the
-    required steps are much the same for every daemon program. An
-    instance of the `DaemonContext` holds the behaviour and configured
+    required steps are much the same for every daemon program. A
+    `DaemonContext` instance holds the behaviour and configured
     process environment for the program; use the instance as a context
     manager to enter a daemon state.
 
@@ -25,7 +24,7 @@
 
         from spam import do_main_program
 
-        with daemon.DaemonContext() as daemon_context:
+        with daemon.DaemonContext():
             do_main_program()
 
     """

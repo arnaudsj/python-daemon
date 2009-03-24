@@ -1144,6 +1144,26 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
+    def test_changes_gid_and_uid_in_order(self):
+        """ Should change process GID and UID in correct order.
+
+            Since the process requires appropriate privilege to use
+            either of `setuid` or `setgid`, changing the UID must be
+            done last.
+
+            """
+        instance = self.test_instance
+        expect_mock_output = """\
+            ...
+            Called os.setgid(...)
+            Called os.setuid(...)
+            ...
+            """ % vars()
+        instance.open()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
     def test_changes_user_id_to_uid(self):
         """ Should change process UID to `uid` option. """
         instance = self.test_instance

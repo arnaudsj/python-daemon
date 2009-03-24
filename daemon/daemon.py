@@ -321,8 +321,8 @@ class DaemonContext(object):
 
         os.umask(self.umask)
         os.chdir(self.working_directory)
-        os.setuid(self.uid)
         os.setgid(self.gid)
+        os.setuid(self.uid)
 
         if self.detach_process:
             detach_process_context()

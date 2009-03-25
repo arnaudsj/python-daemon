@@ -1335,6 +1335,33 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
+    def test_performs_steps_in_expected_sequence(self):
+        """ Should perform daemonisation steps in expected sequence. """
+        instance = self.test_instance
+        instance.chroot_directory = object()
+        instance.detach_process = True
+        instance.pidfile = self.mock_pidlockfile
+        expect_mock_output = """\
+            Called daemon.daemon.change_root_directory(...)
+            Called daemon.daemon.prevent_core_dump()
+            Called daemon.daemon.DaemonContext._get_exclude_file_descriptors()
+            Called daemon.daemon.close_all_open_files(...)
+            Called daemon.daemon.change_file_creation_mask(...)
+            Called daemon.daemon.change_working_directory(...)
+            Called daemon.daemon.change_process_owner(...)
+            Called daemon.daemon.detach_process_context()
+            Called daemon.daemon.DaemonContext._make_signal_handler_map()
+            Called daemon.daemon.set_signal_handlers(...)
+            Called daemon.daemon.redirect_stream(...)
+            Called daemon.daemon.redirect_stream(...)
+            Called daemon.daemon.redirect_stream(...)
+            Called pidlockfile.PIDLockFile.__enter__()
+            """ % vars()
+        self.mock_outfile.truncate(0)
+        instance.open()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
     def test_changes_root_directory_to_chroot_directory(self):
         """ Should change root directory to `chroot_directory` option. """
         instance = self.test_instance

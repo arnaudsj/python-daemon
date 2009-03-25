@@ -32,4 +32,4 @@
 from daemon import DaemonContext
 
 
-version = "1.4.4"
+version = "1.4.5"

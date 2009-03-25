@@ -946,18 +946,51 @@ class redirect_stream_TestCase(scaffold.TestCase):
         """ Set up test fixtures """
         setup_streams_fixtures(self)
 
+        self.test_system_stream = FakeFileDescriptorStringIO()
+        self.test_target_stream = FakeFileDescriptorStringIO()
+        self.test_null_file = FakeFileDescriptorStringIO()
+
+        def mock_open(path, flag, mode=None):
+            if path == os.devnull:
+                result = self.test_null_file.fileno()
+            else:
+                raise OSError(errno.NOENT, "No such file", path)
+            return result
+
+        scaffold.mock(
+            "os.open",
+            returns_func=mock_open,
+            tracker=self.mock_tracker)
+
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()
 
-    def test_duplicates_file_descriptor(self):
-        """ Should duplicate file descriptor from target to system stream """
-        system_stream = FakeFileDescriptorStringIO()
+    def test_duplicates_target_file_descriptor(self):
+        """ Should duplicate file descriptor from target to system stream. """
+        system_stream = self.test_system_stream
         system_fileno = system_stream.fileno()
-        target_stream = FakeFileDescriptorStringIO()
+        target_stream = self.test_target_stream
         target_fileno = target_stream.fileno()
         expect_mock_output = """\
             Called os.dup2(%(target_fileno)r, %(system_fileno)r)
+            """ % vars()
+        daemon.daemon.redirect_stream(system_stream, target_stream)
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_duplicates_null_file_descriptor_by_default(self):
+        """ Should by default duplicate the null file to the system stream. """
+        system_stream = self.test_system_stream
+        system_fileno = system_stream.fileno()
+        target_stream = None
+        null_path = os.devnull
+        null_flag = os.O_RDWR
+        null_file = self.test_null_file
+        null_fileno = null_file.fileno()
+        expect_mock_output = """\
+            Called os.open(%(null_path)r, %(null_flag)r)
+            Called os.dup2(%(null_fileno)r, %(system_fileno)r)
             """ % vars()
         daemon.daemon.redirect_stream(system_stream, target_stream)
         self.failUnlessOutputCheckerMatch(

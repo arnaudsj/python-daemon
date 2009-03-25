@@ -269,9 +269,6 @@ def close_all_open_files(exclude=set()):
         specified, `exclude` is a set of file descriptors to *not*
         close.
 
-        The standard streams (stdin, stdout, stderr) are then
-        re-opened to the system defaults.
-
         """
     maxfd = get_maximum_file_descriptors()
     for fd in reversed(range(maxfd)):
@@ -286,8 +283,15 @@ def redirect_stream(system_stream, target_stream):
         ``sys.stdout``. `target_stream` is an open file object that
         should replace the corresponding system stream object.
 
+        If `target_stream` is ``None``, defaults to opening the
+        operating system's null device and using its file descriptor.
+
         """
-    os.dup2(target_stream.fileno(), system_stream.fileno())
+    if target_stream is None:
+        target_fd = os.open(os.devnull, os.O_RDWR)
+    else:
+        target_fd = target_stream.fileno()
+    os.dup2(target_fd, system_stream.fileno())
 
 
 def make_default_signal_map():

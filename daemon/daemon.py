@@ -25,8 +25,71 @@ import socket
 class DaemonError(Exception):
     """ Base exception class for errors from this module. """
 
+class DaemonEnvironmentOSError(DaemonError, OSError):
+    """ Exception raised when daemon environment setup receives OSError. """
+
 class DaemonProcessDetachError(DaemonError, OSError):
     """ Exception raised when process detach fails. """
+
+
+def change_working_directory(directory):
+    """ Change the working directory of this process.
+        """
+    try:
+        os.chdir(directory)
+    except Exception, exc:
+        error = DaemonEnvironmentOSError(
+            "Unable to change working directory (%(exc)s)"
+            % vars())
+        raise error
+
+
+def change_root_directory(directory):
+    """ Change the root directory of this process.
+
+        Sets the current working directory, then the process root
+        directory, to the specified `directory`. Requires appropriate
+        OS privileges for this process.
+
+        """
+    try:
+        os.chdir(directory)
+        os.chroot(directory)
+    except Exception, exc:
+        error = DaemonEnvironmentOSError(
+            "Unable to change root directory (%(exc)s)"
+            % vars())
+        raise error
+
+
+def change_file_creation_mask(mask):
+    """ Change the file creation mask for this process.
+        """
+    try:
+        os.umask(mask)
+    except Exception, exc:
+        error = DaemonEnvironmentOSError(
+            "Unable to change file creation mask (%(exc)s)"
+            % vars())
+        raise error
+
+
+def change_process_owner(uid, gid):
+    """ Change the owning UID and GID of this process.
+
+        Sets the GID then the UID of the process (in that order, to
+        avoid permission errors) to the specified `gid` and `uid`
+        values. Requires appropriate OS privileges for this process.
+
+        """
+    try:
+        os.setgid(gid)
+        os.setuid(uid)
+    except Exception, exc:
+        error = DaemonEnvironmentOSError(
+            "Unable to change file creation mask (%(exc)s)"
+            % vars())
+        raise error
 
 
 def prevent_core_dump():
@@ -311,18 +374,16 @@ class DaemonContext(object):
     def open(self):
         """ Become a daemon process. """
         if self.chroot_directory is not None:
-            os.chdir(self.chroot_directory)
-            os.chroot(self.chroot_directory)
+            change_root_directory(self.chroot_directory)
 
         prevent_core_dump()
 
         exclude_fds = self._get_exclude_file_descriptors()
         close_all_open_files(exclude=exclude_fds)
 
-        os.umask(self.umask)
-        os.chdir(self.working_directory)
-        os.setgid(self.gid)
-        os.setuid(self.uid)
+        change_file_creation_mask(self.umask)
+        change_working_directory(self.working_directory)
+        change_process_owner(self.uid, self.gid)
 
         if self.detach_process:
             detach_process_context()

@@ -42,14 +42,309 @@ class Exception_TestCase(scaffold.Exception_TestCase):
 
         self.valid_exceptions = {
             daemon.daemon.DaemonError: dict(
-                min_args = 0,
+                min_args = 1,
                 types = (Exception,),
             ),
+            daemon.daemon.DaemonEnvironmentOSError: dict(
+                min_args = 1,
+                types = (daemon.daemon.DaemonError, OSError),
+            ),
             daemon.daemon.DaemonProcessDetachError: dict(
-                min_args = 0,
+                min_args = 1,
                 types = (daemon.daemon.DaemonError, OSError),
             ),
         }
+
+
+class change_working_directory_TestCase(scaffold.TestCase):
+    """ Test cases for change_working_directory function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        self.mock_outfile = StringIO()
+        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
+
+        scaffold.mock(
+            "os.chdir",
+            tracker=self.mock_tracker)
+
+        self.test_directory = object()
+        self.test_args = dict(
+            directory=self.test_directory,
+            )
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_changes_working_directory_to_specified_directory(self):
+        """ Should change working directory to specified directory. """
+        args = self.test_args
+        directory = self.test_directory
+        expect_mock_output = """\
+            Called os.chdir(%(directory)r)
+            """ % vars()
+        daemon.daemon.change_working_directory(**args)
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_raises_daemon_error_on_os_error(self):
+        """ Should raise a DaemonError on receiving and OSError. """
+        args = self.test_args
+        test_error = OSError(errno.ENOENT, "No such directory")
+        os.chdir.mock_raises = test_error
+        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        self.failUnlessRaises(
+            expect_error,
+            daemon.daemon.change_working_directory, **args)
+
+    def test_error_message_contains_original_error_message(self):
+        """ Should raise a DaemonError with original message. """
+        args = self.test_args
+        test_error = OSError(errno.ENOENT, "No such directory")
+        os.chdir.mock_raises = test_error
+        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        try:
+            daemon.daemon.change_working_directory(**args)
+        except expect_error, exc:
+            pass
+        self.failUnlessIn(str(exc), str(test_error))
+
+
+class change_root_directory_TestCase(scaffold.TestCase):
+    """ Test cases for change_root_directory function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        self.mock_outfile = StringIO()
+        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
+
+        scaffold.mock(
+            "os.chdir",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "os.chroot",
+            tracker=self.mock_tracker)
+
+        self.test_directory = object()
+        self.test_args = dict(
+            directory=self.test_directory,
+            )
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_changes_working_directory_to_specified_directory(self):
+        """ Should change working directory to specified directory. """
+        args = self.test_args
+        directory = self.test_directory
+        expect_mock_output = """\
+            Called os.chdir(%(directory)r)
+            ...
+            """ % vars()
+        daemon.daemon.change_root_directory(**args)
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_changes_root_directory_to_specified_directory(self):
+        """ Should change root directory to specified directory. """
+        args = self.test_args
+        directory = self.test_directory
+        expect_mock_output = """\
+            ...
+            Called os.chroot(%(directory)r)
+            """ % vars()
+        daemon.daemon.change_root_directory(**args)
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_raises_daemon_error_on_os_error_from_chdir(self):
+        """ Should raise a DaemonError on receiving an OSError from chdir. """
+        args = self.test_args
+        test_error = OSError(errno.ENOENT, "No such directory")
+        os.chdir.mock_raises = test_error
+        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        self.failUnlessRaises(
+            expect_error,
+            daemon.daemon.change_root_directory, **args)
+
+    def test_raises_daemon_error_on_os_error_from_chroot(self):
+        """ Should raise a DaemonError on receiving an OSError from chroot. """
+        args = self.test_args
+        test_error = OSError(errno.EPERM, "No chroot for you!")
+        os.chroot.mock_raises = test_error
+        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        self.failUnlessRaises(
+            expect_error,
+            daemon.daemon.change_root_directory, **args)
+
+    def test_error_message_contains_original_error_message(self):
+        """ Should raise a DaemonError with original message. """
+        args = self.test_args
+        test_error = OSError(errno.ENOENT, "No such directory")
+        os.chdir.mock_raises = test_error
+        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        try:
+            daemon.daemon.change_root_directory(**args)
+        except expect_error, exc:
+            pass
+        self.failUnlessIn(str(exc), str(test_error))
+
+
+class change_file_creation_mask_TestCase(scaffold.TestCase):
+    """ Test cases for change_file_creation_mask function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        self.mock_outfile = StringIO()
+        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
+
+        scaffold.mock(
+            "os.umask",
+            tracker=self.mock_tracker)
+
+        self.test_mask = object()
+        self.test_args = dict(
+            mask=self.test_mask,
+            )
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_changes_umask_to_specified_mask(self):
+        """ Should change working directory to specified directory. """
+        args = self.test_args
+        mask = self.test_mask
+        expect_mock_output = """\
+            Called os.umask(%(mask)r)
+            """ % vars()
+        daemon.daemon.change_file_creation_mask(**args)
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_raises_daemon_error_on_os_error_from_chdir(self):
+        """ Should raise a DaemonError on receiving an OSError from umask. """
+        args = self.test_args
+        test_error = OSError(errno.EINVAL, "Whatchoo talkin' 'bout?")
+        os.umask.mock_raises = test_error
+        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        self.failUnlessRaises(
+            expect_error,
+            daemon.daemon.change_file_creation_mask, **args)
+
+    def test_error_message_contains_original_error_message(self):
+        """ Should raise a DaemonError with original message. """
+        args = self.test_args
+        test_error = OSError(errno.ENOENT, "No such directory")
+        os.umask.mock_raises = test_error
+        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        try:
+            daemon.daemon.change_file_creation_mask(**args)
+        except expect_error, exc:
+            pass
+        self.failUnlessIn(str(exc), str(test_error))
+
+
+class change_process_owner_TestCase(scaffold.TestCase):
+    """ Test cases for change_process_owner function """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        self.mock_outfile = StringIO()
+        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
+
+        scaffold.mock(
+            "os.setuid",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "os.setgid",
+            tracker=self.mock_tracker)
+
+        self.test_uid = object()
+        self.test_gid = object()
+        self.test_args = dict(
+            uid=self.test_uid,
+            gid=self.test_gid,
+            )
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_changes_gid_and_uid_in_order(self):
+        """ Should change process GID and UID in correct order.
+
+            Since the process requires appropriate privilege to use
+            either of `setuid` or `setgid`, changing the UID must be
+            done last.
+
+            """
+        args = self.test_args
+        expect_mock_output = """\
+            Called os.setgid(...)
+            Called os.setuid(...)
+            """ % vars()
+        daemon.daemon.change_process_owner(**args)
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_changes_group_id_to_gid(self):
+        """ Should change process GID to specified value. """
+        args = self.test_args
+        gid = self.test_gid
+        expect_mock_output = """\
+            Called os.setgid(%(gid)r)
+            ...
+            """ % vars()
+        daemon.daemon.change_process_owner(**args)
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_changes_user_id_to_uid(self):
+        """ Should change process UID to specified value. """
+        args = self.test_args
+        uid = self.test_uid
+        expect_mock_output = """\
+            ...
+            Called os.setuid(%(uid)r)
+            """ % vars()
+        daemon.daemon.change_process_owner(**args)
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_raises_daemon_error_on_os_error_from_setgid(self):
+        """ Should raise a DaemonError on receiving an OSError from setgid. """
+        args = self.test_args
+        test_error = OSError(errno.EPERM, "No switching for you!")
+        os.setgid.mock_raises = test_error
+        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        self.failUnlessRaises(
+            expect_error,
+            daemon.daemon.change_process_owner, **args)
+
+    def test_raises_daemon_error_on_os_error_from_setuid(self):
+        """ Should raise a DaemonError on receiving an OSError from setuid. """
+        args = self.test_args
+        test_error = OSError(errno.EPERM, "No switching for you!")
+        os.setuid.mock_raises = test_error
+        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        self.failUnlessRaises(
+            expect_error,
+            daemon.daemon.change_process_owner, **args)
+
+    def test_error_message_contains_original_error_message(self):
+        """ Should raise a DaemonError with original message. """
+        args = self.test_args
+        test_error = OSError(errno.EINVAL, "Whatchoo talkin' 'bout?")
+        os.setuid.mock_raises = test_error
+        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        try:
+            daemon.daemon.change_process_owner(**args)
+        except expect_error, exc:
+            pass
+        self.failUnlessIn(str(exc), str(test_error))
 
 
 class prevent_core_dump_TestCase(scaffold.TestCase):
@@ -990,6 +1285,18 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
             "daemon.daemon.detach_process_context",
             tracker=self.mock_tracker)
         scaffold.mock(
+            "daemon.daemon.change_working_directory",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.change_root_directory",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.change_file_creation_mask",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.change_process_owner",
+            tracker=self.mock_tracker)
+        scaffold.mock(
             "daemon.daemon.prevent_core_dump",
             tracker=self.mock_tracker)
         scaffold.mock(
@@ -1015,22 +1322,6 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
             tracker=self.mock_tracker)
 
         scaffold.mock(
-            "os.umask",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "os.chdir",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "os.chroot",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "os.setuid",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "os.setgid",
-            tracker=self.mock_tracker)
-
-        scaffold.mock(
             "sys.stdin",
             tracker=self.mock_tracker)
         scaffold.mock(
@@ -1051,8 +1342,8 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         instance.chroot_directory = chroot_directory
         expect_mock_output = """\
             ...
-            Called os.chdir(%(chroot_directory)r)
-            Called os.chroot(%(chroot_directory)r)
+            Called daemon.daemon.change_root_directory(
+                %(chroot_directory)r)
             ...
             """ % vars()
         instance.open()
@@ -1068,7 +1359,7 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         scaffold.mock_restore()
         self.failIfIn(
             self.mock_outfile.getvalue(),
-            "Called os.chroot")
+            "Called daemon.daemon.change_root_directory")
 
     def test_prevents_core_dump(self):
         """ Should request prevention of core dumps """
@@ -1105,7 +1396,8 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         instance.working_directory = working_directory
         expect_mock_output = """\
             ...
-            Called os.chdir(%(working_directory)r)
+            Called daemon.daemon.change_working_directory(
+                %(working_directory)r)
             ...
             """ % vars()
         instance.open()
@@ -1120,7 +1412,7 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         instance.umask = umask
         expect_mock_output = """\
             ...
-            Called os.umask(%(umask)r)
+            Called daemon.daemon.change_file_creation_mask(%(umask)r)
             ...
             """ % vars()
         instance.open()
@@ -1128,49 +1420,16 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
-    def test_changes_gid_and_uid_in_order(self):
-        """ Should change process GID and UID in correct order.
-
-            Since the process requires appropriate privilege to use
-            either of `setuid` or `setgid`, changing the UID must be
-            done last.
-
-            """
-        instance = self.test_instance
-        expect_mock_output = """\
-            ...
-            Called os.setgid(...)
-            Called os.setuid(...)
-            ...
-            """ % vars()
-        instance.open()
-        scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
-
-    def test_changes_user_id_to_uid(self):
-        """ Should change process UID to `uid` option. """
+    def test_changes_owner_to_specified_uid_and_gid(self):
+        """ Should change process UID and GID to `uid` and `gid` options. """
         instance = self.test_instance
         uid = object()
-        instance.uid = uid
-        expect_mock_output = """\
-            ...
-            Called os.setuid(%(uid)r)
-            ...
-            """ % vars()
-        instance.open()
-        scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
-
-    def test_changes_group_id_to_gid(self):
-        """ Should change process GID to `gid` option. """
-        instance = self.test_instance
         gid = object()
+        instance.uid = uid
         instance.gid = gid
         expect_mock_output = """\
             ...
-            Called os.setgid(%(gid)r)
+            Called daemon.daemon.change_process_owner(%(uid)r, %(gid)r)
             ...
             """ % vars()
         instance.open()

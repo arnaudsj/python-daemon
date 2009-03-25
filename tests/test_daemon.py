@@ -774,7 +774,6 @@ def setup_daemon_context_fixtures(testcase):
     setup_pidfile_fixtures(testcase)
 
     testcase.mock_pidfile_path = tempfile.mktemp()
-
     testcase.mock_pidlockfile = scaffold.Mock(
         "pidlockfile.PIDLockFile",
         tracker=testcase.mock_tracker)
@@ -785,45 +784,8 @@ def setup_daemon_context_fixtures(testcase):
         returns=True,
         tracker=testcase.mock_tracker)
     scaffold.mock(
-        "daemon.daemon.detach_process_context",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "daemon.daemon.prevent_core_dump",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "daemon.daemon.close_all_open_files",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "daemon.daemon.redirect_stream",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
         "daemon.daemon.make_default_signal_map",
         returns=object(),
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "daemon.daemon.set_signal_handlers",
-        tracker=testcase.mock_tracker)
-
-    testcase.mock_stderr = FakeFileDescriptorStringIO()
-
-    testcase.daemon_context_args = dict(
-        stdin = testcase.stream_files_by_name['stdin'],
-        stdout = testcase.stream_files_by_name['stdout'],
-        stderr = testcase.stream_files_by_name['stderr'],
-        )
-    testcase.test_instance = daemon.DaemonContext(
-        **testcase.daemon_context_args)
-
-    def mock_open(filename, mode=None, buffering=None):
-        if filename in testcase.stream_files_by_path:
-            result = testcase.stream_files_by_path[filename]
-        else:
-            result = FakeFileDescriptorStringIO()
-        return result
-
-    scaffold.mock(
-        "__builtin__.open",
-        returns_func=mock_open,
         tracker=testcase.mock_tracker)
 
     scaffold.mock(
@@ -835,16 +797,13 @@ def setup_daemon_context_fixtures(testcase):
         returns=object(),
         tracker=testcase.mock_tracker)
 
-    scaffold.mock(
-        "sys.stdin",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "sys.stdout",
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "sys.stderr",
-        mock_obj=testcase.mock_stderr,
-        tracker=testcase.mock_tracker)
+    testcase.daemon_context_args = dict(
+        stdin = testcase.stream_files_by_name['stdin'],
+        stdout = testcase.stream_files_by_name['stdout'],
+        stderr = testcase.stream_files_by_name['stderr'],
+        )
+    testcase.test_instance = daemon.DaemonContext(
+        **testcase.daemon_context_args)
 
 
 class DaemonContext_TestCase(scaffold.TestCase):
@@ -1027,7 +986,22 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         """ Set up test fixtures """
         setup_daemon_context_fixtures(self)
 
-        self.test_files_preserve = object()
+        scaffold.mock(
+            "daemon.daemon.detach_process_context",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.prevent_core_dump",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.close_all_open_files",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.redirect_stream",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.set_signal_handlers",
+            tracker=self.mock_tracker)
+
         self.test_files_preserve_fds = object()
         scaffold.mock(
             "daemon.daemon.DaemonContext._get_exclude_file_descriptors",
@@ -1054,6 +1028,16 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
             tracker=self.mock_tracker)
         scaffold.mock(
             "os.setgid",
+            tracker=self.mock_tracker)
+
+        scaffold.mock(
+            "sys.stdin",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "sys.stdout",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "sys.stderr",
             tracker=self.mock_tracker)
 
     def tearDown(self):

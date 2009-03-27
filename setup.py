@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# Copyright © 2008–2009 Robert Niederreiter, Jens Klein, Ben Finney
+# Copyright © 2008–2009 Ben Finney <ben+python@benfinney.id.au>
+# Copyright © 2008 Robert Niederreiter, Jens Klein
 #
 # This is free software: you may copy, modify, and/or distribute this work
 # under the terms of the Python Software Foundation License, version 2 or
@@ -37,16 +38,16 @@ setup(
     keywords='daemon fork unix',
     author='Ben Finney',
     author_email='ben+python@benfinney.id.au',
-    url='http://pypi.python.org/pypi/python-daemon/',
+    url='http://python-daemon.alioth.debian.org/',
     license='PSF',
     packages=find_packages(exclude=['ez_setup']),
     include_package_data=True,
     zip_safe=False,
-    test_suite="tests.suite",
     install_requires=[
         'setuptools',
         'lockfile >=0.7',
         ],
+    test_suite="tests.suite",
     tests_require=[
         'MiniMock >=1.0',
         ],

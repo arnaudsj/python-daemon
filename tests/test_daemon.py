@@ -1620,15 +1620,31 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
 
 
 class DaemonContext_close_TestCase(scaffold.TestCase):
-    """ Test cases for DaemonContext.close method """
+    """ Test cases for DaemonContext.close method. """
 
     def setUp(self):
-        """ Set up test fixtures """
+        """ Set up test fixtures. """
         setup_daemon_context_fixtures(self)
+        self.mock_tracker.file.truncate(0)
 
     def tearDown(self):
-        """ Tear down test fixtures """
+        """ Tear down test fixtures. """
         scaffold.mock_restore()
+
+    def test_exits_pidfile_context(self):
+        """ Should exit the PID file context manager. """
+        instance = self.test_instance
+        instance.pidfile = self.mock_pidlockfile
+        expect_mock_output = """\
+            Called pidlockfile.PIDLockFile.__exit__()
+            """
+        expect_exception = SystemExit
+        try:
+            instance.close()
+        except expect_exception:
+            pass
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
 
     def test_returns_none(self):
         """ Should return None. """
@@ -1730,49 +1746,9 @@ class DaemonContext_terminate_TestCase(scaffold.TestCase):
         self.test_frame = None
         self.test_args = (self.test_signal, self.test_frame)
 
-        scaffold.mock(
-            "daemon.daemon.DaemonContext.close",
-            tracker=self.mock_tracker)
-
     def tearDown(self):
         """ Tear down test fixtures """
         scaffold.mock_restore()
-
-    def test_exits_pidfile_context(self):
-        """ Should exit the PID file context manager """
-        instance = self.test_instance
-        args = self.test_args
-        instance.pidfile = self.mock_pidlockfile
-        expect_mock_output = """\
-            ...
-            Called pidlockfile.PIDLockFile.__exit__()
-            ...
-            """
-        expect_exception = SystemExit
-        try:
-            instance.terminate(*args)
-        except expect_exception:
-            pass
-        scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
-                          
-    def test_closes_daemon_context(self):
-        """ Should close the DaemonContext """
-        instance = self.test_instance
-        args = self.test_args
-        expect_mock_output = """\
-            ...
-            Called daemon.daemon.DaemonContext.close()
-            """
-        expect_exception = SystemExit
-        try:
-            instance.terminate(*args)
-        except expect_exception:
-            pass
-        scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
 
     def test_raises_system_exit(self):
         """ Should raise SystemExit """

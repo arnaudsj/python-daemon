@@ -249,7 +249,11 @@ def close_file_descriptor_if_open(fd):
             # File descriptor was not open
             pass
         else:
-            raise
+            error = DaemonOSEnvironmentError(
+                "Failed to close file descriptor %(fd)d"
+                " (%(exc)s)"
+                % vars())
+            raise error
 
 
 MAXFD = 1

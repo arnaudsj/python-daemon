@@ -442,15 +442,16 @@ class close_file_descriptor_if_open_TestCase(scaffold.TestCase):
         self.failUnlessOutputCheckerMatch(
             expect_mock_output, self.mock_outfile.getvalue())
 
-    def test_propagates_error_on_close(self):
-        """ Should propagate OSError when closing """
+    def test_raises_error_if_error_on_close(self):
+        """ Should raise DaemonError if an OSError occurs when closing """
         fd = self.test_fd
         test_error = OSError(object(), "Unexpected error")
         def os_close(fd):
             raise test_error
         os.close.mock_returns_func = os_close
+        expect_error = daemon.daemon.DaemonOSEnvironmentError
         self.failUnlessRaises(
-            type(test_error),
+            expect_error,
             daemon.daemon.close_file_descriptor_if_open, fd)
 
 

@@ -28,13 +28,14 @@ setup(
     description=short_description,
     long_description=long_description,
     classifiers=[
+        # Refer to http://pypi.python.org/pypi?%3Aaction=list_classifiers
         'Development Status :: 4 - Beta',
         'License :: OSI Approved :: Python Software Foundation License',
         'Operating System :: POSIX',
         'Programming Language :: Python',
         'Intended Audience :: Developers',
         'Topic :: Software Development :: Libraries :: Python Modules'
-        ], # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
+        ],
     keywords='daemon fork unix',
     author='Ben Finney',
     author_email='ben+python@benfinney.id.au',

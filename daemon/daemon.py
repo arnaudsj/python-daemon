@@ -20,6 +20,7 @@ import resource
 import errno
 import signal
 import socket
+import atexit
 
 
 class DaemonError(Exception):
@@ -326,6 +327,16 @@ def set_signal_handlers(signal_handler_map):
     for (signal_number, handler) in signal_handler_map.items():
         signal.signal(signal_number, handler)
 
+
+def register_atexit_function(func):
+    """ Register a function for processing at program exit.
+
+        The function `func` is registered for a call with no arguments
+        at program exit.
+
+        """
+    atexit.register(func)
+
 
 class DaemonContext(object):
     """ Context for turning the current program into a daemon process.
@@ -401,6 +412,8 @@ class DaemonContext(object):
 
         if self.pidfile is not None:
             self.pidfile.__enter__()
+
+        register_atexit_function(self.close)
 
     def __enter__(self):
         """ Context manager entry point. """

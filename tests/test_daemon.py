@@ -22,6 +22,7 @@ import errno
 import signal
 import socket
 from types import ModuleType
+import atexit
 
 import scaffold
 from test_pidlockfile import (
@@ -1090,6 +1091,33 @@ class set_signal_handlers_TestCase(scaffold.TestCase):
             expect_mock_output, self.mock_outfile.getvalue())
 
 
+class register_atexit_function_TestCase(scaffold.TestCase):
+    """ Test cases for register_atexit_function function. """
+
+    def setUp(self):
+        """ Set up test fixtures """
+        self.mock_outfile = StringIO()
+        self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
+
+        scaffold.mock(
+            "atexit.register",
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures """
+        scaffold.mock_restore()
+
+    def test_registers_function_for_atexit_processing(self):
+        """ Should register specified function for atexit processing. """
+        func = object()
+        expect_mock_output = """\
+            Called atexit.register(%(func)r)
+            """ % vars()
+        daemon.daemon.register_atexit_function(func)
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+
 def setup_daemon_context_fixtures(testcase):
     """ Set up common test fixtures for DaemonContext test case """
 
@@ -1341,6 +1369,9 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         scaffold.mock(
             "daemon.daemon.set_signal_handlers",
             tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.register_atexit_function",
+            tracker=self.mock_tracker)
 
         self.test_files_preserve_fds = object()
         scaffold.mock(
@@ -1389,6 +1420,7 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
             Called daemon.daemon.redirect_stream(...)
             Called daemon.daemon.redirect_stream(...)
             Called pidlockfile.PIDLockFile.__enter__()
+            Called daemon.daemon.register_atexit_function(...)
             """ % vars()
         self.mock_outfile.truncate(0)
         instance.open()
@@ -1552,6 +1584,7 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
                 %(system_stdout)r, %(target_stdout)r)
             Called daemon.daemon.redirect_stream(
                 %(system_stderr)r, %(target_stderr)r)
+            ...
             """ % vars()
         instance.open()
         scaffold.mock_restore()
@@ -1565,7 +1598,21 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         expect_mock_output = """\
             ...
             Called pidlockfile.PIDLockFile.__enter__()
+            ...
             """
+        instance.open()
+        scaffold.mock_restore()
+        self.failUnlessOutputCheckerMatch(
+            expect_mock_output, self.mock_outfile.getvalue())
+
+    def test_registers_close_method_for_atexit(self):
+        """ Should register the `close` method for atexit processing. """
+        instance = self.test_instance
+        close_method = instance.close
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.register_atexit_function(%(close_method)r)
+            """ % vars()
         instance.open()
         scaffold.mock_restore()
         self.failUnlessOutputCheckerMatch(

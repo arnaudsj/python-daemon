@@ -26,8 +26,8 @@ import atexit
 class DaemonError(Exception):
     """ Base exception class for errors from this module. """
 
-class DaemonEnvironmentOSError(DaemonError, OSError):
-    """ Exception raised when daemon environment setup receives OSError. """
+class DaemonOSEnvironmentError(DaemonError, OSError):
+    """ Exception raised when daemon OS environment setup receives error. """
 
 class DaemonProcessDetachError(DaemonError, OSError):
     """ Exception raised when process detach fails. """
@@ -39,7 +39,7 @@ def change_working_directory(directory):
     try:
         os.chdir(directory)
     except Exception, exc:
-        error = DaemonEnvironmentOSError(
+        error = DaemonOSEnvironmentError(
             "Unable to change working directory (%(exc)s)"
             % vars())
         raise error
@@ -57,7 +57,7 @@ def change_root_directory(directory):
         os.chdir(directory)
         os.chroot(directory)
     except Exception, exc:
-        error = DaemonEnvironmentOSError(
+        error = DaemonOSEnvironmentError(
             "Unable to change root directory (%(exc)s)"
             % vars())
         raise error
@@ -69,7 +69,7 @@ def change_file_creation_mask(mask):
     try:
         os.umask(mask)
     except Exception, exc:
-        error = DaemonEnvironmentOSError(
+        error = DaemonOSEnvironmentError(
             "Unable to change file creation mask (%(exc)s)"
             % vars())
         raise error
@@ -87,7 +87,7 @@ def change_process_owner(uid, gid):
         os.setgid(gid)
         os.setuid(uid)
     except Exception, exc:
-        error = DaemonEnvironmentOSError(
+        error = DaemonOSEnvironmentError(
             "Unable to change file creation mask (%(exc)s)"
             % vars())
         raise error
@@ -103,9 +103,15 @@ def prevent_core_dump():
         """
     core_resource = resource.RLIMIT_CORE
 
-    # Ensure the resource limit exists on this platform, by requesting
-    # its current value
-    core_limit_prev = resource.getrlimit(core_resource)
+    try:
+        # Ensure the resource limit exists on this platform, by requesting
+        # its current value
+        core_limit_prev = resource.getrlimit(core_resource)
+    except ValueError, exc:
+        error = DaemonOSEnvironmentError(
+            "System does not support RLIMIT_CORE resource limit (%(exc)s)"
+            % vars())
+        raise error
 
     # Set hard and soft limits to zero, i.e. no core dump at all
     core_limit = (0, 0)

@@ -46,7 +46,7 @@ class Exception_TestCase(scaffold.Exception_TestCase):
                 min_args = 1,
                 types = (Exception,),
             ),
-            daemon.daemon.DaemonEnvironmentOSError: dict(
+            daemon.daemon.DaemonOSEnvironmentError: dict(
                 min_args = 1,
                 types = (daemon.daemon.DaemonError, OSError),
             ),
@@ -94,7 +94,7 @@ class change_working_directory_TestCase(scaffold.TestCase):
         args = self.test_args
         test_error = OSError(errno.ENOENT, "No such directory")
         os.chdir.mock_raises = test_error
-        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        expect_error = daemon.daemon.DaemonOSEnvironmentError
         self.failUnlessRaises(
             expect_error,
             daemon.daemon.change_working_directory, **args)
@@ -104,7 +104,7 @@ class change_working_directory_TestCase(scaffold.TestCase):
         args = self.test_args
         test_error = OSError(errno.ENOENT, "No such directory")
         os.chdir.mock_raises = test_error
-        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        expect_error = daemon.daemon.DaemonOSEnvironmentError
         try:
             daemon.daemon.change_working_directory(**args)
         except expect_error, exc:
@@ -165,7 +165,7 @@ class change_root_directory_TestCase(scaffold.TestCase):
         args = self.test_args
         test_error = OSError(errno.ENOENT, "No such directory")
         os.chdir.mock_raises = test_error
-        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        expect_error = daemon.daemon.DaemonOSEnvironmentError
         self.failUnlessRaises(
             expect_error,
             daemon.daemon.change_root_directory, **args)
@@ -175,7 +175,7 @@ class change_root_directory_TestCase(scaffold.TestCase):
         args = self.test_args
         test_error = OSError(errno.EPERM, "No chroot for you!")
         os.chroot.mock_raises = test_error
-        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        expect_error = daemon.daemon.DaemonOSEnvironmentError
         self.failUnlessRaises(
             expect_error,
             daemon.daemon.change_root_directory, **args)
@@ -185,7 +185,7 @@ class change_root_directory_TestCase(scaffold.TestCase):
         args = self.test_args
         test_error = OSError(errno.ENOENT, "No such directory")
         os.chdir.mock_raises = test_error
-        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        expect_error = daemon.daemon.DaemonOSEnvironmentError
         try:
             daemon.daemon.change_root_directory(**args)
         except expect_error, exc:
@@ -230,7 +230,7 @@ class change_file_creation_mask_TestCase(scaffold.TestCase):
         args = self.test_args
         test_error = OSError(errno.EINVAL, "Whatchoo talkin' 'bout?")
         os.umask.mock_raises = test_error
-        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        expect_error = daemon.daemon.DaemonOSEnvironmentError
         self.failUnlessRaises(
             expect_error,
             daemon.daemon.change_file_creation_mask, **args)
@@ -240,7 +240,7 @@ class change_file_creation_mask_TestCase(scaffold.TestCase):
         args = self.test_args
         test_error = OSError(errno.ENOENT, "No such directory")
         os.umask.mock_raises = test_error
-        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        expect_error = daemon.daemon.DaemonOSEnvironmentError
         try:
             daemon.daemon.change_file_creation_mask(**args)
         except expect_error, exc:
@@ -320,7 +320,7 @@ class change_process_owner_TestCase(scaffold.TestCase):
         args = self.test_args
         test_error = OSError(errno.EPERM, "No switching for you!")
         os.setgid.mock_raises = test_error
-        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        expect_error = daemon.daemon.DaemonOSEnvironmentError
         self.failUnlessRaises(
             expect_error,
             daemon.daemon.change_process_owner, **args)
@@ -330,7 +330,7 @@ class change_process_owner_TestCase(scaffold.TestCase):
         args = self.test_args
         test_error = OSError(errno.EPERM, "No switching for you!")
         os.setuid.mock_raises = test_error
-        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        expect_error = daemon.daemon.DaemonOSEnvironmentError
         self.failUnlessRaises(
             expect_error,
             daemon.daemon.change_process_owner, **args)
@@ -340,7 +340,7 @@ class change_process_owner_TestCase(scaffold.TestCase):
         args = self.test_args
         test_error = OSError(errno.EINVAL, "Whatchoo talkin' 'bout?")
         os.setuid.mock_raises = test_error
-        expect_error = daemon.daemon.DaemonEnvironmentOSError
+        expect_error = daemon.daemon.DaemonOSEnvironmentError
         try:
             daemon.daemon.change_process_owner(**args)
         except expect_error, exc:
@@ -349,10 +349,10 @@ class change_process_owner_TestCase(scaffold.TestCase):
 
 
 class prevent_core_dump_TestCase(scaffold.TestCase):
-    """ Test cases for prevent_core_dump function """
+    """ Test cases for prevent_core_dump function. """
 
     def setUp(self):
-        """ Set up test fixtures """
+        """ Set up test fixtures. """
         self.mock_outfile = StringIO()
         self.mock_tracker = scaffold.MockTracker(self.mock_outfile)
 
@@ -368,11 +368,11 @@ class prevent_core_dump_TestCase(scaffold.TestCase):
             tracker=self.mock_tracker)
 
     def tearDown(self):
-        """ Tear down test fixtures """
+        """ Tear down test fixtures. """
         scaffold.mock_restore()
 
     def test_sets_core_limit_to_zero(self):
-        """ Should set the RLIMIT_CORE resource to zero """
+        """ Should set the RLIMIT_CORE resource to zero. """
         expect_resource = self.RLIMIT_CORE
         expect_limit = (0, 0)
         expect_mock_output = """\
@@ -387,14 +387,14 @@ class prevent_core_dump_TestCase(scaffold.TestCase):
             expect_mock_output, self.mock_outfile.getvalue())
 
     def test_raises_error_when_no_core_resource(self):
-        """ Should raise ValueError if no RLIMIT_CORE resource """
+        """ Should raise DaemonError if no RLIMIT_CORE resource. """
         def mock_getrlimit(res):
             if res == resource.RLIMIT_CORE:
                 raise ValueError("Bogus platform doesn't have RLIMIT_CORE")
             else:
                 return None
         resource.getrlimit.mock_returns_func = mock_getrlimit
-        expect_error = ValueError
+        expect_error = daemon.daemon.DaemonOSEnvironmentError
         self.failUnlessRaises(
             expect_error,
             daemon.daemon.prevent_core_dump)

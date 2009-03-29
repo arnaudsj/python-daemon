@@ -14,6 +14,9 @@
 # later as published by the Python Software Foundation.
 # No warranty expressed or implied. See the file LICENSE.PSF-2 for details.
 
+""" Daemon process behaviour.
+    """
+
 import os
 import sys
 import resource
@@ -351,8 +354,158 @@ def register_atexit_function(func):
 class DaemonContext(object):
     """ Context for turning the current program into a daemon process.
 
-        Implements the well-behaved daemon behaviour defined in PEP
-        [no number yet].
+        A `DaemonContext` instance represents the behaviour settings and
+        process context for the program when it becomes a daemon. The
+        behaviour and environment is customised by setting options on the
+        instance, before calling the `open` method.
+
+        Each option can be passed as a keyword argument to the `DaemonContext`
+        constructor, or subsequently altered by assigning to an attribute on
+        the instance at any time prior to calling `open`. That is, for
+        options named `wibble` and `wubble`, the following invocation::
+
+            foo = daemon.DaemonContext(wibble=bar, wubble=baz)
+            foo.open()
+
+        is equivalent to::
+
+            foo = daemon.DaemonContext()
+            foo.wibble = bar
+            foo.wubble = baz
+            foo.open()
+
+        The following options are defined.
+
+        `files_preserve`
+            :Default: ``None``
+
+            List of files that should *not* be closed when starting the
+            daemon. If ``None``, all open file descriptors will be closed.
+
+            Elements of the list are file descriptors (as returned by a file
+            object's `fileno()` method) or Python `file` objects. Each
+            specifies a file that is not to be closed during daemon start.
+
+        `chroot_directory`
+            :Default: ``None``
+
+            Full path to a directory to set as the effective root directory of
+            the process. If ``None``, specifies that the root directory is not
+            to be changed.
+
+        `working_directory`
+            :Default: ``'/'``
+
+            Full path of the working directory to which the process should
+            change on daemon start.
+
+            Since a filesystem cannot be unmounted if a process has its
+            current working directory on that filesystem, this should either
+            be left at default or set to a directory that is a sensible “home
+            directory” for the daemon while it is running.
+
+        `umask`
+            :Default: ``0``
+
+            File access creation mask (“umask”) to set for the process on
+            daemon start.
+
+            Since a process inherits its umask from its parent process,
+            starting the daemon will reset the umask to this value so that
+            files are created by the daemon with access modes as it expects.
+
+        `pidfile`
+            :Default: ``None``
+
+            Context manager for a PID lock file. When the daemon context opens
+            and closes, it enters and exits the `pidfile` context manager.
+
+        `detach_process`
+            :Default: ``None``
+
+            If ``True``, detach the process context when opening the daemon
+            context; if ``False``, do not detach.
+
+            If unspecified (``None``) during initialisation of the instance,
+            this will be set to ``True`` by default, and ``False`` only if
+            detaching the process is determined to be redundant; for example,
+            in the case when the process was started by `init`, by `initd`, or
+            by `inetd`.
+
+        `signal_map`
+            :Default: system-dependent
+
+            Mapping from operating system signals to callback actions.
+
+            The mapping is used when the daemon context opens, and determines
+            the action for each signal's signal handler:
+
+            * A value of ``None`` will ignore the signal (by setting the
+              signal action to ``signal.SIG_IGN``).
+
+            * A string value will be used as the name of an attribute on the
+              ``DaemonContext`` instance. The attribute's value will be used
+              as the action for the signal handler.
+
+            * Any other value will be used as the action for the signal
+              handler.
+
+            The default value depends on which signals are defined on the
+            running system. Each item from the list below whose signal is
+            actually defined in the ``signal`` module will appear in the
+            default map:
+
+            * ``signal.SIGCLD``: ``None``
+
+            * ``signal.SIGTTIN``: ``None``
+
+            * ``signal.SIGTTOU``: ``None``
+
+            * ``signal.SIGTSTP``: ``None``
+
+            * ``signal.SIGTERM``: ``'terminate'``
+
+        `uid`
+            :Default: ``os.getuid()``
+
+        `gid`
+            :Default: ``os.getgid()``
+
+            The user ID (“UID”) value and group ID (“GID”) value to switch
+            the process to on daemon start.
+
+            The default values, the real UID and GID of the process, will
+            relinquish any effective privilege elevation inherited by the
+            process.
+
+        `prevent_core`
+            :Default: ``True``
+
+            If true, prevents the generation of core files, in order to avoid
+            leaking sensitive information from daemons run as `root`.
+
+        `stdin`
+            :Default: ``None``
+
+        `stdout`
+            :Default: ``None``
+
+        `stderr`
+            :Default: ``None``
+
+            Each of `stdin`, `stdout`, and `stderr` is a file-like object
+            which will be used as the new file for the standard I/O stream
+            `sys.stdin`, `sys.stdout`, and `sys.stderr` respectively. The file
+            should therefore be open, with a minimum of mode 'r' in the case
+            of `stdin`, and mode 'w+' in the case of `stdout` and `stderr`.
+
+            If the object has a `fileno()` method that returns a file
+            descriptor, the corresponding file will be excluded from being
+            closed during daemon start (that is, it will be treated as though
+            it were listed in `files_preserve`).
+
+            If ``None``, the corresponding system stream is re-bound to the
+            file named by `os.devnull`.
 
         """
 
@@ -397,7 +550,60 @@ class DaemonContext(object):
         self.signal_map = signal_map
 
     def open(self):
-        """ Become a daemon process. """
+        """ Become a daemon process.
+            :Return: ``None``
+
+            Open the daemon context, turning the current program into a daemon
+            process. This performs the following steps:
+
+            * If the `prevent_core` attribute is true, set the resource limits
+              for the process to prevent any core dump from the process.
+
+            * If the `chroot_directory` attribute is not ``None``, set the
+              effective root directory of the process to that directory (via
+              `os.chroot`).
+
+              This allows running the daemon process inside a “chroot gaol”
+              as a means of limiting the system's exposure to rogue behaviour
+              by the process. Note that the specified directory needs to
+              already be set up for this purpose.
+
+            * Set the process UID and GID to the `uid` and `gid` attribute
+              values.
+
+            * Close all open file descriptors. This excludes those listed in
+              the `files_preserve` attribute, and those that correspond to the
+              `stdin`, `stdout`, or `stderr` attributes.
+
+            * Change current working directory to the path specified by the
+              `working_directory` attribute.
+
+            * Reset the file access creation mask to the value specified by
+              the `umask` attribute.
+
+            * If the `detach_process` option is true, detach the current
+              process into its own process group, and disassociate from any
+              controlling terminal.
+
+            * Set signal handlers as specified by the `signal_map` attribute.
+
+            * If any of the attributes `stdin`, `stdout`, `stderr` are not
+              ``None``, bind the system streams `sys.stdin`, `sys.stdout`,
+              and/or `sys.stderr` to the files represented by the
+              corresponding attributes. Where the attribute has a file
+              descriptor, the descriptor is duplicated (instead of re-binding
+              the name).
+
+            * If the `pidfile` attribute is not ``None``, enter its context
+              manager.
+
+            * Register the `close` method to be called during Python's exit
+              processing.
+
+            When the function returns, the running program is a daemon
+            process.
+
+            """
         if self.chroot_directory is not None:
             change_root_directory(self.chroot_directory)
 
@@ -431,7 +637,15 @@ class DaemonContext(object):
         return self
 
     def close(self):
-        """ Exit the daemon process context. """
+        """ Exit the daemon process context.
+            :Return: ``None``
+
+            Close the daemon context. This performs the following step:
+
+            * If the `pidfile` attribute is not ``None``, exit its context
+              manager.
+
+            """
         if self.pidfile is not None:
             self.pidfile.__exit__()
 
@@ -440,7 +654,15 @@ class DaemonContext(object):
         self.close()
 
     def terminate(self, signal_number, stack_frame):
-        """ Signal handler for end-process signals. """
+        """ Signal handler for end-process signals.
+            :Return: ``None``
+
+            Signal handler for the ``signal.SIGTERM`` signal. Performs the
+            following step:
+
+            * Raise a ``SystemExit`` exception explaining the signal.
+
+            """
         exception = SystemExit(
             "Terminating on signal %(signal_number)r"
                 % vars())

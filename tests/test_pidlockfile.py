@@ -214,8 +214,7 @@ class PIDLockFile_acquire_TestCase(scaffold.TestCase):
             """ % vars()
         instance.acquire()
         scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
+        self.failUnlessMockCheckerMatch(expect_mock_output)
 
     def test_raises_lock_failed_on_write_error(self):
         """ Should raise LockFailed error if write fails """
@@ -272,8 +271,7 @@ class PIDLockFile_release_TestCase(scaffold.TestCase):
             """ % vars()
         instance.release()
         scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
+        self.failUnlessMockCheckerMatch(expect_mock_output)
 
 
 class PIDLockFile_break_lock_TestCase(scaffold.TestCase):
@@ -308,8 +306,7 @@ class PIDLockFile_break_lock_TestCase(scaffold.TestCase):
             """ % vars()
         instance.break_lock()
         scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
+        self.failUnlessMockCheckerMatch(expect_mock_output)
 
 
 class FakeFileDescriptorStringIO(StringIO, object):
@@ -328,10 +325,7 @@ class FakeFileDescriptorStringIO(StringIO, object):
 
 def setup_pidfile_fixtures(testcase):
     """ Set up common fixtures for PID file test cases """
-
-    testcase.mock_outfile = StringIO()
-    testcase.mock_tracker = scaffold.MockTracker(
-        testcase.mock_outfile)
+    testcase.mock_tracker = scaffold.MockTracker()
 
     testcase.mock_current_pid = 235
     testcase.mock_other_pid = 8642
@@ -435,8 +429,7 @@ class read_pid_from_pidfile_TestCase(scaffold.TestCase):
             """ % vars()
         dummy = pidlockfile.read_pid_from_pidfile(pidfile_path)
         scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
+        self.failUnlessMockCheckerMatch(expect_mock_output)
 
     def test_reads_pid_from_file(self):
         """ Should read the PID from the specified file """
@@ -480,8 +473,7 @@ class remove_existing_pidfile_TestCase(scaffold.TestCase):
             """ % vars()
         pidlockfile.remove_existing_pidfile(pidfile_path)
         scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
+        self.failUnlessMockCheckerMatch(expect_mock_output)
 
     def test_ignores_file_not_exist_error(self):
         """ Should ignore error if file does not exist """
@@ -493,8 +485,7 @@ class remove_existing_pidfile_TestCase(scaffold.TestCase):
             """ % vars()
         pidlockfile.remove_existing_pidfile(pidfile_path)
         scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
+        self.failUnlessMockCheckerMatch(expect_mock_output)
 
     def test_propagates_arbitrary_oserror(self):
         """ Should propagate any OSError other than ENOENT """
@@ -529,8 +520,7 @@ class write_pid_to_pidfile_TestCase(scaffold.TestCase):
             """ % vars()
         pidlockfile.write_pid_to_pidfile(pidfile_path)
         scaffold.mock_restore()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
+        self.failUnlessMockCheckerMatch(expect_mock_output)
 
     def test_writes_pid_to_file(self):
         """ Should write the current PID to the specified file """

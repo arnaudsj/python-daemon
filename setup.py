@@ -50,6 +50,6 @@ setup(
         ],
     test_suite="tests.suite",
     tests_require=[
-        'MiniMock >=1.0',
+        'MiniMock >=1.2.2',
         ],
     )

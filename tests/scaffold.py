@@ -3,11 +3,9 @@
 # tests/scaffold.py
 #
 # Copyright © 2007–2009 Ben Finney <ben+python@benfinney.id.au>
-#
-# This is free software: you may copy, modify, and/or distribute this work
-# under the terms of the Python Software Foundation License, version 2 or
-# later as published by the Python Software Foundation.
-# No warranty expressed or implied. See the file LICENSE.PSF-2 for details.
+# This is free software; you may copy, modify and/or distribute this work
+# under the terms of the GNU General Public License, version 2 or later.
+# No warranty expressed or implied. See the file LICENSE for details.
 
 """ Scaffolding for unit test modules
 """
@@ -23,7 +21,7 @@ import textwrap
 from StringIO import StringIO
 from minimock import (
     Mock,
-    Printer as MockTracker,
+    TraceTracker as MockTracker,
     mock,
     restore as mock_restore,
     )
@@ -34,6 +32,7 @@ if not test_dir in sys.path:
     sys.path.insert(1, test_dir)
 if not parent_dir in sys.path:
     sys.path.insert(1, parent_dir)
+bin_dir = os.path.join(parent_dir, "bin")
 
 # Disable all but the most critical logging messages
 logging.disable(logging.CRITICAL)
@@ -89,51 +88,6 @@ def make_module_from_file(module_name, file_name):
     exec module_file in module.__dict__
 
     return module
-
-
-def normalise_function_parameters(text):
-    """ Return a version of ``text`` with function parameters normalised
-
-        The normalisations performed are:
-
-        * Remove any whitespace sequence between an opening
-          parenthesis '(' and a subsequent non-whitespace character.
-
-        * Remove any whitespace sequence between a non-whitespace
-          character and a closing parenthesis ')'.
-
-        * Ensure a comma ',' and a subsequent non-whitespace character
-          are separated by a single space ' '.
-
-        """
-    normalised_text = text
-    normalise_map = {
-        re.compile(r"\(\s+(\S)"): r"(\1",
-        re.compile(r"(\S)\s+\)"): r"\1)",
-        re.compile(r",\s*(\S)"): r", \1",
-        }
-    for search_pattern, replace_pattern in normalise_map.items():
-        normalised_text = re.sub(
-            search_pattern, replace_pattern, normalised_text)
-
-    return normalised_text
-
-
-doctest.NORMALIZE_FUNCTION_PARAMETERS = (
-    doctest.register_optionflag('NORMALIZE_FUNCTION_PARAMETERS'))
-
-
-class MinimockOutputChecker(doctest.OutputChecker, object):
-    """ Class for matching output of MiniMock objects against expectations """
-
-    def check_output(self, want, got, optionflags):
-        if (optionflags & doctest.NORMALIZE_FUNCTION_PARAMETERS):
-            want = normalise_function_parameters(want)
-            got = normalise_function_parameters(got)
-        output_match = super(MinimockOutputChecker, self).check_output(
-            want, got, optionflags)
-        return output_match
-    check_output.__doc__ = doctest.OutputChecker.check_output.__doc__
 
 
 class TestCase(unittest.TestCase):
@@ -214,22 +168,21 @@ class TestCase(unittest.TestCase):
     assertNotIn = failIfIn
 
     def failUnlessOutputCheckerMatch(self, want, got, msg=None):
-        """ Fail unless the specified string matches the expected
+        """ Fail unless the specified string matches the expected.
 
             Fail the test unless ``want`` matches ``got``, as
-            determined by a ``MinimockOutputChecker`` instance. This
+            determined by a ``doctest.OutputChecker`` instance. This
             is not an equality check, but a pattern match according to
-            the MinimockOutputChecker rules.
+            the ``OutputChecker`` rules.
 
             """
-        checker = MinimockOutputChecker()
+        checker = doctest.OutputChecker()
         want = textwrap.dedent(want)
         source = ""
         example = doctest.Example(source, want)
         got = textwrap.dedent(got)
         checker_optionflags = reduce(operator.or_, [
             doctest.ELLIPSIS,
-            doctest.NORMALIZE_FUNCTION_PARAMETERS,
             ])
         if not checker.check_output(want, got, checker_optionflags):
             if msg is None:
@@ -242,6 +195,49 @@ class TestCase(unittest.TestCase):
             raise self.failureException(msg)
 
     assertOutputCheckerMatch = failUnlessOutputCheckerMatch
+
+    def failUnlessMockCheckerMatch(self, want, tracker=None, msg=None):
+        """ Fail unless the mock tracker matches the wanted output.
+
+            Fail the test unless `want` matches the output tracked by
+            `tracker` (defaults to ``self.mock_tracker``. This is not
+            an equality check, but a pattern match according to the
+            ``minimock.MinimockOutputChecker`` rules.
+
+            """
+        if tracker is None:
+            tracker = self.mock_tracker
+        if not tracker.check(want):
+            if msg is None:
+                diff = tracker.diff(want)
+                msg = "\n".join([
+                    "Output received did not match expected output",
+                    "%(diff)s",
+                    ]) % vars()
+            raise self.failureException(msg)
+
+    def failIfMockCheckerMatch(self, want, tracker=None, msg=None):
+        """ Fail if the mock tracker matches the specified output.
+
+            Fail the test if `want` matches the output tracked by
+            `tracker` (defaults to ``self.mock_tracker``. This is not
+            an equality check, but a pattern match according to the
+            ``minimock.MinimockOutputChecker`` rules.
+
+            """
+        if tracker is None:
+            tracker = self.mock_tracker
+        if tracker.check(want):
+            if msg is None:
+                diff = tracker.diff(want)
+                msg = "\n".join([
+                    "Output received matched specified undesired output",
+                    "%(diff)s",
+                    ]) % vars()
+            raise self.failureException(msg)
+
+    assertMockCheckerMatch = failUnlessMockCheckerMatch
+    assertNotMockCheckerMatch = failIfMockCheckerMatch
 
     def failIfIsInstance(self, obj, classes, msg=None):
         """ Fail if the object is an instance of the specified classes
@@ -369,8 +365,7 @@ class ProgramMain_TestCase(TestCase):
 
     def setUp(self):
         """ Set up test fixtures """
-        self.mock_outfile = StringIO()
-        self.mock_tracker = MockTracker(self.mock_outfile)
+        self.mock_tracker = MockTracker()
 
         self.app_class_name = self.application_class.__name__
         self.mock_app = Mock("test_app", tracker=self.mock_tracker)
@@ -395,8 +390,7 @@ class ProgramMain_TestCase(TestCase):
             Called %(app_class_name)s(%(argv)r)...
             """ % vars()
         self.program_module.__main__(argv)
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
+        self.failUnlessMockCheckerMatch(expect_mock_output)
 
     def test_main_should_call_app_main(self):
         """ __main__() should call the application main method """
@@ -407,8 +401,7 @@ class ProgramMain_TestCase(TestCase):
             Called test_app.main()
             """ % vars()
         self.program_module.__main__(argv)
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
+        self.failUnlessMockCheckerMatch(expect_mock_output)
 
     def test_main_no_argv_should_supply_sys_argv(self):
         """ __main__() with no argv should supply sys.argv to application """
@@ -420,8 +413,7 @@ class ProgramMain_TestCase(TestCase):
             Called test_app.main()
             """ % vars()
         self.program_module.__main__()
-        self.failUnlessOutputCheckerMatch(
-            expect_mock_output, self.mock_outfile.getvalue())
+        self.failUnlessMockCheckerMatch(expect_mock_output)
 
     def test_main_should_return_none_on_success(self):
         """ __main__() should return None when no SystemExit raised """

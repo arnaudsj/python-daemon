@@ -3,6 +3,7 @@
     * Register DaemonContext.close method for atexit processing.
     * Move PID file cleanup to close method.
     * Improve docstrings by reference to, and copy from, PEP 3143.
+    * Use mock checking capabilities of newer ‘MiniMock’ library.
 
 2009-03-26  Ben Finney  <ben+python@benfinney.id.au>
 

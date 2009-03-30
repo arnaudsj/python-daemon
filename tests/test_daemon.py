@@ -469,7 +469,14 @@ class maxfd_TestCase(scaffold.TestCase):
         self.failUnlessEqual(int(maxfd), maxfd)
 
     def test_reasonably_high(self):
-        """ Should be reasonably high for default open files limit. """
+        """ Should be reasonably high for default open files limit.
+
+            If the system reports a limit of “infinity” on maximum
+            file descriptors, we still need a finite number in order
+            to close “all” of them. Ensure this is reasonably high
+            to catch most use cases.
+
+            """
         expect_minimum = 2048
         maxfd = daemon.daemon.MAXFD
         self.failUnless(

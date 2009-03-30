@@ -456,17 +456,26 @@ class close_file_descriptor_if_open_TestCase(scaffold.TestCase):
 
 
 class maxfd_TestCase(scaffold.TestCase):
-    """ Test cases for module MAXFD """
+    """ Test cases for module MAXFD constant. """
 
     def test_positive(self):
-        """ Should be a positive number """
+        """ Should be a positive number. """
         maxfd = daemon.daemon.MAXFD
         self.failUnless(maxfd > 0)
 
     def test_integer(self):
-        """ Should be an integer """
+        """ Should be an integer. """
         maxfd = daemon.daemon.MAXFD
         self.failUnlessEqual(int(maxfd), maxfd)
+
+    def test_reasonably_high(self):
+        """ Should be reasonably high for default open files limit. """
+        expect_minimum = 2048
+        maxfd = daemon.daemon.MAXFD
+        self.failUnless(
+            expect_minimum <= maxfd,
+            msg="MAXFD should be at least %(expect_minimum)r (got %(maxfd)r)"
+                % vars())
 
 
 class get_maximum_file_descriptors_TestCase(scaffold.TestCase):

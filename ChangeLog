@@ -1,3 +1,9 @@
+2009-03-30  Ben Finney  <ben+python@benfinney.id.au>
+
+    * Register DaemonContext.close method for atexit processing.
+    * Move PID file cleanup to close method.
+    * Improve docstrings by reference to, and copy from, PEP 3143.
+
 2009-03-26  Ben Finney  <ben+python@benfinney.id.au>
 
     Version 1.4.4 released.
@@ -33,7 +39,7 @@
     Version 1.4 released.
 
     * Implement the interface from a draft PEP for process daemonisation.
-    * Complete unit test coverage.
+    * Complete statement coverage from unit test suite.
 
 2009-03-12  Ben Finney  <ben+python@benfinney.id.au>
 

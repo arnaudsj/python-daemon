@@ -1,0 +1,61 @@
+2009-03-26  Ben Finney  <ben+python@benfinney.id.au>
+
+    Version 1.4.4 released.
+
+    * Conform to current PEP version, now released as PEP 3143 “Standard
+      daemon process library”.
+    * Ensure UID and GID are set in correct order.
+    * Delay closing all open files until just before re-binding standard
+      streams.
+    * Redirect standard streams to null device by default.
+
+2009-03-19  Ben Finney  <ben+python@benfinney.id.au>
+
+    Version 1.4.3 released.
+
+    * Close the PID file context on exit.
+
+2009-03-18  Ben Finney  <ben+python@benfinney.id.au>
+
+    Version 1.4.2 released.
+
+    * Context manager methods for DaemonContext.
+
+2009-03-18  Ben Finney  <ben+python@benfinney.id.au>
+
+    Version 1.4.1 released.
+
+    * Improvements to docstrings.
+    * Further conformance with draft PEP.
+
+2009-03-17  Ben Finney  <ben+python@benfinney.id.au>
+
+    Version 1.4 released.
+
+    * Implement the interface from a draft PEP for process daemonisation.
+    * Complete unit test coverage.
+
+2009-03-12  Ben Finney  <ben+python@benfinney.id.au>
+
+    Version 1.3 released.
+
+    * Separate controller (now ‘DaemonRunner’) from daemon process
+      context (now ‘DaemonContext’).
+    * Fix many corner cases and bugs.
+    * Huge increase in unit test suite.
+
+2009-01-27  Ben Finney  <ben+python@benfinney.id.au>
+
+    Version 1.2 released.
+
+    * Initial release of this project forked from ‘bda.daemon’. Thanks,
+      Robert Niederreiter.
+    * Refactor some functionality out to helper functions.
+    * Begin unit test suite.
+
+Local variables:
+mode: change-log
+coding: utf-8
+left-margin: 4
+indent-tabs-mode: nil
+End:

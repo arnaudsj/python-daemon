@@ -1,3 +1,4 @@
 ./dist
 ./build
 *.egg-info
+./daemon/version/version_info.py

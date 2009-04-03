@@ -34,7 +34,11 @@
 
     """
 
+import version
 from daemon import DaemonContext
 
 
-version = "1.4.5"
+_version = version.version
+_copyright = version.copyright
+_license = version.license
+_url = "http://trac.whitetree.org/gracie/"

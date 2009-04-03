@@ -8,48 +8,53 @@
 # later as published by the Python Software Foundation.
 # No warranty expressed or implied. See the file LICENSE.PSF-2 for details.
 
-""" Python distribution setup
-"""
+""" Distribution setup for python-daemon
+    """
 
 import textwrap
 from setuptools import setup, find_packages
 
-import daemon as main_module
+main_module_name = 'daemon'
+main_module = __import__(main_module_name, fromlist=['version'])
+version = main_module.version
 
 short_description, long_description = (
     textwrap.dedent(d).strip()
-    for d in main_module.__doc__.split('\n\n', 1)
+    for d in main_module.__doc__.decode('utf-8').split(u'\n\n', 1)
     )
 
 
 setup(
-    name='python-daemon',
-    version=main_module.version,
-    description=short_description,
-    long_description=long_description,
-    classifiers=[
-        # Refer to http://pypi.python.org/pypi?%3Aaction=list_classifiers
-        'Development Status :: 4 - Beta',
-        'License :: OSI Approved :: Python Software Foundation License',
-        'Operating System :: POSIX',
-        'Programming Language :: Python',
-        'Intended Audience :: Developers',
-        'Topic :: Software Development :: Libraries :: Python Modules'
-        ],
-    keywords='daemon fork unix',
-    author='Ben Finney',
-    author_email='ben+python@benfinney.id.au',
-    url='http://python-daemon.alioth.debian.org/',
-    license='PSF',
-    packages=find_packages(exclude=['ez_setup']),
-    include_package_data=True,
-    zip_safe=False,
-    install_requires=[
-        'setuptools',
-        'lockfile >=0.7',
-        ],
-    test_suite="tests.suite",
+    name = main_module_name,
+    version = version.version,
+    packages = find_packages(),
+
+    # setuptools metadata
+    zip_safe = False,
+    test_suite = "tests.suite",
     tests_require=[
-        'MiniMock >=1.2.2',
+        "MiniMock >=1.2.2",
+        ],
+    install_requires = [
+        "setuptools",
+        "lockfile >=0.7",
+        ],
+
+    # PyPI metadata
+    author = version.author_name,
+    author_email = version.author_email,
+    description = short_description,
+    license = version.license,
+    keywords = u"daemon fork unix",
+    url = main_module._url,
+    long_description = long_description,
+    classifiers = [
+        # Refer to http://pypi.python.org/pypi?%3Aaction=list_classifiers
+        "Development Status :: 4 - Beta",
+        "License :: OSI Approved :: Python Software Foundation License",
+        "Operating System :: POSIX",
+        "Programming Language :: Python",
+        "Intended Audience :: Developers",
+        "Topic :: Software Development :: Libraries :: Python Modules",
         ],
     )

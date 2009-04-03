@@ -1,0 +1,128 @@
+#! /usr/bin/python
+# -*- coding: utf-8 -*-
+#
+# bin/make-dist-tarball
+# Part of python-daemon, an implementation of PEP 3143
+#
+# Copyright © 2007–2009 Ben Finney <ben+python@benfinney.id.au>
+#
+# This is free software: you are free to modify and/or redistribute it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of that license or,
+# at your option, any later version.
+# No warranty expressed or implied. See the file LICENSE for details.
+
+""" Create the distribution tarball from VCS """
+
+import os
+import sys
+import tempfile
+import shutil
+import tarfile
+
+import bzrlib
+import bzrlib.workingtree
+import bzrlib.export
+from bzrlib import version_info_formats
+import bzrlib.plugin
+bzrlib.plugin.load_plugins()
+
+workingtree = bzrlib.workingtree.WorkingTree.open_containing()[0]
+sys.path.insert(1, workingtree.basedir)
+
+dist_name = "python-daemon"
+
+
+branch = workingtree.branch
+revision_tree = branch.basis_tree()
+
+
+def get_generated_version_info_content():
+    """ Return the generated version-info module, or None """
+
+    content = None
+
+    module_temp = tempfile.NamedTemporaryFile()
+    info_format = version_info_formats.format_registry.get("python")
+    info_builder = info_format(workingtree.branch)
+    info_builder.generate(module_temp)
+
+    module_temp.seek(0)
+    content = module_temp.read()
+    module_temp.close()
+
+    return content
+
+def get_existing_version_info_content(module_path):
+    """ Return the content of the existing version-info module, or None """
+
+    content = None
+
+    try:
+        module_file = open(module_path, 'r')
+        content = module_file.read()
+    except IOError:
+        pass
+
+    return content
+
+def update_version_info_module_if_needed(module_path):
+    """ Update the version-info module iff it is out of date """
+
+    generated_content = get_generated_version_info_content()
+    existing_content = get_existing_version_info_content(module_path)
+
+    if generated_content is not None:
+        if generated_content != existing_content:
+            module_file = open(module_path, 'w+')
+            module_file.write(generated_content)
+            module_file.close()
+
+package_name = "daemon"
+version_info_module_relpath = os.path.join(
+    package_name, "version", "version_info.py")
+version_info_module_path = os.path.join(
+    workingtree.basedir, version_info_module_relpath)
+
+update_version_info_module_if_needed(version_info_module_path)
+
+package_module = __import__(package_name, fromlist=['version'])
+version_module = package_module.version
+version = version_module.version
+
+
+export_dir_name = "%(dist_name)s-%(version)s" % vars()
+export_root_dir = tempfile.mkdtemp()
+export_dir_path = os.path.join(export_root_dir, export_dir_name)
+bzrlib.export.export(revision_tree, export_dir_path, format="dir")
+
+version_info_module_export = os.path.join(
+    export_dir_path, version_info_module_relpath)
+shutil.copy(version_info_module_path, version_info_module_export)
+
+# This program won't work outside the VCS branch; exclude it from the export.
+this_program_export = os.path.join(
+    export_dir_path, "bin", "make-dist-tarball")
+os.remove(this_program_export)
+
+
+def make_dist_tarball(tarball_path, tree_root):
+    """ Create a named tarball from the specified directory tree """
+
+    save_curdir = os.path.abspath(os.path.curdir)
+
+    tarball = tarfile.TarFile.gzopen(tarball_path, 'w')
+    os.chdir(tree_root)
+    tarball.add(export_dir_name)
+    tarball.close()
+
+    os.chdir(save_curdir)
+
+tarball_suffix = ".tar.gz"
+tarball_name = "%(export_dir_name)s%(tarball_suffix)s" % vars()
+parent_dir = os.path.dirname(os.path.abspath(os.path.curdir))
+tarball_path = os.path.join(parent_dir, tarball_name)
+make_dist_tarball(tarball_path, export_root_dir)
+
+
+shutil.rmtree(export_root_dir)

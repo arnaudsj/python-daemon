@@ -1,5 +1,5 @@
-TODO for daemon library
-#######################
+TODO for python-daemon library
+##############################
 
 =======
 PENDING
@@ -17,37 +17,14 @@ Features
 Important
 ---------
 
-* Detect whether started by another process that handles
-  daemonisation, such as ‘inetd’, and behave appropriately.
-
-* Allow specification of working directory (default: '/').
-
-* Allow specification of umask (default: 0000).
-
-* Drop ‘suid’ and ‘sgid’ privileges if set.
-
-* Close all open file handles.
-
-* Default re-open stdin, stdout, stderr to ‘/dev/null’.
-
 Wishlist
 --------
-
-* Allow specification of a non-root user and group to drop to, if
-  started as ‘root’ (default: no change of user or group).
-
-* Allow specification of PID file name and directory, with standard
-  PID file locking behaviour (default: no PID file).
 
 * Allow specification of a syslog service name to log as (default:
   output to stdout and stderr, not syslog).
 
 Documentation
 =============
-
-* Full docstrings for functions, classes, and modules.
-
-* PEP for adding this library to the Python standard library.
 
 Standard library inclusion
 ==========================
@@ -59,11 +36,34 @@ Standard library inclusion
 DONE
 ====
 
+* Detect whether started by another process that handles
+  daemonisation, such as ‘inetd’, and behave appropriately.
+
 * Detach to new process and session group.
 
-* Change umask to 0000.
+* Allow specification of working directory (default: '/').
+
+* Allow specification of umask (default: 0000).
+
+* Drop ‘suid’ and ‘sgid’ privileges if set.
+
+* Close all open file handles.
 
 * Re-open stdin, stdout, stderr to user-specified files.
+
+* Default re-open stdin, stdout, stderr to ‘/dev/null’.
+
+* Allow specification of a non-root user and group to drop to, if
+  started as ‘root’ (default: no change of user or group).
+
+* Implement context manager protocol for daemon context.
+
+* Allow specification of PID file with its own context manager
+  (default: no PID file).
+
+* Full docstrings for functions, classes, and modules.
+
+* PEP 3143 for adding this library to the Python standard library.
 
 ..
     Local variables:

@@ -7,7 +7,7 @@
 # under the terms of the GNU General Public License, version 2 or later.
 # No warranty expressed or implied. See the file LICENSE for details.
 
-""" Scaffolding for unit test modules
+""" Scaffolding for unit test modules.
 """
 
 import unittest
@@ -16,9 +16,7 @@ import logging
 import os
 import sys
 import operator
-import re
 import textwrap
-from StringIO import StringIO
 from minimock import (
     Mock,
     TraceTracker as MockTracker,
@@ -39,21 +37,21 @@ logging.disable(logging.CRITICAL)
 
 
 def get_python_module_names(file_list, file_suffix='.py'):
-    """ Return a list of module names from a filename list """
+    """ Return a list of module names from a filename list. """
     module_names = [m[:m.rfind(file_suffix)] for m in file_list
         if m.endswith(file_suffix)]
     return module_names
 
 
 def get_test_module_names(module_list, module_prefix='test_'):
-    """ Return the list of module names that qualify as test modules """
+    """ Return the list of module names that qualify as test modules. """
     module_names = [m for m in module_list
         if m.startswith(module_prefix)]
     return module_names
 
 
 def make_suite(path=test_dir):
-    """ Create the test suite for the given path """
+    """ Create the test suite for the given path. """
     loader = unittest.TestLoader()
     python_module_names = get_python_module_names(os.listdir(path))
     test_module_names = get_test_module_names(python_module_names)
@@ -63,7 +61,7 @@ def make_suite(path=test_dir):
 
 
 def unittest_main(argv=None):
-    """ Mainline function for each unit test module """
+    """ Mainline function for each unit test module. """
 
     from sys import argv as sys_argv
     if not argv:
@@ -79,7 +77,7 @@ def unittest_main(argv=None):
 
 
 def make_module_from_file(module_name, file_name):
-    """ Make a new module object from the code in specified file """
+    """ Make a new module object from the code in specified file. """
 
     from types import ModuleType
     module = ModuleType(module_name)
@@ -91,10 +89,10 @@ def make_module_from_file(module_name, file_name):
 
 
 class TestCase(unittest.TestCase):
-    """ Test case behaviour """
+    """ Test case behaviour. """
 
     def failUnlessRaises(self, exc_class, func, *args, **kwargs):
-        """ Fail unless the function call raises the expected exception
+        """ Fail unless the function call raises the expected exception.
 
             Fail the test if an instance of the exception class
             ``exc_class`` is not raised when calling ``func`` with the
@@ -114,7 +112,7 @@ class TestCase(unittest.TestCase):
             raise self.failureException(msg)
 
     def failIfIs(self, first, second, msg=None):
-        """ Fail if the two objects are identical
+        """ Fail if the two objects are identical.
 
             Fail the test if ``first`` and ``second`` are identical,
             as determined by the ``is`` operator.
@@ -126,7 +124,7 @@ class TestCase(unittest.TestCase):
             raise self.failureException(msg)
 
     def failUnlessIs(self, first, second, msg=None):
-        """ Fail unless the two objects are identical
+        """ Fail unless the two objects are identical.
 
             Fail the test unless ``first`` and ``second`` are
             identical, as determined by the ``is`` operator.
@@ -141,7 +139,7 @@ class TestCase(unittest.TestCase):
     assertNotIs = failIfIs
 
     def failIfIn(self, first, second, msg=None):
-        """ Fail if the second object is in the first
+        """ Fail if the second object is in the first.
 
             Fail the test if ``first`` contains ``second``, as
             determined by the ``in`` operator.
@@ -153,7 +151,7 @@ class TestCase(unittest.TestCase):
             raise self.failureException(msg)
 
     def failUnlessIn(self, first, second, msg=None):
-        """ Fail unless the second object is in the first
+        """ Fail unless the second object is in the first.
 
             Fail the test unless ``first`` contains ``second``, as
             determined by the ``in`` operator.
@@ -240,7 +238,7 @@ class TestCase(unittest.TestCase):
     assertNotMockCheckerMatch = failIfMockCheckerMatch
 
     def failIfIsInstance(self, obj, classes, msg=None):
-        """ Fail if the object is an instance of the specified classes
+        """ Fail if the object is an instance of the specified classes.
 
             Fail the test if the object ``obj`` is an instance of any
             of ``classes``.
@@ -254,7 +252,7 @@ class TestCase(unittest.TestCase):
             raise self.failureException(msg)
 
     def failUnlessIsInstance(self, obj, classes, msg=None):
-        """ Fail unless the object is an instance of the specified classes
+        """ Fail unless the object is an instance of the specified classes.
 
             Fail the test unless the object ``obj`` is an instance of
             any of ``classes``.
@@ -271,7 +269,7 @@ class TestCase(unittest.TestCase):
     assertNotIsInstance = failIfIsInstance
 
     def failUnlessFunctionInTraceback(self, traceback, function, msg=None):
-        """ Fail if the function is not in the traceback
+        """ Fail if the function is not in the traceback.
 
             Fail the test if the function ``function`` is not at any
             of the levels in the traceback object ``traceback``.
@@ -298,7 +296,7 @@ class TestCase(unittest.TestCase):
 
 
 class Exception_TestCase(TestCase):
-    """ Test cases for exception classes """
+    """ Test cases for exception classes. """
 
     def __init__(self, *args, **kwargs):
         """ Set up a new instance """
@@ -306,7 +304,7 @@ class Exception_TestCase(TestCase):
         super(Exception_TestCase, self).__init__(*args, **kwargs)
 
     def setUp(self):
-        """ Set up test fixtures """
+        """ Set up test fixtures. """
         for exc_type, params in self.valid_exceptions.items():
             args = (None, ) * params['min_args']
             params['args'] = args
@@ -316,13 +314,13 @@ class Exception_TestCase(TestCase):
         super(Exception_TestCase, self).setUp()
 
     def test_exception_instance(self):
-        """ Exception instance should be created """
+        """ Exception instance should be created. """
         for params in self.valid_exceptions.values():
             instance = params['instance']
             self.failIfIs(None, instance)
 
     def test_exception_types(self):
-        """ Exception instances should match expected types """
+        """ Exception instances should match expected types. """
         for params in self.valid_exceptions.values():
             instance = params['instance']
             for match_type in params['types']:
@@ -337,7 +335,7 @@ class Exception_TestCase(TestCase):
 
 
 class ProgramMain_TestCase(TestCase):
-    """ Test cases for program __main__ function
+    """ Test cases for program __main__ function.
 
         Tests a module-level function named __main__ with behaviour
         inspired by Guido van Rossum's post "Python main() functions"
@@ -355,16 +353,17 @@ class ProgramMain_TestCase(TestCase):
               * has a main() method responsible for running the program,
                 and returning on successful program completion
               * raises SystemExit when an abnormal exit is required
+
         """
 
     def __init__(self, *args, **kwargs):
-        """ Set up a new instance """
+        """ Set up a new instance. """
         self.program_module = NotImplemented
         self.application_class = NotImplemented
         super(ProgramMain_TestCase, self).__init__(*args, **kwargs)
 
     def setUp(self):
-        """ Set up test fixtures """
+        """ Set up test fixtures. """
         self.mock_tracker = MockTracker()
 
         self.app_class_name = self.application_class.__name__
@@ -378,12 +377,12 @@ class ProgramMain_TestCase(TestCase):
         super(ProgramMain_TestCase, self).setUp()
 
     def tearDown(self):
-        """ Tear down test fixtures """
+        """ Tear down test fixtures. """
         mock_restore()
         super(ProgramMain_TestCase, self).tearDown()
 
     def test_main_should_instantiate_app(self):
-        """ __main__() should instantiate application class """
+        """ __main__() should instantiate application class. """
         app_class_name = self.app_class_name
         argv = ["foo", "bar"]
         expect_mock_output = """\
@@ -393,7 +392,7 @@ class ProgramMain_TestCase(TestCase):
         self.failUnlessMockCheckerMatch(expect_mock_output)
 
     def test_main_should_call_app_main(self):
-        """ __main__() should call the application main method """
+        """ __main__() should call the application main method. """
         argv = ["foo", "bar"]
         app_class_name = self.app_class_name
         expect_mock_output = """\
@@ -404,7 +403,7 @@ class ProgramMain_TestCase(TestCase):
         self.failUnlessMockCheckerMatch(expect_mock_output)
 
     def test_main_no_argv_should_supply_sys_argv(self):
-        """ __main__() with no argv should supply sys.argv to application """
+        """ __main__() with no argv should supply sys.argv to application. """
         sys_argv_test = ["foo", "bar"]
         mock("sys.argv", mock_obj=sys_argv_test)
         app_class_name = self.app_class_name
@@ -416,13 +415,13 @@ class ProgramMain_TestCase(TestCase):
         self.failUnlessMockCheckerMatch(expect_mock_output)
 
     def test_main_should_return_none_on_success(self):
-        """ __main__() should return None when no SystemExit raised """
+        """ __main__() should return None when no SystemExit raised. """
         expect_exit_code = None
         exit_code = self.program_module.__main__()
         self.failUnlessEqual(expect_exit_code, exit_code)
 
     def test_main_should_return_exit_code_on_system_exit(self):
-        """ __main__() should return application SystemExit code """
+        """ __main__() should return application SystemExit code. """
         expect_exit_code = object()
         self.mock_app.main.mock_raises = SystemExit(expect_exit_code)
         exit_code = self.program_module.__main__()

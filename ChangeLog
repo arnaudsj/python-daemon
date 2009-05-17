@@ -1,10 +1,11 @@
-2009-04-03  Ben Finney  <ben+python@benfinney.id.au>
-    
+2009-05-17  Ben Finney  <ben+python@benfinney.id.au>
+
     * Register DaemonContext.close method for atexit processing.
     * Move PID file cleanup to close method.
     * Improve docstrings by reference to, and copy from, PEP 3143.
     * Use mock checking capabilities of newer ‘MiniMock’ library.
     * Automate building a versioned distribution tarball.
+    * Include developer documentation files in source distribution.
 
 2009-03-26  Ben Finney  <ben+python@benfinney.id.au>
 

@@ -1,5 +1,7 @@
 2009-05-17  Ben Finney  <ben+python@benfinney.id.au>
 
+    Version 1.4.5 released.
+
     * Register DaemonContext.close method for atexit processing.
     * Move PID file cleanup to close method.
     * Improve docstrings by reference to, and copy from, PEP 3143.

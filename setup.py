@@ -8,7 +8,7 @@
 # later as published by the Python Software Foundation.
 # No warranty expressed or implied. See the file LICENSE.PSF-2 for details.
 
-""" Distribution setup for python-daemon
+""" Distribution setup for python-daemon library.
     """
 
 import textwrap
@@ -25,7 +25,7 @@ short_description, long_description = (
 
 
 setup(
-    name = main_module_name,
+    name = "python-daemon",
     version = version.version,
     packages = find_packages(),
 

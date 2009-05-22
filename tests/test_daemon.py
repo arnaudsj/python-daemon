@@ -56,6 +56,766 @@ class Exception_TestCase(scaffold.Exception_TestCase):
         }
 
 
+def setup_daemon_context_fixtures(testcase):
+    """ Set up common test fixtures for DaemonContext test case. """
+    testcase.mock_tracker = scaffold.MockTracker()
+
+    setup_streams_fixtures(testcase)
+
+    setup_pidfile_fixtures(testcase)
+
+    testcase.mock_pidfile_path = tempfile.mktemp()
+    testcase.mock_pidlockfile = scaffold.Mock(
+        "pidlockfile.PIDLockFile",
+        tracker=testcase.mock_tracker)
+    testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
+
+    scaffold.mock(
+        "daemon.daemon.is_detach_process_context_required",
+        returns=True,
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "daemon.daemon.make_default_signal_map",
+        returns=object(),
+        tracker=testcase.mock_tracker)
+
+    scaffold.mock(
+        "os.getuid",
+        returns=object(),
+        tracker=testcase.mock_tracker)
+    scaffold.mock(
+        "os.getgid",
+        returns=object(),
+        tracker=testcase.mock_tracker)
+
+    testcase.daemon_context_args = dict(
+        stdin = testcase.stream_files_by_name['stdin'],
+        stdout = testcase.stream_files_by_name['stdout'],
+        stderr = testcase.stream_files_by_name['stderr'],
+        )
+    testcase.test_instance = daemon.DaemonContext(
+        **testcase.daemon_context_args)
+
+
+class DaemonContext_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext class. """
+
+    def setUp(self):
+        """ Set up test fixtures. """
+        setup_daemon_context_fixtures(self)
+
+    def tearDown(self):
+        """ Tear down test fixtures. """
+        scaffold.mock_restore()
+
+    def test_instantiate(self):
+        """ New instance of DaemonContext should be created. """
+        self.failUnlessIsInstance(
+            self.test_instance, daemon.daemon.DaemonContext)
+
+    def test_minimum_zero_arguments(self):
+        """ Initialiser should not require any arguments. """
+        instance = daemon.daemon.DaemonContext()
+        self.failIfIs(None, instance)
+
+    def test_has_specified_chroot_directory(self):
+        """ Should have specified chroot_directory option. """
+        args = dict(
+            chroot_directory = object(),
+            )
+        expect_directory = args['chroot_directory']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_directory, instance.chroot_directory)
+
+    def test_has_specified_working_directory(self):
+        """ Should have specified working_directory option. """
+        args = dict(
+            working_directory = object(),
+            )
+        expect_directory = args['working_directory']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_directory, instance.working_directory)
+
+    def test_has_default_working_directory(self):
+        """ Should have default working_directory option. """
+        args = dict()
+        expect_directory = '/'
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_directory, instance.working_directory)
+
+    def test_has_specified_creation_mask(self):
+        """ Should have specified umask option. """
+        args = dict(
+            umask = object(),
+            )
+        expect_mask = args['umask']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_mask, instance.umask)
+
+    def test_has_default_creation_mask(self):
+        """ Should have default umask option. """
+        args = dict()
+        expect_mask = 0
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_mask, instance.umask)
+
+    def test_has_specified_uid(self):
+        """ Should have specified uid option. """
+        args = dict(
+            uid = object(),
+            )
+        expect_id = args['uid']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_id, instance.uid)
+
+    def test_has_derived_uid(self):
+        """ Should have uid option derived from process. """
+        args = dict()
+        expect_id = os.getuid()
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_id, instance.uid)
+
+    def test_has_specified_gid(self):
+        """ Should have specified gid option. """
+        args = dict(
+            gid = object(),
+            )
+        expect_id = args['gid']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_id, instance.gid)
+
+    def test_has_derived_gid(self):
+        """ Should have gid option derived from process. """
+        args = dict()
+        expect_id = os.getgid()
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_id, instance.gid)
+
+    def test_has_specified_detach_process(self):
+        """ Should have specified detach_process option. """
+        args = dict(
+            detach_process = object(),
+            )
+        expect_value = args['detach_process']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_value, instance.detach_process)
+
+    def test_has_derived_detach_process(self):
+        """ Should have detach_process option derived from environment. """
+        args = dict()
+        func = daemon.daemon.is_detach_process_context_required
+        expect_value = func()
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_value, instance.detach_process)
+
+    def test_has_specified_files_preserve(self):
+        """ Should have specified files_preserve option. """
+        args = dict(
+            files_preserve = object(),
+            )
+        expect_files_preserve = args['files_preserve']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_files_preserve, instance.files_preserve)
+
+    def test_has_specified_pidfile(self):
+        """ Should have the specified pidfile. """
+        args = dict(
+            pidfile = object(),
+            )
+        expect_pidfile = args['pidfile']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_pidfile, instance.pidfile)
+
+    def test_has_specified_stdin(self):
+        """ Should have specified stdin option. """
+        args = dict(
+            stdin = object(),
+            )
+        expect_file = args['stdin']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_file, instance.stdin)
+
+    def test_has_specified_stdout(self):
+        """ Should have specified stdout option. """
+        args = dict(
+            stdout = object(),
+            )
+        expect_file = args['stdout']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_file, instance.stdout)
+
+    def test_has_specified_stderr(self):
+        """ Should have specified stderr option. """
+        args = dict(
+            stderr = object(),
+            )
+        expect_file = args['stderr']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_file, instance.stderr)
+
+    def test_has_specified_signal_map(self):
+        """ Should have specified signal_map option. """
+        args = dict(
+            signal_map = object(),
+            )
+        expect_signal_map = args['signal_map']
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_signal_map, instance.signal_map)
+
+    def test_has_derived_signal_map(self):
+        """ Should have signal_map option derived from system. """
+        args = dict()
+        expect_signal_map = daemon.daemon.make_default_signal_map()
+        instance = daemon.daemon.DaemonContext(**args)
+        self.failUnlessEqual(expect_signal_map, instance.signal_map)
+
+
+class DaemonContext_open_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext.open method. """
+
+    def setUp(self):
+        """ Set up test fixtures. """
+        setup_daemon_context_fixtures(self)
+        self.mock_tracker.clear()
+
+        scaffold.mock(
+            "daemon.daemon.detach_process_context",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.change_working_directory",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.change_root_directory",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.change_file_creation_mask",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.change_process_owner",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.prevent_core_dump",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.close_all_open_files",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.redirect_stream",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.set_signal_handlers",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "daemon.daemon.register_atexit_function",
+            tracker=self.mock_tracker)
+
+        self.test_files_preserve_fds = object()
+        scaffold.mock(
+            "daemon.daemon.DaemonContext._get_exclude_file_descriptors",
+            returns=self.test_files_preserve_fds,
+            tracker=self.mock_tracker)
+
+        self.test_signal_handler_map = object()
+        scaffold.mock(
+            "daemon.daemon.DaemonContext._make_signal_handler_map",
+            returns=self.test_signal_handler_map,
+            tracker=self.mock_tracker)
+
+        scaffold.mock(
+            "sys.stdin",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "sys.stdout",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "sys.stderr",
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures. """
+        scaffold.mock_restore()
+
+    def test_performs_steps_in_expected_sequence(self):
+        """ Should perform daemonisation steps in expected sequence. """
+        instance = self.test_instance
+        instance.chroot_directory = object()
+        instance.detach_process = True
+        instance.pidfile = self.mock_pidlockfile
+        expect_mock_output = """\
+            Called daemon.daemon.change_root_directory(...)
+            Called daemon.daemon.prevent_core_dump()
+            Called daemon.daemon.change_file_creation_mask(...)
+            Called daemon.daemon.change_working_directory(...)
+            Called daemon.daemon.change_process_owner(...)
+            Called daemon.daemon.detach_process_context()
+            Called daemon.daemon.DaemonContext._make_signal_handler_map()
+            Called daemon.daemon.set_signal_handlers(...)
+            Called daemon.daemon.DaemonContext._get_exclude_file_descriptors()
+            Called daemon.daemon.close_all_open_files(...)
+            Called daemon.daemon.redirect_stream(...)
+            Called daemon.daemon.redirect_stream(...)
+            Called daemon.daemon.redirect_stream(...)
+            Called pidlockfile.PIDLockFile.__enter__()
+            Called daemon.daemon.register_atexit_function(...)
+            """ % vars()
+        self.mock_tracker.clear()
+        instance.open()
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_changes_root_directory_to_chroot_directory(self):
+        """ Should change root directory to `chroot_directory` option. """
+        instance = self.test_instance
+        chroot_directory = object()
+        instance.chroot_directory = chroot_directory
+        expect_mock_output = """\
+            Called daemon.daemon.change_root_directory(
+                %(chroot_directory)r)
+            ...
+            """ % vars()
+        instance.open()
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_omits_chroot_if_no_chroot_directory(self):
+        """ Should omit changing root directory if no `chroot_directory`. """
+        instance = self.test_instance
+        instance.chroot_directory = None
+        unwanted_output = """\
+            ...Called daemon.daemon.change_root_directory(...)..."""
+        instance.open()
+        self.failIfMockCheckerMatch(unwanted_output)
+
+    def test_prevents_core_dump(self):
+        """ Should request prevention of core dumps. """
+        instance = self.test_instance
+        expect_mock_output = """\
+            Called daemon.daemon.prevent_core_dump()
+            ...
+            """ % vars()
+        instance.open()
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_closes_open_files(self):
+        """ Should close all open files, excluding `files_preserve`. """
+        instance = self.test_instance
+        expect_exclude = self.test_files_preserve_fds
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.close_all_open_files(
+                exclude=%(expect_exclude)r)
+            ...
+            """ % vars()
+        instance.open()
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_changes_directory_to_working_directory(self):
+        """ Should change current directory to `working_directory` option. """
+        instance = self.test_instance
+        working_directory = object()
+        instance.working_directory = working_directory
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.change_working_directory(
+                %(working_directory)r)
+            ...
+            """ % vars()
+        instance.open()
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_changes_creation_mask_to_umask(self):
+        """ Should change file creation mask to `umask` option. """
+        instance = self.test_instance
+        umask = object()
+        instance.umask = umask
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.change_file_creation_mask(%(umask)r)
+            ...
+            """ % vars()
+        instance.open()
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_changes_owner_to_specified_uid_and_gid(self):
+        """ Should change process UID and GID to `uid` and `gid` options. """
+        instance = self.test_instance
+        uid = object()
+        gid = object()
+        instance.uid = uid
+        instance.gid = gid
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.change_process_owner(%(uid)r, %(gid)r)
+            ...
+            """ % vars()
+        instance.open()
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_detaches_process_context(self):
+        """ Should request detach of process context. """
+        instance = self.test_instance
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.detach_process_context()
+            ...
+            """ % vars()
+        instance.open()
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_omits_process_detach_if_not_required(self):
+        """ Should omit detach of process context if not required. """
+        instance = self.test_instance
+        instance.detach_process = False
+        unwanted_output = """\
+            ...Called daemon.daemon.detach_process_context(...)..."""
+        instance.open()
+        self.failIfMockCheckerMatch(unwanted_output)
+
+    def test_sets_signal_handlers_from_signal_map(self):
+        """ Should set signal handlers according to `signal_map`. """
+        instance = self.test_instance
+        instance.signal_map = object()
+        expect_signal_handler_map = self.test_signal_handler_map
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.set_signal_handlers(
+                %(expect_signal_handler_map)r)
+            ...
+            """ % vars()
+        instance.open()
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_redirects_standard_streams(self):
+        """ Should request redirection of standard stream files. """
+        instance = self.test_instance
+        (system_stdin, system_stdout, system_stderr) = (
+            sys.stdin, sys.stdout, sys.stderr)
+        (target_stdin, target_stdout, target_stderr) = (
+            self.stream_files_by_name[name]
+            for name in ['stdin', 'stdout', 'stderr'])
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.redirect_stream(
+                %(system_stdin)r, %(target_stdin)r)
+            Called daemon.daemon.redirect_stream(
+                %(system_stdout)r, %(target_stdout)r)
+            Called daemon.daemon.redirect_stream(
+                %(system_stderr)r, %(target_stderr)r)
+            ...
+            """ % vars()
+        instance.open()
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_enters_pidfile_context(self):
+        """ Should enter the PID file context manager. """
+        instance = self.test_instance
+        instance.pidfile = self.mock_pidlockfile
+        expect_mock_output = """\
+            ...
+            Called pidlockfile.PIDLockFile.__enter__()
+            ...
+            """
+        instance.open()
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_registers_close_method_for_atexit(self):
+        """ Should register the `close` method for atexit processing. """
+        instance = self.test_instance
+        close_method = instance.close
+        expect_mock_output = """\
+            ...
+            Called daemon.daemon.register_atexit_function(%(close_method)r)
+            """ % vars()
+        instance.open()
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+
+class DaemonContext_close_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext.close method. """
+
+    def setUp(self):
+        """ Set up test fixtures. """
+        setup_daemon_context_fixtures(self)
+        self.mock_tracker.clear()
+
+    def tearDown(self):
+        """ Tear down test fixtures. """
+        scaffold.mock_restore()
+
+    def test_exits_pidfile_context(self):
+        """ Should exit the PID file context manager. """
+        instance = self.test_instance
+        instance.pidfile = self.mock_pidlockfile
+        expect_mock_output = """\
+            Called pidlockfile.PIDLockFile.__exit__()
+            """
+        expect_exception = SystemExit
+        try:
+            instance.close()
+        except expect_exception:
+            pass
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_returns_none(self):
+        """ Should return None. """
+        instance = self.test_instance
+        expect_result = None
+        result = instance.close()
+        self.failUnlessIs(expect_result, result)
+
+
+class DaemonContext_context_manager_enter_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext.__enter__ method. """
+
+    def setUp(self):
+        """ Set up test fixtures. """
+        setup_daemon_context_fixtures(self)
+        self.mock_tracker.clear()
+
+        scaffold.mock(
+            "daemon.daemon.DaemonContext.open",
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures. """
+        scaffold.mock_restore()
+
+    def test_opens_daemon_context(self):
+        """ Should open the DaemonContext. """
+        instance = self.test_instance
+        expect_mock_output = """\
+            Called daemon.daemon.DaemonContext.open()
+            """
+        instance.__enter__()
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_returns_self_instance(self):
+        """ Should return DaemonContext instance. """
+        instance = self.test_instance
+        expect_result = instance
+        result = instance.__enter__()
+        self.failUnlessIs(expect_result, result)
+
+
+class DaemonContext_context_manager_exit_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext.__exit__ method. """
+
+    def setUp(self):
+        """ Set up test fixtures. """
+        setup_daemon_context_fixtures(self)
+        self.mock_tracker.clear()
+
+        self.test_args = dict(
+            exc_type = object(),
+            exc_value = object(),
+            traceback = object(),
+            )
+
+        scaffold.mock(
+            "daemon.daemon.DaemonContext.close",
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures. """
+        scaffold.mock_restore()
+
+    def test_closes_daemon_context(self):
+        """ Should close the DaemonContext. """
+        instance = self.test_instance
+        args = self.test_args
+        expect_mock_output = """\
+            Called daemon.daemon.DaemonContext.close()
+            """
+        instance.__exit__(**args)
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_returns_none(self):
+        """ Should return None, indicating exception was not handled. """
+        instance = self.test_instance
+        args = self.test_args
+        expect_result = None
+        result = instance.__exit__(**args)
+        self.failUnlessIs(expect_result, result)
+
+
+class DaemonContext_terminate_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext.terminate method. """
+
+    def setUp(self):
+        """ Set up test fixtures. """
+        setup_daemon_context_fixtures(self)
+
+        self.test_signal = signal.SIGTERM
+        self.test_frame = None
+        self.test_args = (self.test_signal, self.test_frame)
+
+    def tearDown(self):
+        """ Tear down test fixtures. """
+        scaffold.mock_restore()
+
+    def test_raises_system_exit(self):
+        """ Should raise SystemExit. """
+        instance = self.test_instance
+        args = self.test_args
+        expect_exception = SystemExit
+        self.failUnlessRaises(
+            expect_exception,
+            instance.terminate, *args)
+
+    def test_exception_message_contains_signal_number(self):
+        """ Should raise exception with a message containing signal number. """
+        instance = self.test_instance
+        args = self.test_args
+        signal_number = self.test_signal
+        expect_exception = SystemExit
+        try:
+            instance.terminate(*args)
+        except expect_exception, exc:
+            pass
+        self.failUnlessIn(str(exc), str(signal_number))
+
+
+class DaemonContext_get_exclude_file_descriptors_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext._get_exclude_file_descriptors function. """
+
+    def setUp(self):
+        """ Set up test fixtures. """
+        setup_daemon_context_fixtures(self)
+
+        self.test_files = {
+            2: FakeFileDescriptorStringIO(),
+            5: 5,
+            11: FakeFileDescriptorStringIO(),
+            17: None,
+            23: FakeFileDescriptorStringIO(),
+            37: 37,
+            42: FakeFileDescriptorStringIO(),
+            }
+        for (fileno, item) in self.test_files.items():
+            if hasattr(item, '_fileno'):
+                item._fileno = fileno
+        self.test_file_descriptors = [
+            fd for (fd, item) in self.test_files.items()
+            if item is not None]
+        self.test_file_descriptors.extend([
+            self.stream_files_by_name[name].fileno()
+            for name in ['stdin', 'stdout', 'stderr']
+            ])
+
+    def tearDown(self):
+        """ Tear down test fixtures. """
+        scaffold.mock_restore()
+
+    def test_returns_expected_file_descriptors(self):
+        """ Should return expected list of file descriptors. """
+        instance = self.test_instance
+        instance.files_preserve = self.test_files.values()
+        expect_result = self.test_file_descriptors
+        result = instance._get_exclude_file_descriptors()
+        self.failUnlessEqual(sorted(expect_result), sorted(result))
+
+    def test_returns_stream_redirects_if_no_files_preserve(self):
+        """ Should return only stream redirects if no files_preserve. """
+        instance = self.test_instance
+        instance.files_preserve = None
+        expect_result = [
+            self.stream_files_by_name[name].fileno()
+            for name in ['stdin', 'stdout', 'stderr']]
+        result = instance._get_exclude_file_descriptors()
+        self.failUnlessEqual(sorted(expect_result), sorted(result))
+
+    def test_returns_empty_list_if_no_files(self):
+        """ Should return empty list if no file options. """
+        instance = self.test_instance
+        for name in ['files_preserve', 'stdin', 'stdout', 'stderr']:
+            setattr(instance, name, None)
+        expect_result = []
+        result = instance._get_exclude_file_descriptors()
+        self.failUnlessEqual(sorted(expect_result), sorted(result))
+
+
+class DaemonContext_make_signal_handler_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext._make_signal_handler function. """
+
+    def setUp(self):
+        """ Set up test fixtures. """
+        setup_daemon_context_fixtures(self)
+
+    def tearDown(self):
+        """ Tear down test fixtures. """
+        scaffold.mock_restore()
+
+    def test_returns_ignore_for_none(self):
+        """ Should return SIG_IGN when None handler specified. """
+        instance = self.test_instance
+        target = None
+        expect_result = signal.SIG_IGN
+        result = instance._make_signal_handler(target)
+        self.failUnlessEqual(expect_result, result)
+
+    def test_returns_method_for_name(self):
+        """ Should return method of DaemonContext when name specified. """
+        instance = self.test_instance
+        target = 'terminate'
+        expect_result = instance.terminate
+        result = instance._make_signal_handler(target)
+        self.failUnlessEqual(expect_result, result)
+
+    def test_raises_error_for_unknown_name(self):
+        """ Should raise AttributeError for unknown method name. """
+        instance = self.test_instance
+        target = 'b0gUs'
+        expect_error = AttributeError
+        self.failUnlessRaises(
+            expect_error,
+            instance._make_signal_handler, target)
+
+    def test_returns_object_for_object(self):
+        """ Should return same object for any other object. """
+        instance = self.test_instance
+        target = object()
+        expect_result = target
+        result = instance._make_signal_handler(target)
+        self.failUnlessEqual(expect_result, result)
+
+
+class DaemonContext_make_signal_handler_map_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext._make_signal_handler_map function. """
+
+    def setUp(self):
+        """ Set up test fixtures. """
+        setup_daemon_context_fixtures(self)
+
+        self.test_instance.signal_map = {
+            object(): object(),
+            object(): object(),
+            object(): object(),
+            }
+
+        self.test_signal_handlers = dict(
+            (key, object())
+            for key in self.test_instance.signal_map.values())
+        self.test_signal_handler_map = dict(
+            (key, self.test_signal_handlers[target])
+            for (key, target) in self.test_instance.signal_map.items())
+
+        def mock_make_signal_handler(target):
+            return self.test_signal_handlers[target]
+        scaffold.mock(
+            "daemon.daemon.DaemonContext._make_signal_handler",
+            returns_func=mock_make_signal_handler,
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures. """
+        scaffold.mock_restore()
+
+    def test_returns_constructed_signal_handler_items(self):
+        """ Should return items as constructed via make_signal_handler. """
+        instance = self.test_instance
+        expect_result = self.test_signal_handler_map
+        result = instance._make_signal_handler_map()
+        self.failUnlessEqual(expect_result, result)
+
+
 class change_working_directory_TestCase(scaffold.TestCase):
     """ Test cases for change_working_directory function. """
 
@@ -1086,763 +1846,3 @@ class register_atexit_function_TestCase(scaffold.TestCase):
             """ % vars()
         daemon.daemon.register_atexit_function(func)
         self.failUnlessMockCheckerMatch(expect_mock_output)
-
-
-def setup_daemon_context_fixtures(testcase):
-    """ Set up common test fixtures for DaemonContext test case. """
-    testcase.mock_tracker = scaffold.MockTracker()
-
-    setup_streams_fixtures(testcase)
-
-    setup_pidfile_fixtures(testcase)
-
-    testcase.mock_pidfile_path = tempfile.mktemp()
-    testcase.mock_pidlockfile = scaffold.Mock(
-        "pidlockfile.PIDLockFile",
-        tracker=testcase.mock_tracker)
-    testcase.mock_pidlockfile.path = testcase.mock_pidfile_path
-
-    scaffold.mock(
-        "daemon.daemon.is_detach_process_context_required",
-        returns=True,
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "daemon.daemon.make_default_signal_map",
-        returns=object(),
-        tracker=testcase.mock_tracker)
-
-    scaffold.mock(
-        "os.getuid",
-        returns=object(),
-        tracker=testcase.mock_tracker)
-    scaffold.mock(
-        "os.getgid",
-        returns=object(),
-        tracker=testcase.mock_tracker)
-
-    testcase.daemon_context_args = dict(
-        stdin = testcase.stream_files_by_name['stdin'],
-        stdout = testcase.stream_files_by_name['stdout'],
-        stderr = testcase.stream_files_by_name['stderr'],
-        )
-    testcase.test_instance = daemon.DaemonContext(
-        **testcase.daemon_context_args)
-
-
-class DaemonContext_TestCase(scaffold.TestCase):
-    """ Test cases for DaemonContext class. """
-
-    def setUp(self):
-        """ Set up test fixtures. """
-        setup_daemon_context_fixtures(self)
-
-    def tearDown(self):
-        """ Tear down test fixtures. """
-        scaffold.mock_restore()
-
-    def test_instantiate(self):
-        """ New instance of DaemonContext should be created. """
-        self.failUnlessIsInstance(
-            self.test_instance, daemon.daemon.DaemonContext)
-
-    def test_minimum_zero_arguments(self):
-        """ Initialiser should not require any arguments. """
-        instance = daemon.daemon.DaemonContext()
-        self.failIfIs(None, instance)
-
-    def test_has_specified_chroot_directory(self):
-        """ Should have specified chroot_directory option. """
-        args = dict(
-            chroot_directory = object(),
-            )
-        expect_directory = args['chroot_directory']
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_directory, instance.chroot_directory)
-
-    def test_has_specified_working_directory(self):
-        """ Should have specified working_directory option. """
-        args = dict(
-            working_directory = object(),
-            )
-        expect_directory = args['working_directory']
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_directory, instance.working_directory)
-
-    def test_has_default_working_directory(self):
-        """ Should have default working_directory option. """
-        args = dict()
-        expect_directory = '/'
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_directory, instance.working_directory)
-
-    def test_has_specified_creation_mask(self):
-        """ Should have specified umask option. """
-        args = dict(
-            umask = object(),
-            )
-        expect_mask = args['umask']
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_mask, instance.umask)
-
-    def test_has_default_creation_mask(self):
-        """ Should have default umask option. """
-        args = dict()
-        expect_mask = 0
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_mask, instance.umask)
-
-    def test_has_specified_uid(self):
-        """ Should have specified uid option. """
-        args = dict(
-            uid = object(),
-            )
-        expect_id = args['uid']
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_id, instance.uid)
-
-    def test_has_derived_uid(self):
-        """ Should have uid option derived from process. """
-        args = dict()
-        expect_id = os.getuid()
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_id, instance.uid)
-
-    def test_has_specified_gid(self):
-        """ Should have specified gid option. """
-        args = dict(
-            gid = object(),
-            )
-        expect_id = args['gid']
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_id, instance.gid)
-
-    def test_has_derived_gid(self):
-        """ Should have gid option derived from process. """
-        args = dict()
-        expect_id = os.getgid()
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_id, instance.gid)
-
-    def test_has_specified_detach_process(self):
-        """ Should have specified detach_process option. """
-        args = dict(
-            detach_process = object(),
-            )
-        expect_value = args['detach_process']
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_value, instance.detach_process)
-
-    def test_has_derived_detach_process(self):
-        """ Should have detach_process option derived from environment. """
-        args = dict()
-        func = daemon.daemon.is_detach_process_context_required
-        expect_value = func()
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_value, instance.detach_process)
-
-    def test_has_specified_files_preserve(self):
-        """ Should have specified files_preserve option. """
-        args = dict(
-            files_preserve = object(),
-            )
-        expect_files_preserve = args['files_preserve']
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_files_preserve, instance.files_preserve)
-
-    def test_has_specified_pidfile(self):
-        """ Should have the specified pidfile. """
-        args = dict(
-            pidfile = object(),
-            )
-        expect_pidfile = args['pidfile']
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_pidfile, instance.pidfile)
-
-    def test_has_specified_stdin(self):
-        """ Should have specified stdin option. """
-        args = dict(
-            stdin = object(),
-            )
-        expect_file = args['stdin']
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_file, instance.stdin)
-
-    def test_has_specified_stdout(self):
-        """ Should have specified stdout option. """
-        args = dict(
-            stdout = object(),
-            )
-        expect_file = args['stdout']
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_file, instance.stdout)
-
-    def test_has_specified_stderr(self):
-        """ Should have specified stderr option. """
-        args = dict(
-            stderr = object(),
-            )
-        expect_file = args['stderr']
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_file, instance.stderr)
-
-    def test_has_specified_signal_map(self):
-        """ Should have specified signal_map option. """
-        args = dict(
-            signal_map = object(),
-            )
-        expect_signal_map = args['signal_map']
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_signal_map, instance.signal_map)
-
-    def test_has_derived_signal_map(self):
-        """ Should have signal_map option derived from system. """
-        args = dict()
-        expect_signal_map = daemon.daemon.make_default_signal_map()
-        instance = daemon.daemon.DaemonContext(**args)
-        self.failUnlessEqual(expect_signal_map, instance.signal_map)
-
-
-class DaemonContext_open_TestCase(scaffold.TestCase):
-    """ Test cases for DaemonContext.open method. """
-
-    def setUp(self):
-        """ Set up test fixtures. """
-        setup_daemon_context_fixtures(self)
-        self.mock_tracker.clear()
-
-        scaffold.mock(
-            "daemon.daemon.detach_process_context",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "daemon.daemon.change_working_directory",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "daemon.daemon.change_root_directory",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "daemon.daemon.change_file_creation_mask",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "daemon.daemon.change_process_owner",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "daemon.daemon.prevent_core_dump",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "daemon.daemon.close_all_open_files",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "daemon.daemon.redirect_stream",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "daemon.daemon.set_signal_handlers",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "daemon.daemon.register_atexit_function",
-            tracker=self.mock_tracker)
-
-        self.test_files_preserve_fds = object()
-        scaffold.mock(
-            "daemon.daemon.DaemonContext._get_exclude_file_descriptors",
-            returns=self.test_files_preserve_fds,
-            tracker=self.mock_tracker)
-
-        self.test_signal_handler_map = object()
-        scaffold.mock(
-            "daemon.daemon.DaemonContext._make_signal_handler_map",
-            returns=self.test_signal_handler_map,
-            tracker=self.mock_tracker)
-
-        scaffold.mock(
-            "sys.stdin",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "sys.stdout",
-            tracker=self.mock_tracker)
-        scaffold.mock(
-            "sys.stderr",
-            tracker=self.mock_tracker)
-
-    def tearDown(self):
-        """ Tear down test fixtures. """
-        scaffold.mock_restore()
-
-    def test_performs_steps_in_expected_sequence(self):
-        """ Should perform daemonisation steps in expected sequence. """
-        instance = self.test_instance
-        instance.chroot_directory = object()
-        instance.detach_process = True
-        instance.pidfile = self.mock_pidlockfile
-        expect_mock_output = """\
-            Called daemon.daemon.change_root_directory(...)
-            Called daemon.daemon.prevent_core_dump()
-            Called daemon.daemon.change_file_creation_mask(...)
-            Called daemon.daemon.change_working_directory(...)
-            Called daemon.daemon.change_process_owner(...)
-            Called daemon.daemon.detach_process_context()
-            Called daemon.daemon.DaemonContext._make_signal_handler_map()
-            Called daemon.daemon.set_signal_handlers(...)
-            Called daemon.daemon.DaemonContext._get_exclude_file_descriptors()
-            Called daemon.daemon.close_all_open_files(...)
-            Called daemon.daemon.redirect_stream(...)
-            Called daemon.daemon.redirect_stream(...)
-            Called daemon.daemon.redirect_stream(...)
-            Called pidlockfile.PIDLockFile.__enter__()
-            Called daemon.daemon.register_atexit_function(...)
-            """ % vars()
-        self.mock_tracker.clear()
-        instance.open()
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-    def test_changes_root_directory_to_chroot_directory(self):
-        """ Should change root directory to `chroot_directory` option. """
-        instance = self.test_instance
-        chroot_directory = object()
-        instance.chroot_directory = chroot_directory
-        expect_mock_output = """\
-            Called daemon.daemon.change_root_directory(
-                %(chroot_directory)r)
-            ...
-            """ % vars()
-        instance.open()
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-    def test_omits_chroot_if_no_chroot_directory(self):
-        """ Should omit changing root directory if no `chroot_directory`. """
-        instance = self.test_instance
-        instance.chroot_directory = None
-        unwanted_output = """\
-            ...Called daemon.daemon.change_root_directory(...)..."""
-        instance.open()
-        self.failIfMockCheckerMatch(unwanted_output)
-
-    def test_prevents_core_dump(self):
-        """ Should request prevention of core dumps. """
-        instance = self.test_instance
-        expect_mock_output = """\
-            Called daemon.daemon.prevent_core_dump()
-            ...
-            """ % vars()
-        instance.open()
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-    def test_closes_open_files(self):
-        """ Should close all open files, excluding `files_preserve`. """
-        instance = self.test_instance
-        expect_exclude = self.test_files_preserve_fds
-        expect_mock_output = """\
-            ...
-            Called daemon.daemon.close_all_open_files(
-                exclude=%(expect_exclude)r)
-            ...
-            """ % vars()
-        instance.open()
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-    def test_changes_directory_to_working_directory(self):
-        """ Should change current directory to `working_directory` option. """
-        instance = self.test_instance
-        working_directory = object()
-        instance.working_directory = working_directory
-        expect_mock_output = """\
-            ...
-            Called daemon.daemon.change_working_directory(
-                %(working_directory)r)
-            ...
-            """ % vars()
-        instance.open()
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-    def test_changes_creation_mask_to_umask(self):
-        """ Should change file creation mask to `umask` option. """
-        instance = self.test_instance
-        umask = object()
-        instance.umask = umask
-        expect_mock_output = """\
-            ...
-            Called daemon.daemon.change_file_creation_mask(%(umask)r)
-            ...
-            """ % vars()
-        instance.open()
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-    def test_changes_owner_to_specified_uid_and_gid(self):
-        """ Should change process UID and GID to `uid` and `gid` options. """
-        instance = self.test_instance
-        uid = object()
-        gid = object()
-        instance.uid = uid
-        instance.gid = gid
-        expect_mock_output = """\
-            ...
-            Called daemon.daemon.change_process_owner(%(uid)r, %(gid)r)
-            ...
-            """ % vars()
-        instance.open()
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-    def test_detaches_process_context(self):
-        """ Should request detach of process context. """
-        instance = self.test_instance
-        expect_mock_output = """\
-            ...
-            Called daemon.daemon.detach_process_context()
-            ...
-            """ % vars()
-        instance.open()
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-    def test_omits_process_detach_if_not_required(self):
-        """ Should omit detach of process context if not required. """
-        instance = self.test_instance
-        instance.detach_process = False
-        unwanted_output = """\
-            ...Called daemon.daemon.detach_process_context(...)..."""
-        instance.open()
-        self.failIfMockCheckerMatch(unwanted_output)
-
-    def test_sets_signal_handlers_from_signal_map(self):
-        """ Should set signal handlers according to `signal_map`. """
-        instance = self.test_instance
-        instance.signal_map = object()
-        expect_signal_handler_map = self.test_signal_handler_map
-        expect_mock_output = """\
-            ...
-            Called daemon.daemon.set_signal_handlers(
-                %(expect_signal_handler_map)r)
-            ...
-            """ % vars()
-        instance.open()
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-    def test_redirects_standard_streams(self):
-        """ Should request redirection of standard stream files. """
-        instance = self.test_instance
-        (system_stdin, system_stdout, system_stderr) = (
-            sys.stdin, sys.stdout, sys.stderr)
-        (target_stdin, target_stdout, target_stderr) = (
-            self.stream_files_by_name[name]
-            for name in ['stdin', 'stdout', 'stderr'])
-        expect_mock_output = """\
-            ...
-            Called daemon.daemon.redirect_stream(
-                %(system_stdin)r, %(target_stdin)r)
-            Called daemon.daemon.redirect_stream(
-                %(system_stdout)r, %(target_stdout)r)
-            Called daemon.daemon.redirect_stream(
-                %(system_stderr)r, %(target_stderr)r)
-            ...
-            """ % vars()
-        instance.open()
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-    def test_enters_pidfile_context(self):
-        """ Should enter the PID file context manager. """
-        instance = self.test_instance
-        instance.pidfile = self.mock_pidlockfile
-        expect_mock_output = """\
-            ...
-            Called pidlockfile.PIDLockFile.__enter__()
-            ...
-            """
-        instance.open()
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-    def test_registers_close_method_for_atexit(self):
-        """ Should register the `close` method for atexit processing. """
-        instance = self.test_instance
-        close_method = instance.close
-        expect_mock_output = """\
-            ...
-            Called daemon.daemon.register_atexit_function(%(close_method)r)
-            """ % vars()
-        instance.open()
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-
-class DaemonContext_close_TestCase(scaffold.TestCase):
-    """ Test cases for DaemonContext.close method. """
-
-    def setUp(self):
-        """ Set up test fixtures. """
-        setup_daemon_context_fixtures(self)
-        self.mock_tracker.clear()
-
-    def tearDown(self):
-        """ Tear down test fixtures. """
-        scaffold.mock_restore()
-
-    def test_exits_pidfile_context(self):
-        """ Should exit the PID file context manager. """
-        instance = self.test_instance
-        instance.pidfile = self.mock_pidlockfile
-        expect_mock_output = """\
-            Called pidlockfile.PIDLockFile.__exit__()
-            """
-        expect_exception = SystemExit
-        try:
-            instance.close()
-        except expect_exception:
-            pass
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-    def test_returns_none(self):
-        """ Should return None. """
-        instance = self.test_instance
-        expect_result = None
-        result = instance.close()
-        self.failUnlessIs(expect_result, result)
-
-
-class DaemonContext_context_manager_enter_TestCase(scaffold.TestCase):
-    """ Test cases for DaemonContext.__enter__ method. """
-
-    def setUp(self):
-        """ Set up test fixtures. """
-        setup_daemon_context_fixtures(self)
-        self.mock_tracker.clear()
-
-        scaffold.mock(
-            "daemon.daemon.DaemonContext.open",
-            tracker=self.mock_tracker)
-
-    def tearDown(self):
-        """ Tear down test fixtures. """
-        scaffold.mock_restore()
-
-    def test_opens_daemon_context(self):
-        """ Should open the DaemonContext. """
-        instance = self.test_instance
-        expect_mock_output = """\
-            Called daemon.daemon.DaemonContext.open()
-            """
-        instance.__enter__()
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-    def test_returns_self_instance(self):
-        """ Should return DaemonContext instance. """
-        instance = self.test_instance
-        expect_result = instance
-        result = instance.__enter__()
-        self.failUnlessIs(expect_result, result)
-
-
-class DaemonContext_context_manager_exit_TestCase(scaffold.TestCase):
-    """ Test cases for DaemonContext.__exit__ method. """
-
-    def setUp(self):
-        """ Set up test fixtures. """
-        setup_daemon_context_fixtures(self)
-        self.mock_tracker.clear()
-
-        self.test_args = dict(
-            exc_type = object(),
-            exc_value = object(),
-            traceback = object(),
-            )
-
-        scaffold.mock(
-            "daemon.daemon.DaemonContext.close",
-            tracker=self.mock_tracker)
-
-    def tearDown(self):
-        """ Tear down test fixtures. """
-        scaffold.mock_restore()
-
-    def test_closes_daemon_context(self):
-        """ Should close the DaemonContext. """
-        instance = self.test_instance
-        args = self.test_args
-        expect_mock_output = """\
-            Called daemon.daemon.DaemonContext.close()
-            """
-        instance.__exit__(**args)
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-    def test_returns_none(self):
-        """ Should return None, indicating exception was not handled. """
-        instance = self.test_instance
-        args = self.test_args
-        expect_result = None
-        result = instance.__exit__(**args)
-        self.failUnlessIs(expect_result, result)
-
-
-class DaemonContext_terminate_TestCase(scaffold.TestCase):
-    """ Test cases for DaemonContext.terminate method. """
-
-    def setUp(self):
-        """ Set up test fixtures. """
-        setup_daemon_context_fixtures(self)
-
-        self.test_signal = signal.SIGTERM
-        self.test_frame = None
-        self.test_args = (self.test_signal, self.test_frame)
-
-    def tearDown(self):
-        """ Tear down test fixtures. """
-        scaffold.mock_restore()
-
-    def test_raises_system_exit(self):
-        """ Should raise SystemExit. """
-        instance = self.test_instance
-        args = self.test_args
-        expect_exception = SystemExit
-        self.failUnlessRaises(
-            expect_exception,
-            instance.terminate, *args)
-
-    def test_exception_message_contains_signal_number(self):
-        """ Should raise exception with a message containing signal number. """
-        instance = self.test_instance
-        args = self.test_args
-        signal_number = self.test_signal
-        expect_exception = SystemExit
-        try:
-            instance.terminate(*args)
-        except expect_exception, exc:
-            pass
-        self.failUnlessIn(str(exc), str(signal_number))
-
-
-class DaemonContext_get_exclude_file_descriptors_TestCase(scaffold.TestCase):
-    """ Test cases for DaemonContext._get_exclude_file_descriptors function. """
-
-    def setUp(self):
-        """ Set up test fixtures. """
-        setup_daemon_context_fixtures(self)
-
-        self.test_files = {
-            2: FakeFileDescriptorStringIO(),
-            5: 5,
-            11: FakeFileDescriptorStringIO(),
-            17: None,
-            23: FakeFileDescriptorStringIO(),
-            37: 37,
-            42: FakeFileDescriptorStringIO(),
-            }
-        for (fileno, item) in self.test_files.items():
-            if hasattr(item, '_fileno'):
-                item._fileno = fileno
-        self.test_file_descriptors = [
-            fd for (fd, item) in self.test_files.items()
-            if item is not None]
-        self.test_file_descriptors.extend([
-            self.stream_files_by_name[name].fileno()
-            for name in ['stdin', 'stdout', 'stderr']
-            ])
-
-    def tearDown(self):
-        """ Tear down test fixtures. """
-        scaffold.mock_restore()
-
-    def test_returns_expected_file_descriptors(self):
-        """ Should return expected list of file descriptors. """
-        instance = self.test_instance
-        instance.files_preserve = self.test_files.values()
-        expect_result = self.test_file_descriptors
-        result = instance._get_exclude_file_descriptors()
-        self.failUnlessEqual(sorted(expect_result), sorted(result))
-
-    def test_returns_stream_redirects_if_no_files_preserve(self):
-        """ Should return only stream redirects if no files_preserve. """
-        instance = self.test_instance
-        instance.files_preserve = None
-        expect_result = [
-            self.stream_files_by_name[name].fileno()
-            for name in ['stdin', 'stdout', 'stderr']]
-        result = instance._get_exclude_file_descriptors()
-        self.failUnlessEqual(sorted(expect_result), sorted(result))
-
-    def test_returns_empty_list_if_no_files(self):
-        """ Should return empty list if no file options. """
-        instance = self.test_instance
-        for name in ['files_preserve', 'stdin', 'stdout', 'stderr']:
-            setattr(instance, name, None)
-        expect_result = []
-        result = instance._get_exclude_file_descriptors()
-        self.failUnlessEqual(sorted(expect_result), sorted(result))
-
-
-class DaemonContext_make_signal_handler_TestCase(scaffold.TestCase):
-    """ Test cases for DaemonContext._make_signal_handler function. """
-
-    def setUp(self):
-        """ Set up test fixtures. """
-        setup_daemon_context_fixtures(self)
-
-    def tearDown(self):
-        """ Tear down test fixtures. """
-        scaffold.mock_restore()
-
-    def test_returns_ignore_for_none(self):
-        """ Should return SIG_IGN when None handler specified. """
-        instance = self.test_instance
-        target = None
-        expect_result = signal.SIG_IGN
-        result = instance._make_signal_handler(target)
-        self.failUnlessEqual(expect_result, result)
-
-    def test_returns_method_for_name(self):
-        """ Should return method of DaemonContext when name specified. """
-        instance = self.test_instance
-        target = 'terminate'
-        expect_result = instance.terminate
-        result = instance._make_signal_handler(target)
-        self.failUnlessEqual(expect_result, result)
-
-    def test_raises_error_for_unknown_name(self):
-        """ Should raise AttributeError for unknown method name. """
-        instance = self.test_instance
-        target = 'b0gUs'
-        expect_error = AttributeError
-        self.failUnlessRaises(
-            expect_error,
-            instance._make_signal_handler, target)
-
-    def test_returns_object_for_object(self):
-        """ Should return same object for any other object. """
-        instance = self.test_instance
-        target = object()
-        expect_result = target
-        result = instance._make_signal_handler(target)
-        self.failUnlessEqual(expect_result, result)
-
-
-class DaemonContext_make_signal_handler_map_TestCase(scaffold.TestCase):
-    """ Test cases for DaemonContext._make_signal_handler_map function. """
-
-    def setUp(self):
-        """ Set up test fixtures. """
-        setup_daemon_context_fixtures(self)
-
-        self.test_instance.signal_map = {
-            object(): object(),
-            object(): object(),
-            object(): object(),
-            }
-
-        self.test_signal_handlers = dict(
-            (key, object())
-            for key in self.test_instance.signal_map.values())
-        self.test_signal_handler_map = dict(
-            (key, self.test_signal_handlers[target])
-            for (key, target) in self.test_instance.signal_map.items())
-
-        def mock_make_signal_handler(target):
-            return self.test_signal_handlers[target]
-        scaffold.mock(
-            "daemon.daemon.DaemonContext._make_signal_handler",
-            returns_func=mock_make_signal_handler,
-            tracker=self.mock_tracker)
-
-    def tearDown(self):
-        """ Tear down test fixtures. """
-        scaffold.mock_restore()
-
-    def test_returns_constructed_signal_handler_items(self):
-        """ Should return items as constructed via make_signal_handler. """
-        instance = self.test_instance
-        expect_result = self.test_signal_handler_map
-        result = instance._make_signal_handler_map()
-        self.failUnlessEqual(expect_result, result)

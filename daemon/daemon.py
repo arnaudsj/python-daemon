@@ -36,321 +36,6 @@ class DaemonProcessDetachError(DaemonError, OSError):
     """ Exception raised when process detach fails. """
 
 
-def change_working_directory(directory):
-    """ Change the working directory of this process.
-        """
-    try:
-        os.chdir(directory)
-    except Exception, exc:
-        error = DaemonOSEnvironmentError(
-            "Unable to change working directory (%(exc)s)"
-            % vars())
-        raise error
-
-
-def change_root_directory(directory):
-    """ Change the root directory of this process.
-
-        Sets the current working directory, then the process root
-        directory, to the specified `directory`. Requires appropriate
-        OS privileges for this process.
-
-        """
-    try:
-        os.chdir(directory)
-        os.chroot(directory)
-    except Exception, exc:
-        error = DaemonOSEnvironmentError(
-            "Unable to change root directory (%(exc)s)"
-            % vars())
-        raise error
-
-
-def change_file_creation_mask(mask):
-    """ Change the file creation mask for this process.
-        """
-    try:
-        os.umask(mask)
-    except Exception, exc:
-        error = DaemonOSEnvironmentError(
-            "Unable to change file creation mask (%(exc)s)"
-            % vars())
-        raise error
-
-
-def change_process_owner(uid, gid):
-    """ Change the owning UID and GID of this process.
-
-        Sets the GID then the UID of the process (in that order, to
-        avoid permission errors) to the specified `gid` and `uid`
-        values. Requires appropriate OS privileges for this process.
-
-        """
-    try:
-        os.setgid(gid)
-        os.setuid(uid)
-    except Exception, exc:
-        error = DaemonOSEnvironmentError(
-            "Unable to change file creation mask (%(exc)s)"
-            % vars())
-        raise error
-
-
-def prevent_core_dump():
-    """ Prevent this process from generating a core dump.
-
-        Sets the soft and hard limits for core dump size to zero. On
-        Unix, this prevents the process from creating core dump
-        altogether.
-
-        """
-    core_resource = resource.RLIMIT_CORE
-
-    try:
-        # Ensure the resource limit exists on this platform, by requesting
-        # its current value
-        core_limit_prev = resource.getrlimit(core_resource)
-    except ValueError, exc:
-        error = DaemonOSEnvironmentError(
-            "System does not support RLIMIT_CORE resource limit (%(exc)s)"
-            % vars())
-        raise error
-
-    # Set hard and soft limits to zero, i.e. no core dump at all
-    core_limit = (0, 0)
-    resource.setrlimit(core_resource, core_limit)
-
-
-def detach_process_context():
-    """ Detach the process context from parent and session.
-
-        Detach from the parent process and session group, allowing the
-        parent to exit while this process continues running.
-
-        Reference: “Advanced Programming in the Unix Environment”,
-        section 13.3, by W. Richard Stevens, published 1993 by
-        Addison-Wesley.
-    
-        """
-    try:
-        pid = os.fork()
-        if pid > 0:
-            os._exit(0)
-    except OSError, exc:
-        exc_errno = exc.errno
-        exc_strerror = exc.strerror
-        error = DaemonProcessDetachError(
-            "Failed first fork: [%(exc_errno)d] %(exc_strerror)s" % vars())
-        raise error
-
-    os.setsid()
-
-    try:
-        pid = os.fork()
-        if pid > 0:
-            os._exit(0)
-    except OSError, exc:
-        exc_errno = exc.errno
-        exc_strerror = exc.strerror
-        error = DaemonProcessDetachError(
-            "Failed second fork: [%(exc_errno)d] %(exc_strerror)s" % vars())
-        raise error
-
-
-def is_process_started_by_init():
-    """ Determine if the current process is started by `init`.
-
-        The `init` process has the process ID of 1; if that is our
-        parent process ID, return ``True``, otherwise ``False``.
-    
-        """
-    result = False
-
-    init_pid = 1
-    if os.getppid() == init_pid:
-        result = True
-
-    return result
-
-
-def is_socket(fd):
-    """ Determine if the file descriptor is a socket.
-
-        Return ``False`` if querying the socket type of `fd` raises an
-        error; otherwise return ``True``.
-
-        """
-    result = False
-
-    file_socket = socket.fromfd(fd, socket.AF_INET, socket.SOCK_RAW)
-
-    try:
-        socket_type = file_socket.getsockopt(
-            socket.SOL_SOCKET, socket.SO_TYPE)
-    except socket.error, exc:
-        exc_errno = exc.args[0]
-        if exc_errno == errno.ENOTSOCK:
-            # Socket operation on non-socket
-            pass
-        else:
-            # Some other socket error
-            result = True
-    else:
-        # No error getting socket type
-        result = True
-
-    return result
-
-
-def is_process_started_by_superserver():
-    """ Determine if the current process is started by the superserver.
-
-        The internet superserver creates a network socket, and
-        attaches it to the standard streams of the child process. If
-        that is the case for this process, return ``True``, otherwise
-        ``False``.
-    
-        """
-    result = False
-
-    stdin_fd = sys.__stdin__.fileno()
-    if is_socket(stdin_fd):
-        result = True
-
-    return result
-
-
-def is_detach_process_context_required():
-    """ Determine whether detaching process context is required.
-
-        Return ``True`` if the process environment indicates the
-        process is already detached:
-
-        * Process was started by `init`; or
-
-        * Process was started by `inetd`.
-
-        """
-    result = True
-    if is_process_started_by_init() or is_process_started_by_superserver():
-        result = False
-
-    return result
-
-
-def close_file_descriptor_if_open(fd):
-    """ Close a file descriptor if already open.
-
-        Close the file descriptor `fd`, suppressing an error in the
-        case the file was not open.
-
-        """
-    try:
-        os.close(fd)
-    except OSError, exc:
-        if exc.errno == errno.EBADF:
-            # File descriptor was not open
-            pass
-        else:
-            error = DaemonOSEnvironmentError(
-                "Failed to close file descriptor %(fd)d"
-                " (%(exc)s)"
-                % vars())
-            raise error
-
-
-MAXFD = 2048
-
-def get_maximum_file_descriptors():
-    """ Return the maximum number of open file descriptors for this process.
-
-        Return the process hard resource limit of maximum number of
-        open file descriptors. If the limit is “infinity”, a default
-        value of ``MAXFD`` is returned.
-
-        """
-    limits = resource.getrlimit(resource.RLIMIT_NOFILE)
-    result = limits[1]
-    if result == resource.RLIM_INFINITY:
-        result = MAXFD
-    return result
-
-
-def close_all_open_files(exclude=set()):
-    """ Close all open file descriptors.
-
-        Closes every file descriptor (if open) of this process. If
-        specified, `exclude` is a set of file descriptors to *not*
-        close.
-
-        """
-    maxfd = get_maximum_file_descriptors()
-    for fd in reversed(range(maxfd)):
-        if fd not in exclude:
-            close_file_descriptor_if_open(fd)
-
-
-def redirect_stream(system_stream, target_stream):
-    """ Redirect a system stream to a specified file.
-
-        `system_stream` is a standard system stream such as
-        ``sys.stdout``. `target_stream` is an open file object that
-        should replace the corresponding system stream object.
-
-        If `target_stream` is ``None``, defaults to opening the
-        operating system's null device and using its file descriptor.
-
-        """
-    if target_stream is None:
-        target_fd = os.open(os.devnull, os.O_RDWR)
-    else:
-        target_fd = target_stream.fileno()
-    os.dup2(target_fd, system_stream.fileno())
-
-
-def make_default_signal_map():
-    """ Make the default signal map for this system.
-
-        The signals available differ by system. The map will not
-        contain any signals not defined on the running system.
-
-        """
-    name_map = {
-        'SIGCLD': None,
-        'SIGTSTP': None,
-        'SIGTTIN': None,
-        'SIGTTOU': None,
-        'SIGTERM': 'terminate',
-        }
-    signal_map = dict(
-        (getattr(signal, name), target)
-        for (name, target) in name_map.items()
-        if hasattr(signal, name))
-
-    return signal_map
-
-
-def set_signal_handlers(signal_handler_map):
-    """ Set the signal handlers as specified.
-
-        The `signal_handler_map` argument is a map from signal number
-        to signal handler. See the `signal` module for details.
-
-        """
-    for (signal_number, handler) in signal_handler_map.items():
-        signal.signal(signal_number, handler)
-
-
-def register_atexit_function(func):
-    """ Register a function for processing at program exit.
-
-        The function `func` is registered for a call with no arguments
-        at program exit.
-
-        """
-    atexit.register(func)
-
-
 class DaemonContext(object):
     """ Context for turning the current program into a daemon process.
 
@@ -743,3 +428,318 @@ class DaemonContext(object):
             (signal_number, self._make_signal_handler(target))
             for (signal_number, target) in self.signal_map.items())
         return signal_handler_map
+
+
+def change_working_directory(directory):
+    """ Change the working directory of this process.
+        """
+    try:
+        os.chdir(directory)
+    except Exception, exc:
+        error = DaemonOSEnvironmentError(
+            "Unable to change working directory (%(exc)s)"
+            % vars())
+        raise error
+
+
+def change_root_directory(directory):
+    """ Change the root directory of this process.
+
+        Sets the current working directory, then the process root
+        directory, to the specified `directory`. Requires appropriate
+        OS privileges for this process.
+
+        """
+    try:
+        os.chdir(directory)
+        os.chroot(directory)
+    except Exception, exc:
+        error = DaemonOSEnvironmentError(
+            "Unable to change root directory (%(exc)s)"
+            % vars())
+        raise error
+
+
+def change_file_creation_mask(mask):
+    """ Change the file creation mask for this process.
+        """
+    try:
+        os.umask(mask)
+    except Exception, exc:
+        error = DaemonOSEnvironmentError(
+            "Unable to change file creation mask (%(exc)s)"
+            % vars())
+        raise error
+
+
+def change_process_owner(uid, gid):
+    """ Change the owning UID and GID of this process.
+
+        Sets the GID then the UID of the process (in that order, to
+        avoid permission errors) to the specified `gid` and `uid`
+        values. Requires appropriate OS privileges for this process.
+
+        """
+    try:
+        os.setgid(gid)
+        os.setuid(uid)
+    except Exception, exc:
+        error = DaemonOSEnvironmentError(
+            "Unable to change file creation mask (%(exc)s)"
+            % vars())
+        raise error
+
+
+def prevent_core_dump():
+    """ Prevent this process from generating a core dump.
+
+        Sets the soft and hard limits for core dump size to zero. On
+        Unix, this prevents the process from creating core dump
+        altogether.
+
+        """
+    core_resource = resource.RLIMIT_CORE
+
+    try:
+        # Ensure the resource limit exists on this platform, by requesting
+        # its current value
+        core_limit_prev = resource.getrlimit(core_resource)
+    except ValueError, exc:
+        error = DaemonOSEnvironmentError(
+            "System does not support RLIMIT_CORE resource limit (%(exc)s)"
+            % vars())
+        raise error
+
+    # Set hard and soft limits to zero, i.e. no core dump at all
+    core_limit = (0, 0)
+    resource.setrlimit(core_resource, core_limit)
+
+
+def detach_process_context():
+    """ Detach the process context from parent and session.
+
+        Detach from the parent process and session group, allowing the
+        parent to exit while this process continues running.
+
+        Reference: “Advanced Programming in the Unix Environment”,
+        section 13.3, by W. Richard Stevens, published 1993 by
+        Addison-Wesley.
+    
+        """
+    try:
+        pid = os.fork()
+        if pid > 0:
+            os._exit(0)
+    except OSError, exc:
+        exc_errno = exc.errno
+        exc_strerror = exc.strerror
+        error = DaemonProcessDetachError(
+            "Failed first fork: [%(exc_errno)d] %(exc_strerror)s" % vars())
+        raise error
+
+    os.setsid()
+
+    try:
+        pid = os.fork()
+        if pid > 0:
+            os._exit(0)
+    except OSError, exc:
+        exc_errno = exc.errno
+        exc_strerror = exc.strerror
+        error = DaemonProcessDetachError(
+            "Failed second fork: [%(exc_errno)d] %(exc_strerror)s" % vars())
+        raise error
+
+
+def is_process_started_by_init():
+    """ Determine if the current process is started by `init`.
+
+        The `init` process has the process ID of 1; if that is our
+        parent process ID, return ``True``, otherwise ``False``.
+    
+        """
+    result = False
+
+    init_pid = 1
+    if os.getppid() == init_pid:
+        result = True
+
+    return result
+
+
+def is_socket(fd):
+    """ Determine if the file descriptor is a socket.
+
+        Return ``False`` if querying the socket type of `fd` raises an
+        error; otherwise return ``True``.
+
+        """
+    result = False
+
+    file_socket = socket.fromfd(fd, socket.AF_INET, socket.SOCK_RAW)
+
+    try:
+        socket_type = file_socket.getsockopt(
+            socket.SOL_SOCKET, socket.SO_TYPE)
+    except socket.error, exc:
+        exc_errno = exc.args[0]
+        if exc_errno == errno.ENOTSOCK:
+            # Socket operation on non-socket
+            pass
+        else:
+            # Some other socket error
+            result = True
+    else:
+        # No error getting socket type
+        result = True
+
+    return result
+
+
+def is_process_started_by_superserver():
+    """ Determine if the current process is started by the superserver.
+
+        The internet superserver creates a network socket, and
+        attaches it to the standard streams of the child process. If
+        that is the case for this process, return ``True``, otherwise
+        ``False``.
+    
+        """
+    result = False
+
+    stdin_fd = sys.__stdin__.fileno()
+    if is_socket(stdin_fd):
+        result = True
+
+    return result
+
+
+def is_detach_process_context_required():
+    """ Determine whether detaching process context is required.
+
+        Return ``True`` if the process environment indicates the
+        process is already detached:
+
+        * Process was started by `init`; or
+
+        * Process was started by `inetd`.
+
+        """
+    result = True
+    if is_process_started_by_init() or is_process_started_by_superserver():
+        result = False
+
+    return result
+
+
+def close_file_descriptor_if_open(fd):
+    """ Close a file descriptor if already open.
+
+        Close the file descriptor `fd`, suppressing an error in the
+        case the file was not open.
+
+        """
+    try:
+        os.close(fd)
+    except OSError, exc:
+        if exc.errno == errno.EBADF:
+            # File descriptor was not open
+            pass
+        else:
+            error = DaemonOSEnvironmentError(
+                "Failed to close file descriptor %(fd)d"
+                " (%(exc)s)"
+                % vars())
+            raise error
+
+
+MAXFD = 2048
+
+def get_maximum_file_descriptors():
+    """ Return the maximum number of open file descriptors for this process.
+
+        Return the process hard resource limit of maximum number of
+        open file descriptors. If the limit is “infinity”, a default
+        value of ``MAXFD`` is returned.
+
+        """
+    limits = resource.getrlimit(resource.RLIMIT_NOFILE)
+    result = limits[1]
+    if result == resource.RLIM_INFINITY:
+        result = MAXFD
+    return result
+
+
+def close_all_open_files(exclude=set()):
+    """ Close all open file descriptors.
+
+        Closes every file descriptor (if open) of this process. If
+        specified, `exclude` is a set of file descriptors to *not*
+        close.
+
+        """
+    maxfd = get_maximum_file_descriptors()
+    for fd in reversed(range(maxfd)):
+        if fd not in exclude:
+            close_file_descriptor_if_open(fd)
+
+
+def redirect_stream(system_stream, target_stream):
+    """ Redirect a system stream to a specified file.
+
+        `system_stream` is a standard system stream such as
+        ``sys.stdout``. `target_stream` is an open file object that
+        should replace the corresponding system stream object.
+
+        If `target_stream` is ``None``, defaults to opening the
+        operating system's null device and using its file descriptor.
+
+        """
+    if target_stream is None:
+        target_fd = os.open(os.devnull, os.O_RDWR)
+    else:
+        target_fd = target_stream.fileno()
+    os.dup2(target_fd, system_stream.fileno())
+
+
+def make_default_signal_map():
+    """ Make the default signal map for this system.
+
+        The signals available differ by system. The map will not
+        contain any signals not defined on the running system.
+
+        """
+    name_map = {
+        'SIGCLD': None,
+        'SIGTSTP': None,
+        'SIGTTIN': None,
+        'SIGTTOU': None,
+        'SIGTERM': 'terminate',
+        }
+    signal_map = dict(
+        (getattr(signal, name), target)
+        for (name, target) in name_map.items()
+        if hasattr(signal, name))
+
+    return signal_map
+
+
+def set_signal_handlers(signal_handler_map):
+    """ Set the signal handlers as specified.
+
+        The `signal_handler_map` argument is a map from signal number
+        to signal handler. See the `signal` module for details.
+
+        """
+    for (signal_number, handler) in signal_handler_map.items():
+        signal.signal(signal_number, handler)
+
+
+def register_atexit_function(func):
+    """ Register a function for processing at program exit.
+
+        The function `func` is registered for a call with no arguments
+        at program exit.
+
+        """
+    atexit.register(func)

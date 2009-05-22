@@ -133,38 +133,6 @@ def read_pid_from_pidfile(pidfile_path):
     return pid
 
 
-def abort_if_existing_pidfile(pidfile_path):
-    """ Exit the program if the named PID file exists.
-
-        The presence of the specified PID file indicates another
-        instance of this daemon program is already running, so we exit
-        this program in that case.
-
-        """
-    if pidfile_exists(pidfile_path):
-        mess = (
-            "Aborting: PID file '%(pidfile_path)s' exists.\n"
-            ) % vars()
-        sys.stderr.write(mess)
-        sys.exit(1)
-
-
-def abort_if_no_existing_pidfile(pidfile_path):
-    """ Exit the program if the named PID file does not exist.
-
-        The specified PID file should be created when we start and
-        should continue to be readable while the daemon runs, so
-        failure indicates a fatal error.
-
-        """
-    if not pidfile_exists(pidfile_path):
-        mess = (
-            "Aborting: could not read PID file '%(pidfile_path)s'.\n"
-            ) % vars()
-        sys.stderr.write(mess)
-        sys.exit(1)
-
-
 def write_pid_to_pidfile(pidfile_path):
     """ Write the PID in the named PID file.
 

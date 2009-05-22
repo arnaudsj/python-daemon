@@ -150,9 +150,9 @@ def write_pid_to_pidfile(pidfile_path):
 def remove_existing_pidfile(pidfile_path):
     """ Remove the named PID file if it exists.
 
-        Removing a PID file that doesn't already exist puts us in the
-        desired state, so we ignore the condition if the file does not
-        exist.
+        Remove the named PID file. Ignore the condition if the file
+        does not exist, since that only means we are already in the
+        desired state.
 
         """
     try:

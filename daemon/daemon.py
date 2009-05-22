@@ -234,6 +234,13 @@ class DaemonContext(object):
             signal_map = make_default_signal_map()
         self.signal_map = signal_map
 
+        self._is_open = False
+
+    @property
+    def is_open(self):
+        """ ``True`` if the instance is currently open. """
+        return self._is_open
+
     def open(self):
         """ Become a daemon process.
             :Return: ``None``
@@ -241,7 +248,7 @@ class DaemonContext(object):
             Open the daemon context, turning the current program into a daemon
             process. This performs the following steps:
 
-            * If this instance's `is_open` property is ``True``, return
+            * If this instance's `is_open` property is true, return
               immediately. This makes it safe to call `open` multiple times on
               an instance.
 
@@ -296,6 +303,9 @@ class DaemonContext(object):
             process.
 
             """
+        if self.is_open:
+            return
+
         if self.chroot_directory is not None:
             change_root_directory(self.chroot_directory)
 
@@ -321,6 +331,8 @@ class DaemonContext(object):
         if self.pidfile is not None:
             self.pidfile.__enter__()
 
+        self._is_open = True
+
         register_atexit_function(self.close)
 
     def __enter__(self):
@@ -334,7 +346,7 @@ class DaemonContext(object):
 
             Close the daemon context. This performs the following steps:
 
-            * If this instance's `is_open` property is not ``True``, return
+            * If this instance's `is_open` property is false, return
               immediately. This makes it safe to call `close` multiple times
               on an instance.
 
@@ -345,8 +357,13 @@ class DaemonContext(object):
               and `close` calls).
 
             """
+        if not self.is_open:
+            return
+
         if self.pidfile is not None:
             self.pidfile.__exit__()
+
+        self._is_open = False
 
     def __exit__(self, exc_type, exc_value, traceback):
         """ Context manager exit point. """

@@ -270,6 +270,30 @@ class DaemonContext_TestCase(scaffold.TestCase):
         self.failUnlessEqual(expect_signal_map, instance.signal_map)
 
 
+class DaemonContext_is_open_TestCase(scaffold.TestCase):
+    """ Test cases for DaemonContext.is_open property. """
+
+    def setUp(self):
+        """ Set up test fixtures. """
+        setup_daemon_context_fixtures(self)
+
+    def tearDown(self):
+        """ Tear down test fixtures. """
+        scaffold.mock_restore()
+
+    def test_begin_false(self):
+        """ Initial value of is_open should be False. """
+        instance = self.test_instance
+        self.failUnlessEqual(False, instance.is_open)
+
+    def test_write_fails(self):
+        """ Writing to is_open should fail. """
+        instance = self.test_instance
+        self.failUnlessRaises(
+            AttributeError,
+            setattr, instance, 'is_open', object())
+
+
 class DaemonContext_open_TestCase(scaffold.TestCase):
     """ Test cases for DaemonContext.open method. """
 
@@ -277,6 +301,8 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         """ Set up test fixtures. """
         setup_daemon_context_fixtures(self)
         self.mock_tracker.clear()
+
+        self.test_instance._is_open = False
 
         scaffold.mock(
             "daemon.daemon.detach_process_context",
@@ -358,6 +384,16 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
             Called pidlockfile.PIDLockFile.__enter__()
             Called daemon.daemon.register_atexit_function(...)
             """ % vars()
+        self.mock_tracker.clear()
+        instance.open()
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_returns_immediately_if_is_open(self):
+        """ Should return immediately if is_open property is true. """
+        instance = self.test_instance
+        instance._is_open = True
+        expect_mock_output = """\
+            """
         self.mock_tracker.clear()
         instance.open()
         self.failUnlessMockCheckerMatch(expect_mock_output)
@@ -516,6 +552,12 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         instance.open()
         self.failUnlessMockCheckerMatch(expect_mock_output)
 
+    def test_sets_is_open_true(self):
+        """ Should set the `is_open` property to True. """
+        instance = self.test_instance
+        instance.open()
+        self.failUnlessEqual(True, instance.is_open)
+
     def test_registers_close_method_for_atexit(self):
         """ Should register the `close` method for atexit processing. """
         instance = self.test_instance
@@ -536,9 +578,22 @@ class DaemonContext_close_TestCase(scaffold.TestCase):
         setup_daemon_context_fixtures(self)
         self.mock_tracker.clear()
 
+        self.test_instance._is_open = True
+
     def tearDown(self):
         """ Tear down test fixtures. """
         scaffold.mock_restore()
+
+    def test_returns_immediately_if_not_is_open(self):
+        """ Should return immediately if is_open property is false. """
+        instance = self.test_instance
+        instance._is_open = False
+        instance.pidfile = object()
+        expect_mock_output = """\
+            """
+        self.mock_tracker.clear()
+        instance.close()
+        self.failUnlessMockCheckerMatch(expect_mock_output)
 
     def test_exits_pidfile_context(self):
         """ Should exit the PID file context manager. """
@@ -547,11 +602,7 @@ class DaemonContext_close_TestCase(scaffold.TestCase):
         expect_mock_output = """\
             Called pidlockfile.PIDLockFile.__exit__()
             """
-        expect_exception = SystemExit
-        try:
-            instance.close()
-        except expect_exception:
-            pass
+        instance.close()
         self.failUnlessMockCheckerMatch(expect_mock_output)
 
     def test_returns_none(self):
@@ -560,6 +611,12 @@ class DaemonContext_close_TestCase(scaffold.TestCase):
         expect_result = None
         result = instance.close()
         self.failUnlessIs(expect_result, result)
+
+    def test_sets_is_open_false(self):
+        """ Should set the `is_open` property to False. """
+        instance = self.test_instance
+        instance.close()
+        self.failUnlessEqual(False, instance.is_open)
 
 
 class DaemonContext_context_manager_enter_TestCase(scaffold.TestCase):

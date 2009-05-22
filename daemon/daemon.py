@@ -556,6 +556,10 @@ class DaemonContext(object):
             Open the daemon context, turning the current program into a daemon
             process. This performs the following steps:
 
+            * If this instance's `is_open` property is ``True``, return
+              immediately. This makes it safe to call `open` multiple times on
+              an instance.
+
             * If the `prevent_core` attribute is true, set the resource limits
               for the process to prevent any core dump from the process.
 
@@ -596,6 +600,9 @@ class DaemonContext(object):
 
             * If the `pidfile` attribute is not ``None``, enter its context
               manager.
+
+            * Mark this instance as open (for the purpose of future `open` and
+              `close` calls).
 
             * Register the `close` method to be called during Python's exit
               processing.
@@ -640,10 +647,17 @@ class DaemonContext(object):
         """ Exit the daemon process context.
             :Return: ``None``
 
-            Close the daemon context. This performs the following step:
+            Close the daemon context. This performs the following steps:
+
+            * If this instance's `is_open` property is not ``True``, return
+              immediately. This makes it safe to call `close` multiple times
+              on an instance.
 
             * If the `pidfile` attribute is not ``None``, exit its context
               manager.
+
+            * Mark this instance as closed (for the purpose of future `open`
+              and `close` calls).
 
             """
         if self.pidfile is not None:

@@ -1,3 +1,8 @@
+2009-06-21  Ben Finney  <ben@benfinney.id.au>
+
+    * Update documentation for changes from latest PEP 3143 revision.
+    * Implement DaemonContext.is_open method.
+
 2009-05-17  Ben Finney  <ben+python@benfinney.id.au>
 
     Version 1.4.5 released.

@@ -31,7 +31,7 @@ setup(
 
     # setuptools metadata
     zip_safe = False,
-    test_suite = "tests.suite",
+    test_suite = "test.suite",
     tests_require=[
         "MiniMock >=1.2.2",
         ],

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# tests/test_pidlockfile.py
+# test/test_pidlockfile.py
 #
 # Copyright © 2008–2009 Ben Finney <ben+python@benfinney.id.au>
 #

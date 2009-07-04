@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# tests/scaffold.py
+# test/scaffold.py
 #
 # Copyright © 2007–2009 Ben Finney <ben+python@benfinney.id.au>
 # This is free software; you may copy, modify and/or distribute this work

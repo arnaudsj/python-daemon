@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# tests/test_runner.py
+# test/test_runner.py
 #
 # Copyright © 2009 Ben Finney <ben+python@benfinney.id.au>
 #

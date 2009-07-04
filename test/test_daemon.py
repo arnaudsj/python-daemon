@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# tests/test_daemon.py
+# test/test_daemon.py
 #
 # Copyright © 2008–2009 Ben Finney <ben+python@benfinney.id.au>
 #

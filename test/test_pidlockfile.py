@@ -19,6 +19,7 @@ from StringIO import StringIO
 import itertools
 import tempfile
 import errno
+import time
 
 import scaffold
 
@@ -226,6 +227,107 @@ class PIDLockFile_acquire_TestCase(scaffold.TestCase):
         self.failUnlessRaises(
             expect_error,
             instance.acquire)
+
+
+class PIDLockFile_acquire_with_timeout_TestCase(scaffold.TestCase):
+    """ Test cases for PIDLockFile.acquire function with a timeout. """
+
+    def setUp(self):
+        """ Set up test fixtures. """
+        setup_pidlockfile_fixtures(self)
+        self.pidfile_path_exists_func = (lambda: False)
+        self.pidfile_open_func = self.mock_pidfile_open_nonexist
+
+        self.test_poll_interval = 0.5
+        self.mock_time_tracker = scaffold.MockTracker()
+        self.mock_system_time = 0.0
+        scaffold.mock(
+            "time.time",
+            returns_func=self.mock_time,
+            tracker=self.mock_time_tracker)
+        scaffold.mock(
+            "time.sleep",
+            returns_func=self.mock_sleep,
+            tracker=self.mock_time_tracker)
+
+        self.mock_lock_state = False
+        def mock_write_pidfile(path):
+            self.mock_lock_state = True
+
+        scaffold.mock(
+            "pidlockfile.write_pid_to_pidfile",
+            returns_func=mock_write_pidfile,
+            tracker=self.mock_tracker)
+
+    def tearDown(self):
+        """ Tear down test fixtures. """
+        scaffold.mock_restore()
+
+    def mock_time(self):
+        """ Mock function for getting system time. """
+        return self.mock_system_time
+
+    def mock_sleep(self, seconds):
+        """ Mock function to sleep the current process. """
+        self.mock_system_time += seconds
+
+    def test_no_timeout_writes_pidfile_if_file_not_exist(self):
+        """ With no timeout, should write PID file if file does not exist. """
+        instance = self.test_instance
+        self.pidfile_path_exists_func = (lambda: False)
+        instance.acquire()
+        self.failUnlessEqual(True, self.mock_lock_state)
+
+    def test_no_timeout_waits_indefinitely_if_file_exists(self):
+        """ With no timeout, should wait indefinitely while file exists. """
+        instance = self.test_instance
+        def path_exists_after_num_polls(num_polls):
+            for i in range(num_polls):
+                yield True
+            yield False
+        num_polls_before_available = 100
+        self.pidfile_path_exists_func = path_exists_after_num_polls(
+            num_polls_before_available).next
+        instance.poll_interval = self.test_poll_interval
+        expect_polls = num_polls_before_available
+        expect_mock_output = (
+            "Called time.sleep(%(poll_interval)r)\n"
+                % vars(instance)
+            ) * expect_polls
+        instance.acquire()
+        self.failUnlessEqual(True, self.mock_lock_state)
+        self.failUnlessMockCheckerMatch(
+            expect_mock_output, self.mock_time_tracker)
+
+    def test_positive_timeout_writes_pidfile_if_file_not_exist(self):
+        """ With +ve timeout, should write PID file if file does not exist. """
+        instance = self.test_instance
+        self.pidfile_path_exists_func = (lambda: False)
+        test_timeout = 10
+        instance.acquire(test_timeout)
+        self.failUnlessEqual(True, self.mock_lock_state)
+
+    def test_positive_timeout_raises_error_if_timeout_expires(self):
+        """ With +ve timeout, should raise AlreadyLocked if timeout expires. """
+        instance = self.test_instance
+        self.pidfile_path_exists_func = (lambda: True)
+        test_timeout = 10
+        instance.poll_interval = self.test_poll_interval
+        expect_polls = int(test_timeout / self.test_poll_interval) + 1
+        expect_mock_output = (
+            "Called time.time()\n" + (
+                "Called time.time()\n" +
+                "Called time.sleep(%(poll_interval)r)\n"
+                    % vars(instance)
+                ) * expect_polls
+            + "Called time.time()\n"
+            )
+        expect_error = pidlockfile.AlreadyLocked
+        self.failUnlessRaises(
+            expect_error,
+            instance.acquire, test_timeout)
+        self.failUnlessMockCheckerMatch(
+            expect_mock_output, self.mock_time_tracker)
 
 
 class PIDLockFile_release_TestCase(scaffold.TestCase):

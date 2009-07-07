@@ -15,6 +15,7 @@
 import os
 import sys
 import errno
+import time
 
 from lockfile import (
     LockBase,
@@ -61,6 +62,8 @@ class PIDLockFile(LockBase):
             result = True
         return result
 
+    poll_interval = 0.1
+
     def acquire(self, timeout=None):
         """ Acquire the lock.
 
@@ -80,9 +83,15 @@ class PIDLockFile(LockBase):
               error.
 
             """
-        if pidfile_exists(self.path):
-            error = AlreadyLocked()
-            raise error
+        if timeout is not None:
+            request_timestamp = time.time()
+            timeout_timestamp = request_timestamp + timeout
+        while pidfile_exists(self.path):
+            if timeout is not None:
+                if time.time() > timeout_timestamp:
+                    error = AlreadyLocked()
+                    raise error
+            time.sleep(self.poll_interval)
         try:
             write_pid_to_pidfile(self.path)
         except OSError:

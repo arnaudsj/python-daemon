@@ -61,11 +61,23 @@ class PIDLockFile(LockBase):
             result = True
         return result
 
-    def acquire(self):
+    def acquire(self, timeout=None):
         """ Acquire the lock.
 
-            Creates the PID file for this lock, or raises an error if
-            the lock was already held.
+            Creates the PID file for this lock, then returns None.
+
+            If the lock is already held, behaviour depends on the
+            `timeout` parameter:
+
+            * `timeout` is ``None``: poll every 0.1 seconds, waiting
+              for the lock indefinitely.
+
+            * `timeout` > 0: poll every 0.1 seconds, waiting for the
+              lock. After `timeout` seconds elapse without acquiring
+              the lock, raise an `AlreadyLocked` error.
+
+            * `timeout` <= 0: immediately raise an `AlreadyLocked`
+              error.
 
             """
         if pidfile_exists(self.path):

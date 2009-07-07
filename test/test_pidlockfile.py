@@ -195,14 +195,14 @@ class PIDLockFile_acquire_TestCase(scaffold.TestCase):
         """ Tear down test fixtures. """
         scaffold.mock_restore()
 
-    def test_raises_already_locked_if_file_exists(self):
-        """ Should raise AlreadyLocked error if PID file exists. """
+    def test_zero_timeout_raises_already_locked_if_file_exists(self):
+        """ Should raise AlreadyLocked with timeout 0 if PID file exists. """
         instance = self.test_instance
         self.pidfile_path_exists_func = (lambda: True)
         expect_error = pidlockfile.AlreadyLocked
         self.failUnlessRaises(
             expect_error,
-            instance.acquire)
+            instance.acquire, timeout=0)
 
     def test_writes_pid_to_specified_file(self):
         """ Should request writing current PID to specified file. """

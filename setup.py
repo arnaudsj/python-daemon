@@ -27,7 +27,7 @@ short_description, long_description = (
 setup(
     name = "python-daemon",
     version = version.version,
-    packages = find_packages(),
+    packages = find_packages(exclude=["test"]),
 
     # setuptools metadata
     zip_safe = False,

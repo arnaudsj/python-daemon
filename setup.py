@@ -45,7 +45,7 @@ setup(
     author_email = version.author_email,
     description = short_description,
     license = version.license,
-    keywords = u"daemon fork unix",
+    keywords = u"daemon fork unix".split(),
     url = main_module._url,
     long_description = long_description,
     classifiers = [

@@ -1,4 +1,8 @@
-2009-09-02  Ben Finney  <ben@benfinney.id.au>
+2009-09-03  Ben Finney  <ben+python@benfinney.id.au>
+
+    Version 1.4.7 released.
+
+2009-09-02  Ben Finney  <ben+python@benfinney.id.au>
 
     * Fix keywords argument for distribution setup.
     * Exclude ‘test’ package from distribution installation.

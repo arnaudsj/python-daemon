@@ -15,7 +15,6 @@
 
 import __builtin__
 import os
-import sys
 from StringIO import StringIO
 import itertools
 import tempfile

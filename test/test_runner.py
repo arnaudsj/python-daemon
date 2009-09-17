@@ -16,9 +16,7 @@
 import __builtin__
 import os
 import sys
-import itertools
 import tempfile
-import resource
 import errno
 import signal
 

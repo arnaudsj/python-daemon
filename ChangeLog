@@ -6,7 +6,7 @@
       signal handlers are considered.
     * Refactor ‘fork_then_exit_parent’ functionality to avoid duplicate
       code.
-    * daemon/pidlockfile.py: Remove redundant import.
+    * Remove redundant imports.
 
 2009-09-03  Ben Finney  <ben+python@benfinney.id.au>
 

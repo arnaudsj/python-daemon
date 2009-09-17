@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # daemon/daemon.py
+# Part of python-daemon, an implementation of PEP 3143.
 #
 # Copyright © 2008–2009 Ben Finney <ben+python@benfinney.id.au>
 # Copyright © 2007–2008 Robert Niederreiter, Jens Klein
@@ -29,8 +30,10 @@ import atexit
 class DaemonError(Exception):
     """ Base exception class for errors from this module. """
 
+
 class DaemonOSEnvironmentError(DaemonError, OSError):
     """ Exception raised when daemon OS environment setup receives error. """
+
 
 class DaemonProcessDetachError(DaemonError, OSError):
     """ Exception raised when process detach fails. """

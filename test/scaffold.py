@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # test/scaffold.py
+# Part of python-daemon, an implementation of PEP 3143.
 #
 # Copyright © 2007–2009 Ben Finney <ben+python@benfinney.id.au>
 # This is free software; you may copy, modify and/or distribute this work
@@ -8,7 +9,7 @@
 # No warranty expressed or implied. See the file LICENSE for details.
 
 """ Scaffolding for unit test modules.
-"""
+    """
 
 import unittest
 import doctest

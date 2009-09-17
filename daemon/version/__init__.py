@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# gracie/version/__init__.py
-# Part of python-daemon, an implementation of PEP 3143
+# daemon/version/__init__.py
+# Part of python-daemon, an implementation of PEP 3143.
 #
 # Copyright © 2008–2009 Ben Finney <ben+python@benfinney.id.au>
 # This is free software: you may copy, modify, and/or distribute this work
@@ -9,7 +9,7 @@
 # later as published by the Python Software Foundation.
 # No warranty expressed or implied. See the file LICENSE.PSF-2 for details.
 
-""" Version information for the python-daemon package """
+""" Version information for the python-daemon distribution. """
 
 from version_info import version_info
 

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # daemon/runner.py
+# Part of python-daemon, an implementation of PEP 3143.
 #
 # Copyright © 2009 Ben Finney <ben+python@benfinney.id.au>
 # Copyright © 2007–2008 Robert Niederreiter, Jens Klein
@@ -169,6 +170,7 @@ def make_pidlockfile(path):
         lockfile = pidlockfile.PIDLockFile(path)
 
     return lockfile
+
 
 def pidfile_lock_is_stale(pidfile):
     """ Determine whether a PID file refers to a nonexistent PID. """

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # test/test_daemon.py
+# Part of python-daemon, an implementation of PEP 3143.
 #
 # Copyright © 2008–2009 Ben Finney <ben+python@benfinney.id.au>
 #

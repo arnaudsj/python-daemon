@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # bin/make-dist-tarball
-# Part of python-daemon, an implementation of PEP 3143
+# Part of python-daemon, an implementation of PEP 3143.
 #
 # Copyright © 2007–2009 Ben Finney <ben+python@benfinney.id.au>
 #

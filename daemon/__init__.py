@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+# daemon/__init__.py
+# Part of python-daemon, an implementation of PEP 3143.
+#
 # Copyright © 2009 Ben Finney <ben+python@benfinney.id.au>
 # Copyright © 2006 Robert Niederreiter
 #

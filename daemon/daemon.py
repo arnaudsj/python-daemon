@@ -152,12 +152,12 @@ class DaemonContext(object):
 
             * ``signal.SIGTERM``: ``'terminate'``
 
-            Depending on how your program will interact with its child
-            processes, you may need to specify a signal map that
+            Depending on how the program will interact with its child
+            processes, it may need to specify a signal map that
             includes the ``signal.SIGCHLD`` signal (received when a
             child process exits). See the specific operating system's
-            documentation for more detail on signals to determine
-            which ones need handlers.
+            documentation for more detail on how to determine what
+            circumstances dictate the need for signal handlers.
 
         `uid`
             :Default: ``os.getuid()``

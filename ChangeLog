@@ -4,6 +4,8 @@
       map. Thanks to Joel Martin for pinpointing this issue.
     * Document requirement for ensuring any operating-system specific
       signal handlers are considered.
+    * Refactor ‘fork_then_exit_parent’ functionality to avoid duplicate
+      code.
 
 2009-09-03  Ben Finney  <ben+python@benfinney.id.au>
 

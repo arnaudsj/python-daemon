@@ -552,29 +552,28 @@ def detach_process_context():
         Addison-Wesley.
     
         """
-    try:
-        pid = os.fork()
-        if pid > 0:
-            os._exit(0)
-    except OSError, exc:
-        exc_errno = exc.errno
-        exc_strerror = exc.strerror
-        error = DaemonProcessDetachError(
-            "Failed first fork: [%(exc_errno)d] %(exc_strerror)s" % vars())
-        raise error
 
+    def fork_then_exit_parent(error_message):
+        """ Fork a child process, then exit the parent process.
+
+            If the fork fails, raise a ``DaemonProcessDetachError``
+            with ``error_message``.
+
+            """
+        try:
+            pid = os.fork()
+            if pid > 0:
+                os._exit(0)
+        except OSError, exc:
+            exc_errno = exc.errno
+            exc_strerror = exc.strerror
+            error = DaemonProcessDetachError(
+                "%(error_message)s: [%(exc_errno)d] %(exc_strerror)s" % vars())
+            raise error
+
+    fork_then_exit_parent(error_message="Failed first fork")
     os.setsid()
-
-    try:
-        pid = os.fork()
-        if pid > 0:
-            os._exit(0)
-    except OSError, exc:
-        exc_errno = exc.errno
-        exc_strerror = exc.strerror
-        error = DaemonProcessDetachError(
-            "Failed second fork: [%(exc_errno)d] %(exc_strerror)s" % vars())
-        raise error
+    fork_then_exit_parent(error_message="Failed second fork")
 
 
 def is_process_started_by_init():

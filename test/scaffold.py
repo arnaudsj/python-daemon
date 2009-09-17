@@ -6,7 +6,7 @@
 # Copyright © 2007–2009 Ben Finney <ben+python@benfinney.id.au>
 # This is free software; you may copy, modify and/or distribute this work
 # under the terms of the GNU General Public License, version 2 or later.
-# No warranty expressed or implied. See the file LICENSE for details.
+# No warranty expressed or implied. See the file LICENSE.GPL-2 for details.
 
 """ Scaffolding for unit test modules.
     """
@@ -31,7 +31,6 @@ if not test_dir in sys.path:
     sys.path.insert(1, test_dir)
 if not parent_dir in sys.path:
     sys.path.insert(1, parent_dir)
-bin_dir = os.path.join(parent_dir, "bin")
 
 # Disable all but the most critical logging messages
 logging.disable(logging.CRITICAL)
@@ -59,34 +58,6 @@ def make_suite(path=test_dir):
     suite = loader.loadTestsFromNames(test_module_names)
 
     return suite
-
-
-def unittest_main(argv=None):
-    """ Mainline function for each unit test module. """
-
-    from sys import argv as sys_argv
-    if not argv:
-        argv = sys_argv
-
-    exitcode = None
-    try:
-        unittest.main(argv=argv, defaultTest='suite')
-    except SystemExit, e:
-        exitcode = e.code
-
-    return exitcode
-
-
-def make_module_from_file(module_name, file_name):
-    """ Make a new module object from the code in specified file. """
-
-    from types import ModuleType
-    module = ModuleType(module_name)
-
-    module_file = open(file_name, 'r')
-    exec module_file in module.__dict__
-
-    return module
 
 
 class TestCase(unittest.TestCase):
@@ -333,97 +304,3 @@ class Exception_TestCase(TestCase):
                 self.failUnless(
                     isinstance(instance, match_type),
                     msg=fail_msg)
-
-
-class ProgramMain_TestCase(TestCase):
-    """ Test cases for program __main__ function.
-
-        Tests a module-level function named __main__ with behaviour
-        inspired by Guido van Rossum's post "Python main() functions"
-        <URL:http://www.artima.com/weblogs/viewpost.jsp?thread=4829>.
-
-        It expects:
-          * the program module has a __main__ function, that:
-              * accepts an 'argv' argument, defaulting to sys.argv
-              * instantiates a program application class, passing argv
-              * calls the application's main() method with no arguments
-              * catches SystemExit and returns the error code
-          * the application behaviour is defined in a class, that:
-              * has an __init__() method accepting an 'argv' argument as
-                the commandline argument list to parse
-              * has a main() method responsible for running the program,
-                and returning on successful program completion
-              * raises SystemExit when an abnormal exit is required
-
-        """
-
-    def __init__(self, *args, **kwargs):
-        """ Set up a new instance. """
-        self.program_module = NotImplemented
-        self.application_class = NotImplemented
-        super(ProgramMain_TestCase, self).__init__(*args, **kwargs)
-
-    def setUp(self):
-        """ Set up test fixtures. """
-        self.mock_tracker = MockTracker()
-
-        self.app_class_name = self.application_class.__name__
-        self.mock_app = Mock("test_app", tracker=self.mock_tracker)
-        self.mock_app_class = Mock(self.app_class_name,
-            tracker=self.mock_tracker)
-        self.mock_app_class.mock_returns = self.mock_app
-        mock(self.app_class_name, mock_obj=self.mock_app_class,
-            nsdicts=[self.program_module.__dict__])
-
-        super(ProgramMain_TestCase, self).setUp()
-
-    def tearDown(self):
-        """ Tear down test fixtures. """
-        mock_restore()
-        super(ProgramMain_TestCase, self).tearDown()
-
-    def test_main_should_instantiate_app(self):
-        """ __main__() should instantiate application class. """
-        app_class_name = self.app_class_name
-        argv = ["foo", "bar"]
-        expect_mock_output = """\
-            Called %(app_class_name)s(%(argv)r)...
-            """ % vars()
-        self.program_module.__main__(argv)
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-    def test_main_should_call_app_main(self):
-        """ __main__() should call the application main method. """
-        argv = ["foo", "bar"]
-        app_class_name = self.app_class_name
-        expect_mock_output = """\
-            Called %(app_class_name)s(%(argv)r)
-            Called test_app.main()
-            """ % vars()
-        self.program_module.__main__(argv)
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-    def test_main_no_argv_should_supply_sys_argv(self):
-        """ __main__() with no argv should supply sys.argv to application. """
-        sys_argv_test = ["foo", "bar"]
-        mock("sys.argv", mock_obj=sys_argv_test)
-        app_class_name = self.app_class_name
-        expect_mock_output = """\
-            Called %(app_class_name)s(%(sys_argv_test)r)
-            Called test_app.main()
-            """ % vars()
-        self.program_module.__main__()
-        self.failUnlessMockCheckerMatch(expect_mock_output)
-
-    def test_main_should_return_none_on_success(self):
-        """ __main__() should return None when no SystemExit raised. """
-        expect_exit_code = None
-        exit_code = self.program_module.__main__()
-        self.failUnlessEqual(expect_exit_code, exit_code)
-
-    def test_main_should_return_exit_code_on_system_exit(self):
-        """ __main__() should return application SystemExit code. """
-        expect_exit_code = object()
-        self.mock_app.main.mock_raises = SystemExit(expect_exit_code)
-        exit_code = self.program_module.__main__()
-        self.failUnlessEqual(expect_exit_code, exit_code)

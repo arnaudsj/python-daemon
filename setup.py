@@ -17,7 +17,7 @@
 import textwrap
 from setuptools import setup, find_packages
 
-distribution_name = "python_daemon"
+distribution_name = "python-daemon"
 main_module_name = 'daemon'
 main_module = __import__(main_module_name, fromlist=['version'])
 version = main_module.version

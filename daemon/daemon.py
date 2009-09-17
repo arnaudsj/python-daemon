@@ -135,15 +135,14 @@ class DaemonContext(object):
               ``DaemonContext`` instance. The attribute's value will be used
               as the action for the signal handler.
 
-            * Any other value will be used as the action for the signal
-              handler.
+            * Any other value will be used as the action for the
+              signal handler. See the ``signal.signal`` documentation
+              for details of the signal handler interface.
 
             The default value depends on which signals are defined on the
             running system. Each item from the list below whose signal is
             actually defined in the ``signal`` module will appear in the
             default map:
-
-            * ``signal.SIGCLD``: ``None``
 
             * ``signal.SIGTTIN``: ``None``
 
@@ -152,6 +151,13 @@ class DaemonContext(object):
             * ``signal.SIGTSTP``: ``None``
 
             * ``signal.SIGTERM``: ``'terminate'``
+
+            Depending on how your program will interact with its child
+            processes, you may need to specify a signal map that
+            includes the ``signal.SIGCHLD`` signal (received when a
+            child process exits). See the specific operating system's
+            documentation for more detail on signals to determine
+            which ones need handlers.
 
         `uid`
             :Default: ``os.getuid()``
@@ -730,7 +736,6 @@ def make_default_signal_map():
 
         """
     name_map = {
-        'SIGCLD': None,
         'SIGTSTP': None,
         'SIGTTIN': None,
         'SIGTTOU': None,

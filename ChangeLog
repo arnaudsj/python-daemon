@@ -1,3 +1,10 @@
+2009-09-17  Ben Finney  <ben+python@benfinney.id.au>
+
+    * Remove child-exit signal (‘SIGCLD’, ‘SIGCHLD’) from default signal
+      map.
+    * Document requirement to ensure any operating-system specific signal
+      handlers are considered.
+
 2009-09-03  Ben Finney  <ben+python@benfinney.id.au>
 
     Version 1.4.7 released.

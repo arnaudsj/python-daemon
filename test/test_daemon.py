@@ -1821,7 +1821,6 @@ class make_default_signal_map_TestCase(scaffold.TestCase):
             tracker=self.mock_tracker)
 
         default_signal_map_by_name = {
-            'SIGCLD': None,
             'SIGTSTP': None,
             'SIGTTIN': None,
             'SIGTTOU': None,

@@ -1798,16 +1798,17 @@ class make_default_signal_map_TestCase(scaffold.TestCase):
         """ Set up test fixtures. """
         self.mock_tracker = scaffold.MockTracker()
 
-        default_signal_map_by_name = {
-            'SIGCLD': None,
-            'SIGTSTP': None,
-            'SIGTTIN': None,
-            'SIGTTOU': None,
-            'SIGTERM': 'terminate',
-            }
-
         mock_signal_module = ModuleType('signal')
-        for name in default_signal_map_by_name:
+        mock_signal_names = [
+            'SIGHUP',
+            'SIGCLD',
+            'SIGSEGV',
+            'SIGTSTP',
+            'SIGTTIN',
+            'SIGTTOU',
+            'SIGTERM',
+            ]
+        for name in mock_signal_names:
             setattr(mock_signal_module, name, object())
 
         scaffold.mock(
@@ -1818,6 +1819,14 @@ class make_default_signal_map_TestCase(scaffold.TestCase):
             "daemon.daemon.signal",
             mock_obj=mock_signal_module,
             tracker=self.mock_tracker)
+
+        default_signal_map_by_name = {
+            'SIGCLD': None,
+            'SIGTSTP': None,
+            'SIGTTIN': None,
+            'SIGTTOU': None,
+            'SIGTERM': 'terminate',
+            }
 
         self.default_signal_map = dict(
             (getattr(signal, name), target)
@@ -1842,8 +1851,8 @@ class make_default_signal_map_TestCase(scaffold.TestCase):
             defined in the `signal` module.
 
             """
-        del(self.default_signal_map[signal.SIGCLD])
-        del(signal.SIGCLD)
+        del(self.default_signal_map[signal.SIGTTOU])
+        del(signal.SIGTTOU)
         expect_result = self.default_signal_map
         result = daemon.daemon.make_default_signal_map()
         self.failUnlessEqual(expect_result, result)

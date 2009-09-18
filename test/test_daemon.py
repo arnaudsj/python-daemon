@@ -22,6 +22,7 @@ import signal
 import socket
 from types import ModuleType
 import atexit
+from StringIO import StringIO
 
 import scaffold
 from test_pidlockfile import (
@@ -749,44 +750,58 @@ class DaemonContext_get_exclude_file_descriptors_TestCase(scaffold.TestCase):
         for (fileno, item) in self.test_files.items():
             if hasattr(item, '_fileno'):
                 item._fileno = fileno
-        self.test_file_descriptors = [
+        self.test_file_descriptors = set(
             fd for (fd, item) in self.test_files.items()
-            if item is not None]
-        self.test_file_descriptors.extend([
+            if item is not None)
+        self.test_file_descriptors.update(
             self.stream_files_by_name[name].fileno()
             for name in ['stdin', 'stdout', 'stderr']
-            ])
+            )
 
     def tearDown(self):
         """ Tear down test fixtures. """
         scaffold.mock_restore()
 
     def test_returns_expected_file_descriptors(self):
-        """ Should return expected list of file descriptors. """
+        """ Should return expected set of file descriptors. """
         instance = self.test_instance
         instance.files_preserve = self.test_files.values()
         expect_result = self.test_file_descriptors
         result = instance._get_exclude_file_descriptors()
-        self.failUnlessEqual(sorted(expect_result), sorted(result))
+        self.failUnlessEqual(expect_result, result)
 
     def test_returns_stream_redirects_if_no_files_preserve(self):
         """ Should return only stream redirects if no files_preserve. """
         instance = self.test_instance
         instance.files_preserve = None
-        expect_result = [
-            self.stream_files_by_name[name].fileno()
-            for name in ['stdin', 'stdout', 'stderr']]
+        expect_result = set(
+            stream.fileno()
+            for stream in self.stream_files_by_name.values())
         result = instance._get_exclude_file_descriptors()
-        self.failUnlessEqual(sorted(expect_result), sorted(result))
+        self.failUnlessEqual(expect_result, result)
 
-    def test_returns_empty_list_if_no_files(self):
-        """ Should return empty list if no file options. """
+    def test_returns_empty_set_if_no_files(self):
+        """ Should return empty set if no file options. """
         instance = self.test_instance
         for name in ['files_preserve', 'stdin', 'stdout', 'stderr']:
             setattr(instance, name, None)
-        expect_result = []
+        expect_result = set()
         result = instance._get_exclude_file_descriptors()
-        self.failUnlessEqual(sorted(expect_result), sorted(result))
+        self.failUnlessEqual(expect_result, result)
+
+    def test_return_set_omits_streams_without_file_descriptors(self):
+        """ Should omit any stream without a file descriptor. """
+        instance = self.test_instance
+        instance.files_preserve = self.test_files.values()
+        stream_files = self.stream_files_by_name
+        stream_names = stream_files.keys()
+        expect_result = self.test_file_descriptors.copy()
+        for (pseudo_stream_name, pseudo_stream) in stream_files.items():
+            setattr(instance, pseudo_stream_name, StringIO())
+            stream_fd = pseudo_stream.fileno()
+            expect_result.discard(stream_fd)
+        result = instance._get_exclude_file_descriptors()
+        self.failUnlessEqual(expect_result, result)
 
 
 class DaemonContext_make_signal_handler_TestCase(scaffold.TestCase):

@@ -1,3 +1,10 @@
+2009-09-18  Ben Finney  <ben+python@benfinney.id.au>
+
+    * Manage the excluded file descriptors as a set (not a list).
+    * Only inspect the file descriptor of streams if they actually have
+      one (via a ‘fileno’ method) when determining which file descriptors
+      to close. Thanks to Ask Solem for revealing this bug.
+
 2009-09-17  Ben Finney  <ben+python@benfinney.id.au>
 
     Version 1.4.8 released.

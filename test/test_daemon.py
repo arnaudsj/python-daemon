@@ -749,44 +749,44 @@ class DaemonContext_get_exclude_file_descriptors_TestCase(scaffold.TestCase):
         for (fileno, item) in self.test_files.items():
             if hasattr(item, '_fileno'):
                 item._fileno = fileno
-        self.test_file_descriptors = [
+        self.test_file_descriptors = set(
             fd for (fd, item) in self.test_files.items()
-            if item is not None]
-        self.test_file_descriptors.extend([
+            if item is not None)
+        self.test_file_descriptors.update(
             self.stream_files_by_name[name].fileno()
             for name in ['stdin', 'stdout', 'stderr']
-            ])
+            )
 
     def tearDown(self):
         """ Tear down test fixtures. """
         scaffold.mock_restore()
 
     def test_returns_expected_file_descriptors(self):
-        """ Should return expected list of file descriptors. """
+        """ Should return expected set of file descriptors. """
         instance = self.test_instance
         instance.files_preserve = self.test_files.values()
         expect_result = self.test_file_descriptors
         result = instance._get_exclude_file_descriptors()
-        self.failUnlessEqual(sorted(expect_result), sorted(result))
+        self.failUnlessEqual(expect_result, result)
 
     def test_returns_stream_redirects_if_no_files_preserve(self):
         """ Should return only stream redirects if no files_preserve. """
         instance = self.test_instance
         instance.files_preserve = None
-        expect_result = [
+        expect_result = set(
             self.stream_files_by_name[name].fileno()
-            for name in ['stdin', 'stdout', 'stderr']]
+            for name in ['stdin', 'stdout', 'stderr'])
         result = instance._get_exclude_file_descriptors()
-        self.failUnlessEqual(sorted(expect_result), sorted(result))
+        self.failUnlessEqual(expect_result, result)
 
-    def test_returns_empty_list_if_no_files(self):
-        """ Should return empty list if no file options. """
+    def test_returns_empty_set_if_no_files(self):
+        """ Should return empty set if no file options. """
         instance = self.test_instance
         for name in ['files_preserve', 'stdin', 'stdout', 'stderr']:
             setattr(instance, name, None)
-        expect_result = []
+        expect_result = set()
         result = instance._get_exclude_file_descriptors()
-        self.failUnlessEqual(sorted(expect_result), sorted(result))
+        self.failUnlessEqual(expect_result, result)
 
 
 class DaemonContext_make_signal_handler_TestCase(scaffold.TestCase):

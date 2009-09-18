@@ -394,33 +394,33 @@ class DaemonContext(object):
         raise exception
 
     def _get_exclude_file_descriptors(self):
-        """ Return the list of file descriptors to exclude closing.
+        """ Return the set of file descriptors to exclude closing.
 
-            Returns a list containing the file descriptors for the
+            Returns a set containing the file descriptors for the
             items in `files_preserve`, and also each of `stdin`,
             `stdout`, and `stderr`:
 
             * If the item is ``None``, it is omitted from the return
-              list.
+              set.
 
             * If the item has a ``fileno()`` method, that method's
-              return value is in the return list.
+              return value is in the return set.
 
-            * Otherwise, the item is in the return list verbatim.
+            * Otherwise, the item is in the return set verbatim.
 
             """
         files_preserve = self.files_preserve
         if files_preserve is None:
             files_preserve = []
         files_preserve.extend([self.stdin, self.stdout, self.stderr])
-        exclude_descriptors = []
+        exclude_descriptors = set()
         for item in files_preserve:
             if item is None:
                 continue
             if hasattr(item, 'fileno'):
-                exclude_descriptors.append(item.fileno())
+                exclude_descriptors.add(item.fileno())
             else:
-                exclude_descriptors.append(item)
+                exclude_descriptors.add(item)
         return exclude_descriptors
 
     def _make_signal_handler(self, target):

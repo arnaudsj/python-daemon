@@ -22,6 +22,7 @@ import signal
 import socket
 from types import ModuleType
 import atexit
+from StringIO import StringIO
 
 import scaffold
 from test_pidlockfile import (
@@ -774,8 +775,8 @@ class DaemonContext_get_exclude_file_descriptors_TestCase(scaffold.TestCase):
         instance = self.test_instance
         instance.files_preserve = None
         expect_result = set(
-            self.stream_files_by_name[name].fileno()
-            for name in ['stdin', 'stdout', 'stderr'])
+            stream.fileno()
+            for stream in self.stream_files_by_name.values())
         result = instance._get_exclude_file_descriptors()
         self.failUnlessEqual(expect_result, result)
 
@@ -785,6 +786,20 @@ class DaemonContext_get_exclude_file_descriptors_TestCase(scaffold.TestCase):
         for name in ['files_preserve', 'stdin', 'stdout', 'stderr']:
             setattr(instance, name, None)
         expect_result = set()
+        result = instance._get_exclude_file_descriptors()
+        self.failUnlessEqual(expect_result, result)
+
+    def test_return_set_omits_streams_without_file_descriptors(self):
+        """ Should omit any stream without a file descriptor. """
+        instance = self.test_instance
+        instance.files_preserve = self.test_files.values()
+        stream_files = self.stream_files_by_name
+        stream_names = stream_files.keys()
+        expect_result = self.test_file_descriptors.copy()
+        for (pseudo_stream_name, pseudo_stream) in stream_files.items():
+            setattr(instance, pseudo_stream_name, StringIO())
+            stream_fd = pseudo_stream.fileno()
+            expect_result.discard(stream_fd)
         result = instance._get_exclude_file_descriptors()
         self.failUnlessEqual(expect_result, result)
 

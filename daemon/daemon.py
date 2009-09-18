@@ -412,7 +412,9 @@ class DaemonContext(object):
         files_preserve = self.files_preserve
         if files_preserve is None:
             files_preserve = []
-        files_preserve.extend([self.stdin, self.stdout, self.stderr])
+        files_preserve.extend(
+            item for item in [self.stdin, self.stdout, self.stderr]
+            if hasattr(item, 'fileno'))
         exclude_descriptors = set()
         for item in files_preserve:
             if item is None:

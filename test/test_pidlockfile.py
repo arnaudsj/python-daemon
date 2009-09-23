@@ -26,6 +26,25 @@ import scaffold
 from daemon import pidlockfile
 
 
+class Exception_TestCase(scaffold.Exception_TestCase):
+    """ Test cases for module exception classes. """
+
+    def __init__(self, *args, **kwargs):
+        """ Set up a new instance. """
+        super(Exception_TestCase, self).__init__(*args, **kwargs)
+
+        self.valid_exceptions = {
+            pidlockfile.PIDFileError: dict(
+                min_args = 1,
+                types = (Exception,),
+                ),
+            pidlockfile.PIDFileParseError: dict(
+                min_args = 2,
+                types = (pidlockfile.PIDFileError, ValueError),
+                ),
+            }
+
+
 def setup_pidlockfile_fixtures(testcase):
     """ Set up common fixtures for PIDLockFile test cases. """
 

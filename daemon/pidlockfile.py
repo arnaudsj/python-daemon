@@ -24,6 +24,13 @@ from lockfile import (
     )
 
 
+class PIDFileError(Exception):
+    """ Abstract base class for errors specific to PID files. """
+
+class PIDFileParseError(ValueError, PIDFileError):
+    """ Raised when parsing contents of PID file fails. """
+
+
 class PIDLockFile(LockBase):
     """ Lockfile implemented as a Unix PID file.
 

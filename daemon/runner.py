@@ -153,14 +153,24 @@ class DaemonRunner(object):
         'restart': _restart,
         }
 
-    def do_action(self):
-        """ Perform the requested action.
+    def _get_action_func(self):
+        """ Return the function for the specified action.
+
+            Raises ``DaemonRunnerInvalidActionError`` if the action is
+            unknown.
+
             """
         try:
             func = self.action_funcs[self.action]
         except KeyError:
             raise DaemonRunnerInvalidActionError(
                 "Unknown action: %(action)r" % vars(self))
+        return func
+
+    def do_action(self):
+        """ Perform the requested action.
+            """
+        func = self._get_action_func()
         func(self)
 
 

@@ -74,6 +74,8 @@ def setup_pidfile_fixtures(testcase):
         "b0gUs")
     testcase.mock_pidfile_path = tempfile.mktemp()
 
+    testcase.mock_pidfile = NotImplemented
+
     scaffold.mock(
         "os.getpid",
         returns=testcase.mock_current_pid,
@@ -81,12 +83,12 @@ def setup_pidfile_fixtures(testcase):
 
     def mock_path_exists(path):
         if path == testcase.mock_pidfile_path:
-            result = testcase.pidfile_exists_func(path)
+            result = testcase.pidfile_path_exists_func()
         else:
             result = False
         return result
 
-    testcase.pidfile_exists_func = (lambda p: False)
+    testcase.pidfile_path_exists_func = (lambda: False)
 
     scaffold.mock(
         "os.path.exists",
@@ -115,7 +117,6 @@ def setup_pidfile_fixtures(testcase):
     testcase.mock_pidfile_open_okay = mock_pidfile_open_okay
 
     testcase.pidfile_open_func = NotImplemented
-    testcase.mock_pidfile = NotImplemented
 
     def mock_open(filename, mode='r', buffering=None):
         if filename == testcase.mock_pidfile_path:
@@ -138,21 +139,8 @@ def setup_pidlockfile_fixtures(testcase):
     testcase.pidlockfile_args = dict(
         path=testcase.mock_pidfile_path,
         )
-
     testcase.test_instance = pidlockfile.PIDLockFile(
         **testcase.pidlockfile_args)
-
-    def mock_os_path_exists(path):
-        if path == testcase.mock_pidfile_path:
-            result = testcase.pidfile_path_exists_func()
-        else:
-            result = False
-        return result
-
-    scaffold.mock(
-        "os.path.exists",
-        returns_func=mock_os_path_exists,
-        tracker=testcase.mock_tracker)
 
     scaffold.mock(
         "pidlockfile.write_pid_to_pidfile",
@@ -554,13 +542,13 @@ class pidfile_exists_TestCase(scaffold.TestCase):
 
     def test_returns_true_when_pidfile_exists(self):
         """ Should return True when pidfile exists. """
-        self.pidfile_exists_func = (lambda p: True)
+        self.pidfile_path_exists_func = (lambda: True)
         result = pidlockfile.pidfile_exists(self.mock_pidfile_path)
         self.failUnless(result)
 
     def test_returns_false_when_no_pidfile_exists(self):
         """ Should return False when pidfile does not exist. """
-        self.pidfile_exists_func = (lambda p: False)
+        self.pidfile_path_exists_func = (lambda: False)
         result = pidlockfile.pidfile_exists(self.mock_pidfile_path)
         self.failIf(result)
 

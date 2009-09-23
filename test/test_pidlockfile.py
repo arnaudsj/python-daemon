@@ -74,6 +74,8 @@ def setup_pidfile_fixtures(testcase):
         "b0gUs")
     testcase.mock_pidfile_path = tempfile.mktemp()
 
+    testcase.mock_pidfile = NotImplemented
+
     scaffold.mock(
         "os.getpid",
         returns=testcase.mock_current_pid,
@@ -81,12 +83,12 @@ def setup_pidfile_fixtures(testcase):
 
     def mock_path_exists(path):
         if path == testcase.mock_pidfile_path:
-            result = testcase.pidfile_exists_func(path)
+            result = testcase.pidfile_path_exists_func()
         else:
             result = False
         return result
 
-    testcase.pidfile_exists_func = (lambda p: False)
+    testcase.pidfile_path_exists_func = (lambda: False)
 
     scaffold.mock(
         "os.path.exists",
@@ -115,7 +117,6 @@ def setup_pidfile_fixtures(testcase):
     testcase.mock_pidfile_open_okay = mock_pidfile_open_okay
 
     testcase.pidfile_open_func = NotImplemented
-    testcase.mock_pidfile = NotImplemented
 
     def mock_open(filename, mode='r', buffering=None):
         if filename == testcase.mock_pidfile_path:
@@ -129,6 +130,54 @@ def setup_pidfile_fixtures(testcase):
         returns_func=mock_open,
         tracker=testcase.mock_tracker)
 
+    def mock_pidfile_os_open_nonexist(filename, flags, mode):
+        if (flags & os.O_CREAT):
+            result = testcase.mock_pidfile.fileno()
+        else:
+            raise OSError(errno.ENOENT, "No such file %(filename)r" % vars())
+        return result
+
+    def mock_pidfile_os_open_read_denied(filename, flags, mode):
+        if (flags & os.O_CREAT):
+            result = testcase.mock_pidfile.fileno()
+        else:
+            raise IOError(errno.EPERM, "Read denied on %(filename)r" % vars())
+        return result
+
+    def mock_pidfile_os_open_okay(filename, flags, mode):
+        result = testcase.mock_pidfile.fileno()
+        return result
+
+    def mock_os_open(filename, flags, mode=None):
+        if filename == testcase.mock_pidfile_path:
+            result = testcase.pidfile_os_open_func(filename, flags, mode)
+        else:
+            result = FakeFileDescriptorStringIO().fileno()
+        return result
+
+    testcase.mock_pidfile_os_open_nonexist = mock_pidfile_os_open_nonexist
+    testcase.mock_pidfile_os_open_read_denied = mock_pidfile_os_open_read_denied
+    testcase.mock_pidfile_os_open_okay = mock_pidfile_os_open_okay
+
+    testcase.pidfile_os_open_func = NotImplemented
+
+    scaffold.mock(
+        "os.open",
+        returns_func=mock_os_open,
+        tracker=testcase.mock_tracker)
+
+    def mock_os_fdopen(fd, mode='r', buffering=None):
+        if fd == testcase.mock_pidfile.fileno():
+            result = testcase.mock_pidfile
+        else:
+            raise OSError(errno.EBADF, "Bad file descriptor")
+        return result
+
+    scaffold.mock(
+        "os.fdopen",
+        returns_func=mock_os_fdopen,
+        tracker=testcase.mock_tracker)
+
 
 def setup_pidlockfile_fixtures(testcase):
     """ Set up common fixtures for PIDLockFile test cases. """
@@ -138,21 +187,8 @@ def setup_pidlockfile_fixtures(testcase):
     testcase.pidlockfile_args = dict(
         path=testcase.mock_pidfile_path,
         )
-
     testcase.test_instance = pidlockfile.PIDLockFile(
         **testcase.pidlockfile_args)
-
-    def mock_os_path_exists(path):
-        if path == testcase.mock_pidfile_path:
-            result = testcase.pidfile_path_exists_func()
-        else:
-            result = False
-        return result
-
-    scaffold.mock(
-        "os.path.exists",
-        returns_func=mock_os_path_exists,
-        tracker=testcase.mock_tracker)
 
     scaffold.mock(
         "pidlockfile.write_pid_to_pidfile",
@@ -554,13 +590,13 @@ class pidfile_exists_TestCase(scaffold.TestCase):
 
     def test_returns_true_when_pidfile_exists(self):
         """ Should return True when pidfile exists. """
-        self.pidfile_exists_func = (lambda p: True)
+        self.pidfile_path_exists_func = (lambda: True)
         result = pidlockfile.pidfile_exists(self.mock_pidfile_path)
         self.failUnless(result)
 
     def test_returns_false_when_no_pidfile_exists(self):
         """ Should return False when pidfile does not exist. """
-        self.pidfile_exists_func = (lambda p: False)
+        self.pidfile_path_exists_func = (lambda: False)
         result = pidlockfile.pidfile_exists(self.mock_pidfile_path)
         self.failIf(result)
 
@@ -692,6 +728,7 @@ class write_pid_to_pidfile_TestCase(scaffold.TestCase):
         setup_pidfile_fixtures(self)
         self.mock_pidfile = self.mock_pidfile_current
         self.pidfile_open_func = self.mock_pidfile_open_nonexist
+        self.pidfile_os_open_func = self.mock_pidfile_os_open_nonexist
 
     def tearDown(self):
         """ Tear down test fixtures. """
@@ -700,8 +737,10 @@ class write_pid_to_pidfile_TestCase(scaffold.TestCase):
     def test_opens_specified_filename(self):
         """ Should attempt to open specified PID file filename. """
         pidfile_path = self.mock_pidfile_path
+        expect_flags = (os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        expect_mode = 0644
         expect_mock_output = """\
-            Called __builtin__.open(%(pidfile_path)r, 'w')
+            Called os.open(%(pidfile_path)r, %(expect_flags)r, %(expect_mode)r)
             ...
             """ % vars()
         pidlockfile.write_pid_to_pidfile(pidfile_path)
@@ -711,7 +750,28 @@ class write_pid_to_pidfile_TestCase(scaffold.TestCase):
     def test_writes_pid_to_file(self):
         """ Should write the current PID to the specified file. """
         pidfile_path = self.mock_pidfile_path
+        self.mock_pidfile.close = scaffold.Mock(
+            "mock_pidfile.close",
+            tracker=self.mock_tracker)
         expect_line = "%(mock_current_pid)d\n" % vars(self)
         pidlockfile.write_pid_to_pidfile(pidfile_path)
         scaffold.mock_restore()
         self.failUnlessEqual(expect_line, self.mock_pidfile.getvalue())
+
+    def test_closes_file_after_write(self):
+        """ Should close the specified file after writing. """
+        pidfile_path = self.mock_pidfile_path
+        self.mock_pidfile.write = scaffold.Mock(
+            "mock_pidfile.write",
+            tracker=self.mock_tracker)
+        self.mock_pidfile.close = scaffold.Mock(
+            "mock_pidfile.close",
+            tracker=self.mock_tracker)
+        expect_mock_output = """\
+            ...
+            Called mock_pidfile.write(...)
+            Called mock_pidfile.close()
+            """ % vars()
+        pidlockfile.write_pid_to_pidfile(pidfile_path)
+        scaffold.mock_restore()
+        self.failUnlessMockCheckerMatch(expect_mock_output)

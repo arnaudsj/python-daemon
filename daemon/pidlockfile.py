@@ -185,7 +185,13 @@ def write_pid_to_pidfile(pidfile_path):
         and write it to the named file as a line of text.
 
         """
-    pidfile = open(pidfile_path, 'w')
+    open_flags = (os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    open_mode = (
+        ((os.R_OK | os.W_OK) << 6) |
+        ((os.R_OK) << 3) |
+        ((os.R_OK)))
+    pidfile_fd = os.open(pidfile_path, open_flags, open_mode)
+    pidfile = os.fdopen(pidfile_fd, 'w')
 
     # According to the FHS 2.3 section on PID files in ‘/var/run’:
     #
@@ -197,6 +203,7 @@ def write_pid_to_pidfile(pidfile_path):
     pid = os.getpid()
     line = "%(pid)d\n" % vars()
     pidfile.write(line)
+    pidfile.close()
 
 
 def remove_existing_pidfile(pidfile_path):

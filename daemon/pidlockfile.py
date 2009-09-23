@@ -85,13 +85,6 @@ class PIDLockFile(LinkFileLock, object):
         remove_existing_pidfile(self.path)
 
 
-def pidfile_exists(pidfile_path):
-    """ Return True if the named PID file exists on the filesystem.
-        """
-    result = os.path.exists(pidfile_path)
-    return result
-
-
 def read_pid_from_pidfile(pidfile_path):
     """ Read the PID recorded in the named PID file.
 

@@ -460,31 +460,6 @@ class PIDLockFile_break_lock_TestCase(scaffold.TestCase):
         self.failUnlessMockCheckerMatch(expect_mock_output)
 
 
-class pidfile_exists_TestCase(scaffold.TestCase):
-    """ Test cases for pidfile_exists function. """
-
-    def setUp(self):
-        """ Set up test fixtures. """
-        setup_pidfile_fixtures(self)
-        self.mock_pidfile = self.mock_pidfile_other
-
-    def tearDown(self):
-        """ Tear down test fixtures. """
-        scaffold.mock_restore()
-
-    def test_returns_true_when_pidfile_exists(self):
-        """ Should return True when pidfile exists. """
-        self.pidfile_path_exists_func = (lambda: True)
-        result = pidlockfile.pidfile_exists(self.mock_pidfile_path)
-        self.failUnless(result)
-
-    def test_returns_false_when_no_pidfile_exists(self):
-        """ Should return False when pidfile does not exist. """
-        self.pidfile_path_exists_func = (lambda: False)
-        result = pidlockfile.pidfile_exists(self.mock_pidfile_path)
-        self.failIf(result)
-
-
 class read_pid_from_pidfile_TestCase(scaffold.TestCase):
     """ Test cases for read_pid_from_pidfile function. """
 

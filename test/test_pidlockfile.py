@@ -130,6 +130,54 @@ def setup_pidfile_fixtures(testcase):
         returns_func=mock_open,
         tracker=testcase.mock_tracker)
 
+    def mock_pidfile_os_open_nonexist(filename, flags, mode):
+        if (flags & os.O_CREAT):
+            result = testcase.mock_pidfile.fileno()
+        else:
+            raise OSError(errno.ENOENT, "No such file %(filename)r" % vars())
+        return result
+
+    def mock_pidfile_os_open_read_denied(filename, flags, mode):
+        if (flags & os.O_CREAT):
+            result = testcase.mock_pidfile.fileno()
+        else:
+            raise IOError(errno.EPERM, "Read denied on %(filename)r" % vars())
+        return result
+
+    def mock_pidfile_os_open_okay(filename, flags, mode):
+        result = testcase.mock_pidfile.fileno()
+        return result
+
+    def mock_os_open(filename, flags, mode=None):
+        if filename == testcase.mock_pidfile_path:
+            result = testcase.pidfile_os_open_func(filename, flags, mode)
+        else:
+            result = FakeFileDescriptorStringIO().fileno()
+        return result
+
+    testcase.mock_pidfile_os_open_nonexist = mock_pidfile_os_open_nonexist
+    testcase.mock_pidfile_os_open_read_denied = mock_pidfile_os_open_read_denied
+    testcase.mock_pidfile_os_open_okay = mock_pidfile_os_open_okay
+
+    testcase.pidfile_os_open_func = NotImplemented
+
+    scaffold.mock(
+        "os.open",
+        returns_func=mock_os_open,
+        tracker=testcase.mock_tracker)
+
+    def mock_os_fdopen(fd, mode='r', buffering=None):
+        if fd == testcase.mock_pidfile.fileno():
+            result = testcase.mock_pidfile
+        else:
+            raise OSError(errno.EBADF, "Bad file descriptor")
+        return result
+
+    scaffold.mock(
+        "os.fdopen",
+        returns_func=mock_os_fdopen,
+        tracker=testcase.mock_tracker)
+
 
 def setup_pidlockfile_fixtures(testcase):
     """ Set up common fixtures for PIDLockFile test cases. """
@@ -680,6 +728,7 @@ class write_pid_to_pidfile_TestCase(scaffold.TestCase):
         setup_pidfile_fixtures(self)
         self.mock_pidfile = self.mock_pidfile_current
         self.pidfile_open_func = self.mock_pidfile_open_nonexist
+        self.pidfile_os_open_func = self.mock_pidfile_os_open_nonexist
 
     def tearDown(self):
         """ Tear down test fixtures. """
@@ -688,8 +737,10 @@ class write_pid_to_pidfile_TestCase(scaffold.TestCase):
     def test_opens_specified_filename(self):
         """ Should attempt to open specified PID file filename. """
         pidfile_path = self.mock_pidfile_path
+        expect_flags = (os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        expect_mode = 0644
         expect_mock_output = """\
-            Called __builtin__.open(%(pidfile_path)r, 'w')
+            Called os.open(%(pidfile_path)r, %(expect_flags)r, %(expect_mode)r)
             ...
             """ % vars()
         pidlockfile.write_pid_to_pidfile(pidfile_path)

@@ -381,7 +381,7 @@ class DaemonRunner_do_action_TestCase(scaffold.TestCase):
         """ Should emit a usage message and exit if too few arguments. """
         instance = self.test_instance
         instance.action = 'bogus'
-        expect_error = ValueError
+        expect_error = runner.DaemonRunnerInvalidActionError
         self.failUnlessRaises(
             expect_error,
             instance.do_action)
@@ -405,14 +405,14 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
         """ Tear down test fixtures. """
         scaffold.mock_restore()
 
-    def test_aborts_if_pidfile_locked(self):
-        """ Should exit with failure if PID file is locked. """
+    def test_raises_error_if_pidfile_locked(self):
+        """ Should raise error if PID file is locked. """
         instance = self.test_instance
         self.mock_pidlockfile.is_locked.mock_returns = True
         self.mock_pidlockfile.i_am_locking.mock_returns = False
         self.mock_pidlockfile.read_pid.mock_returns = self.mock_other_pid
         pidfile_path = self.mock_pidfile_path
-        expect_error = SystemExit
+        expect_error = runner.DaemonRunnerStartFailureError
         expect_message_content = pidfile_path
         try:
             instance.do_action()
@@ -495,14 +495,14 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
         """ Tear down test fixtures. """
         scaffold.mock_restore()
 
-    def test_aborts_if_pidfile_not_locked(self):
-        """ Should exit with failure if PID file is not locked. """
+    def test_raises_error_if_pidfile_not_locked(self):
+        """ Should raise error if PID file is not locked. """
         instance = self.test_instance
         self.mock_pidlockfile.is_locked.mock_returns = False
         self.mock_pidlockfile.i_am_locking.mock_returns = False
         self.mock_pidlockfile.read_pid.mock_returns = None
         pidfile_path = self.mock_pidfile_path
-        expect_error = SystemExit
+        expect_error = runner.DaemonRunnerStopFailureError
         expect_message_content = pidfile_path
         try:
             instance.do_action()
@@ -544,17 +544,24 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
         scaffold.mock_restore()
         self.failUnlessMockCheckerMatch(expect_mock_output)
 
-    def test_aborts_if_cannot_send_signal_to_process(self):
-        """ Should raise SystemExit if cannot send signal to daemon process. """
+    def test_raises_error_if_cannot_send_signal_to_process(self):
+        """ Should raise error if cannot send signal to daemon process. """
         instance = self.test_instance
         test_pid = self.mock_other_pid
         pidfile_path = self.mock_pidfile_path
         error = OSError(errno.EPERM, "Nice try")
         os.kill.mock_raises = error
-        expect_error = SystemExit
-        self.failUnlessRaises(
-            expect_error,
-            instance.do_action)
+        expect_error = runner.DaemonRunnerStopFailureError
+        expect_message_content = str(test_pid)
+        try:
+            instance.do_action()
+        except expect_error, exc:
+            pass
+        else:
+            raise self.failureException(
+                "Failed to raise " + expect_error.__name__)
+        scaffold.mock_restore()
+        self.failUnlessIn(exc.message, expect_message_content)
 
 
 class DaemonRunner_do_action_restart_TestCase(scaffold.TestCase):

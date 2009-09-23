@@ -112,8 +112,8 @@ class DaemonRunner(object):
             if is_pidfile_stale(self.pidfile):
                 self.pidfile.break_lock()
             else:
-                message = "PID file %(pidfile_path)r already locked" % vars()
-                exit_with_message(message, status=1)
+                raise DaemonRunnerStartFailureError(
+                    "PID file %(pidfile_path)r already locked" % vars())
 
         self.daemon_context.open()
 
@@ -128,8 +128,8 @@ class DaemonRunner(object):
             """
         if not self.pidfile.is_locked():
             pidfile_path = self.pidfile.path
-            message = "PID file %(pidfile_path)r not locked" % vars()
-            exit_with_message(message, status=1)
+            raise DaemonRunnerStopFailureError(
+                "PID file %(pidfile_path)r not locked" % vars())
 
         if is_pidfile_stale(self.pidfile):
             self.pidfile.break_lock()
@@ -138,8 +138,8 @@ class DaemonRunner(object):
             try:
                 os.kill(pid, signal.SIGTERM)
             except OSError, exc:
-                message = "Failed to terminate %(pid)d: %(exc)s" % vars()
-                exit_with_message(message, status=1)
+                raise DaemonRunnerStopFailureError(
+                    "Failed to terminate %(pid)d: %(exc)s" % vars())
 
     def _restart(self):
         """ Stop, then start.
@@ -156,9 +156,11 @@ class DaemonRunner(object):
     def do_action(self):
         """ Perform the requested action.
             """
-        func = self.action_funcs.get(self.action, None)
-        if func is None:
-            raise ValueError("Unknown action: %(action)r" % vars(self))
+        try:
+            func = self.action_funcs[self.action]
+        except KeyError:
+            raise DaemonRunnerInvalidActionError(
+                "Unknown action: %(action)r" % vars(self))
         func(self)
 
 
@@ -168,13 +170,6 @@ def emit_message(message, stream=None):
         stream = sys.stderr
     stream.write("%(message)s\n" % vars())
     stream.flush()
-
-
-def exit_with_message(message, status=0):
-    """ Exit with specified message and exit status. """
-    exc = SystemExit(message)
-    exc.code = status
-    raise exc
 
 
 def make_pidlockfile(path):

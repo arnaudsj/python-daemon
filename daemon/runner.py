@@ -27,13 +27,26 @@ import pidlockfile
 from daemon import DaemonContext
 
 
+class DaemonRunnerError(Exception):
+    """ Abstract base class for errors from DaemonRunner. """
+
+class DaemonRunnerInvalidActionError(ValueError, DaemonRunnerError):
+    """ Raised when specified action for DaemonRunner is invalid. """
+
+class DaemonRunnerStartFailureError(RuntimeError, DaemonRunnerError):
+    """ Raised when failure starting DaemonRunner. """
+
+class DaemonRunnerStopFailureError(RuntimeError, DaemonRunnerError):
+    """ Raised when failure stopping DaemonRunner. """
+
+
 class DaemonRunner(object):
     """ Controller for a callable running in a separate background process.
 
         The first command-line argument is the action to take:
 
         * 'start': Become a daemon and call `app.run()`.
-        * 'stop': Close the daemon context.
+        * 'stop': Exit the daemon process specified in the PID file.
         * 'restart': Stop, then start.
 
         """
@@ -73,8 +86,8 @@ class DaemonRunner(object):
         progname = os.path.basename(argv[0])
         usage_exit_code = 2
         action_usage = "|".join(self.action_funcs.keys())
-        sys.stderr.write(
-            "usage: %(progname)s %(action_usage)s\n" % vars())
+        message = "usage: %(progname)s %(action_usage)s" % vars()
+        emit_message(message)
         sys.exit(usage_exit_code)
 
     def parse_args(self, argv=None):
@@ -96,44 +109,37 @@ class DaemonRunner(object):
             """
         if self.pidfile.is_locked():
             pidfile_path = self.pidfile.path
-            if pidfile_lock_is_stale(self.pidfile):
+            if is_pidfile_stale(self.pidfile):
                 self.pidfile.break_lock()
             else:
-                error = SystemExit(
-                    "PID file %(pidfile_path)r already locked"
-                    % vars())
-                raise error
+                raise DaemonRunnerStartFailureError(
+                    "PID file %(pidfile_path)r already locked" % vars())
 
         self.daemon_context.open()
 
         pid = os.getpid()
         message = self.start_message % vars()
-        sys.stderr.write("%(message)s\n" % vars())
-        sys.stderr.flush()
+        emit_message(message)
 
         self.app.run()
 
     def _stop(self):
-        """ Close the daemon context.
+        """ Exit the daemon process specified in the current PID file.
             """
         if not self.pidfile.is_locked():
             pidfile_path = self.pidfile.path
-            error = SystemExit(
-                "PID file %(pidfile_path)r not locked"
-                % vars())
-            raise error
+            raise DaemonRunnerStopFailureError(
+                "PID file %(pidfile_path)r not locked" % vars())
 
-        if pidfile_lock_is_stale(self.pidfile):
+        if is_pidfile_stale(self.pidfile):
             self.pidfile.break_lock()
         else:
             pid = self.pidfile.read_pid()
             try:
                 os.kill(pid, signal.SIGTERM)
             except OSError, exc:
-                error = SystemExit(
-                    "Failed to terminate %(pid)d: %(exc)s"
-                    % vars())
-                raise error
+                raise DaemonRunnerStopFailureError(
+                    "Failed to terminate %(pid)d: %(exc)s" % vars())
 
     def _restart(self):
         """ Stop, then start.
@@ -147,13 +153,33 @@ class DaemonRunner(object):
         'restart': _restart,
         }
 
+    def _get_action_func(self):
+        """ Return the function for the specified action.
+
+            Raises ``DaemonRunnerInvalidActionError`` if the action is
+            unknown.
+
+            """
+        try:
+            func = self.action_funcs[self.action]
+        except KeyError:
+            raise DaemonRunnerInvalidActionError(
+                "Unknown action: %(action)r" % vars(self))
+        return func
+
     def do_action(self):
         """ Perform the requested action.
             """
-        func = self.action_funcs.get(self.action, None)
-        if func is None:
-            raise ValueError("Unknown action: %(action)r" % vars(self))
+        func = self._get_action_func()
         func(self)
+
+
+def emit_message(message, stream=None):
+    """ Emit a message to the specified stream (default `sys.stderr`). """
+    if stream is None:
+        stream = sys.stderr
+    stream.write("%(message)s\n" % vars())
+    stream.flush()
 
 
 def make_pidlockfile(path):
@@ -172,7 +198,7 @@ def make_pidlockfile(path):
     return lockfile
 
 
-def pidfile_lock_is_stale(pidfile):
+def is_pidfile_stale(pidfile):
     """ Determine whether a PID file refers to a nonexistent PID. """
     result = False
 

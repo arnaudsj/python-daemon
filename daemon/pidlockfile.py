@@ -24,6 +24,13 @@ from lockfile import (
     )
 
 
+class PIDFileError(Exception):
+    """ Abstract base class for errors specific to PID files. """
+
+class PIDFileParseError(ValueError, PIDFileError):
+    """ Raised when parsing contents of PID file fails. """
+
+
 class PIDLockFile(LockBase):
     """ Lockfile implemented as a Unix PID file.
 
@@ -141,14 +148,18 @@ def read_pid_from_pidfile(pidfile_path):
     pid = None
     try:
         pidfile = open(pidfile_path, 'r')
-    except IOError:
-        pass
+    except IOError, exc:
+        if exc.errno == errno.ENOENT:
+            pass
+        else:
+            raise
     else:
         line = pidfile.read().strip()
         try:
             pid = int(line)
         except ValueError:
-            pass
+            raise PIDFileParseError(
+                "PID file %(pidfile_path)r contents invalid" % vars())
         pidfile.close()
 
     return pid

@@ -1,3 +1,8 @@
+2009-09-23  Ben Finney  <ben+python@benfinney.id.au>
+
+    * Raise specific errors on ‘DaemonRunner’ failures.
+    * Distinguish different conditions on reading and parsing PID file.
+
 2009-09-18  Ben Finney  <ben+python@benfinney.id.au>
 
     * Manage the excluded file descriptors as a set (not a list).

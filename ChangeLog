@@ -4,6 +4,7 @@
     * Distinguish different conditions on reading and parsing PID file.
     * Refactor code to ‘_terminate_daemon_process’ method.
     * Improve explanations in comments and docstrings.
+    * Don't set pidfile at all if no path specified to constructor.
 
 2009-09-18  Ben Finney  <ben+python@benfinney.id.au>
 

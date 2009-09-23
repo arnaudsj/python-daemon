@@ -379,13 +379,14 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
         scaffold.mock_restore()
 
     def test_aborts_if_pidfile_locked(self):
-        """ Should raise SystemExit if PID file is locked. """
+        """ Should exit with failure if PID file is locked. """
         instance = self.test_instance
         self.mock_pidlockfile.is_locked.mock_returns = True
         self.mock_pidlockfile.i_am_locking.mock_returns = False
         self.mock_pidlockfile.read_pid.mock_returns = self.mock_other_pid
         pidfile_path = self.mock_pidfile_path
         expect_error = SystemExit
+        expect_message_content = pidfile_path
         try:
             instance.do_action()
         except expect_error, exc:
@@ -393,7 +394,7 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
         else:
             raise self.failureException(
                 "Failed to raise " + expect_error.__name__)
-        self.failUnlessIn(exc.message, pidfile_path)
+        self.failUnlessIn(exc.message, expect_message_content)
 
     def test_breaks_lock_if_no_such_process(self):
         """ Should request breaking lock if PID file process is not running. """
@@ -468,13 +469,14 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
         scaffold.mock_restore()
 
     def test_aborts_if_pidfile_not_locked(self):
-        """ Should report failure and exit if PID file is not locked. """
+        """ Should exit with failure if PID file is not locked. """
         instance = self.test_instance
         self.mock_pidlockfile.is_locked.mock_returns = False
         self.mock_pidlockfile.i_am_locking.mock_returns = False
         self.mock_pidlockfile.read_pid.mock_returns = None
         pidfile_path = self.mock_pidfile_path
         expect_error = SystemExit
+        expect_message_content = pidfile_path
         try:
             instance.do_action()
         except expect_error, exc:
@@ -483,7 +485,7 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
             raise self.failureException(
                 "Failed to raise " + expect_error.__name__)
         scaffold.mock_restore()
-        self.failUnlessIn(exc.message, pidfile_path)
+        self.failUnlessIn(exc.message, expect_message_content)
 
     def test_breaks_lock_if_pidfile_stale(self):
         """ Should break lock if PID file is stale. """

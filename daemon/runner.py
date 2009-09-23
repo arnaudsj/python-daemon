@@ -73,8 +73,8 @@ class DaemonRunner(object):
         progname = os.path.basename(argv[0])
         usage_exit_code = 2
         action_usage = "|".join(self.action_funcs.keys())
-        sys.stderr.write(
-            "usage: %(progname)s %(action_usage)s\n" % vars())
+        message = "usage: %(progname)s %(action_usage)s" % vars()
+        emit_message(message)
         sys.exit(usage_exit_code)
 
     def parse_args(self, argv=None):
@@ -99,17 +99,14 @@ class DaemonRunner(object):
             if is_pidfile_stale(self.pidfile):
                 self.pidfile.break_lock()
             else:
-                error = SystemExit(
-                    "PID file %(pidfile_path)r already locked"
-                    % vars())
-                raise error
+                message = "PID file %(pidfile_path)r already locked" % vars()
+                exit_with_message(message, status=1)
 
         self.daemon_context.open()
 
         pid = os.getpid()
         message = self.start_message % vars()
-        sys.stderr.write("%(message)s\n" % vars())
-        sys.stderr.flush()
+        emit_message(message)
 
         self.app.run()
 
@@ -118,10 +115,8 @@ class DaemonRunner(object):
             """
         if not self.pidfile.is_locked():
             pidfile_path = self.pidfile.path
-            error = SystemExit(
-                "PID file %(pidfile_path)r not locked"
-                % vars())
-            raise error
+            message = "PID file %(pidfile_path)r not locked" % vars()
+            exit_with_message(message, status=1)
 
         if is_pidfile_stale(self.pidfile):
             self.pidfile.break_lock()
@@ -130,10 +125,8 @@ class DaemonRunner(object):
             try:
                 os.kill(pid, signal.SIGTERM)
             except OSError, exc:
-                error = SystemExit(
-                    "Failed to terminate %(pid)d: %(exc)s"
-                    % vars())
-                raise error
+                message = "Failed to terminate %(pid)d: %(exc)s" % vars()
+                exit_with_message(message, status=1)
 
     def _restart(self):
         """ Stop, then start.
@@ -154,6 +147,21 @@ class DaemonRunner(object):
         if func is None:
             raise ValueError("Unknown action: %(action)r" % vars(self))
         func(self)
+
+
+def emit_message(message, stream=None):
+    """ Emit a message to the specified stream (default `sys.stderr`). """
+    if stream is None:
+        stream = sys.stderr
+    stream.write("%(message)s\n" % vars())
+    stream.flush()
+
+
+def exit_with_message(message, status=0):
+    """ Exit with specified message and exit status. """
+    exc = SystemExit(message)
+    exc.code = status
+    raise exc
 
 
 def make_pidlockfile(path):

@@ -158,7 +158,8 @@ def read_pid_from_pidfile(pidfile_path):
         try:
             pid = int(line)
         except ValueError:
-            pass
+            raise PIDFileParseError(
+                "PID file %(pidfile_path)r contents invalid" % vars())
         pidfile.close()
 
     return pid

@@ -183,23 +183,37 @@ class PIDLockFile_i_am_locking_TestCase(scaffold.TestCase):
             expect_error,
             instance.i_am_locking)
 
-    def test_returns_false_if_pid_file_contains_bogus_pid(self):
-        """ Should return False if PID file contains a bogus PID. """
+    def test_raises_error_if_pid_file_empty(self):
+        """ Should raise error if PID file is empty. """
         instance = self.test_instance
         expect_result = False
+        self.mock_pidfile = self.mock_pidfile_empty
         self.pidfile_path_exists_func = (lambda: True)
         self.pidfile_open_func = self.mock_pidfile_open_okay
-        self.mock_pidfile.write("bogus\n")
-        result = instance.i_am_locking()
-        self.failUnlessEqual(expect_result, result)
+        expect_error = pidlockfile.PIDFileParseError
+        self.failUnlessRaises(
+            expect_error,
+            instance.i_am_locking)
+
+    def test_raises_error_if_pid_file_contains_bogus_pid(self):
+        """ Should raise error if PID file contains a bogus PID. """
+        instance = self.test_instance
+        expect_result = False
+        self.mock_pidfile = self.mock_pidfile_bogus
+        self.pidfile_path_exists_func = (lambda: True)
+        self.pidfile_open_func = self.mock_pidfile_open_okay
+        expect_error = pidlockfile.PIDFileParseError
+        self.failUnlessRaises(
+            expect_error,
+            instance.i_am_locking)
 
     def test_returns_false_if_pid_file_contains_different_pid(self):
         """ Should return False if PID file contains a different PID. """
         instance = self.test_instance
         expect_result = False
+        self.mock_pidfile = self.mock_pidfile_other
         self.pidfile_path_exists_func = (lambda: True)
         self.pidfile_open_func = self.mock_pidfile_open_okay
-        self.mock_pidfile.write("0\n")
         result = instance.i_am_locking()
         self.failUnlessEqual(expect_result, result)
 
@@ -461,10 +475,13 @@ def setup_pidfile_fixtures(testcase):
 
     testcase.mock_current_pid = 235
     testcase.mock_other_pid = 8642
+    testcase.mock_pidfile_empty = FakeFileDescriptorStringIO()
     testcase.mock_pidfile_current = FakeFileDescriptorStringIO(
         "%(mock_current_pid)d\n" % vars(testcase))
     testcase.mock_pidfile_other = FakeFileDescriptorStringIO(
         "%(mock_other_pid)d\n" % vars(testcase))
+    testcase.mock_pidfile_bogus = FakeFileDescriptorStringIO(
+        "b0gUs")
     testcase.mock_pidfile_path = tempfile.mktemp()
 
     scaffold.mock(
@@ -592,6 +609,26 @@ class read_pid_from_pidfile_TestCase(scaffold.TestCase):
         pidfile_path = self.mock_pidfile_path
         self.pidfile_open_func = self.mock_pidfile_open_read_denied
         expect_error = EnvironmentError
+        self.failUnlessRaises(
+            expect_error,
+            pidlockfile.read_pid_from_pidfile, pidfile_path)
+
+    def test_raises_error_when_file_empty(self):
+        """ Should raise error when the PID file is empty. """
+        pidfile_path = self.mock_pidfile_path
+        self.mock_pidfile = self.mock_pidfile_empty
+        self.pidfile_open_func = self.mock_pidfile_open_okay
+        expect_error = pidlockfile.PIDFileParseError
+        self.failUnlessRaises(
+            expect_error,
+            pidlockfile.read_pid_from_pidfile, pidfile_path)
+
+    def test_raises_error_when_file_contents_invalid(self):
+        """ Should raise error when the PID file contents are invalid. """
+        pidfile_path = self.mock_pidfile_path
+        self.mock_pidfile = self.mock_pidfile_bogus
+        self.pidfile_open_func = self.mock_pidfile_open_okay
+        expect_error = pidlockfile.PIDFileParseError
         self.failUnlessRaises(
             expect_error,
             pidlockfile.read_pid_from_pidfile, pidfile_path)

@@ -46,7 +46,7 @@ class DaemonRunner(object):
         The first command-line argument is the action to take:
 
         * 'start': Become a daemon and call `app.run()`.
-        * 'stop': Close the daemon context.
+        * 'stop': Exit the daemon process specified in the PID file.
         * 'restart': Stop, then start.
 
         """
@@ -124,7 +124,7 @@ class DaemonRunner(object):
         self.app.run()
 
     def _stop(self):
-        """ Close the daemon context.
+        """ Exit the daemon process specified in the current PID file.
             """
         if not self.pidfile.is_locked():
             pidfile_path = self.pidfile.path

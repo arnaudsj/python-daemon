@@ -148,8 +148,11 @@ def read_pid_from_pidfile(pidfile_path):
     pid = None
     try:
         pidfile = open(pidfile_path, 'r')
-    except IOError:
-        pass
+    except IOError, exc:
+        if exc.errno == errno.ENOENT:
+            pass
+        else:
+            raise
     else:
         line = pidfile.read().strip()
         try:

@@ -1,6 +1,7 @@
-2009-09-23  Ben Finney  <ben@benfinney.id.au>
+2009-09-23  Ben Finney  <ben+python@benfinney.id.au>
 
     * Raise specific errors on ‘DaemonRunner’ failures.
+    * Distinguish different errors on reading PID file.
 
 2009-09-18  Ben Finney  <ben+python@benfinney.id.au>
 

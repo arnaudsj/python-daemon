@@ -18,7 +18,7 @@ import errno
 import time
 
 from lockfile import (
-    LockBase,
+    LinkFileLock,
     AlreadyLocked, LockFailed,
     NotLocked, NotMyLock,
     )
@@ -31,7 +31,7 @@ class PIDFileParseError(ValueError, PIDFileError):
     """ Raised when parsing contents of PID file fails. """
 
 
-class PIDLockFile(LockBase):
+class PIDLockFile(LinkFileLock):
     """ Lockfile implemented as a Unix PID file.
 
         The PID file is named by the attribute `path`. When locked,

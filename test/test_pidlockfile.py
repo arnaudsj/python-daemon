@@ -21,8 +21,9 @@ import tempfile
 import errno
 import time
 
-import scaffold
+import lockfile
 
+import scaffold
 from daemon import pidlockfile
 
 
@@ -213,6 +214,11 @@ class PIDLockFile_TestCase(scaffold.TestCase):
         """ New instance of PIDLockFile should be created. """
         instance = self.test_instance
         self.failUnlessIsInstance(instance, pidlockfile.PIDLockFile)
+
+    def test_inherits_from_linkfilelock(self):
+        """ Should inherit from LinkFileLock. """
+        instance = self.test_instance
+        self.failUnlessIsInstance(instance, lockfile.LinkFileLock)
 
     def test_has_specified_path(self):
         """ Should have specified path. """

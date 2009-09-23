@@ -197,6 +197,7 @@ def write_pid_to_pidfile(pidfile_path):
     pid = os.getpid()
     line = "%(pid)d\n" % vars()
     pidfile.write(line)
+    pidfile.close()
 
 
 def remove_existing_pidfile(pidfile_path):

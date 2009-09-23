@@ -711,7 +711,28 @@ class write_pid_to_pidfile_TestCase(scaffold.TestCase):
     def test_writes_pid_to_file(self):
         """ Should write the current PID to the specified file. """
         pidfile_path = self.mock_pidfile_path
+        self.mock_pidfile.close = scaffold.Mock(
+            "mock_pidfile.close",
+            tracker=self.mock_tracker)
         expect_line = "%(mock_current_pid)d\n" % vars(self)
         pidlockfile.write_pid_to_pidfile(pidfile_path)
         scaffold.mock_restore()
         self.failUnlessEqual(expect_line, self.mock_pidfile.getvalue())
+
+    def test_closes_file_after_write(self):
+        """ Should close the specified file after writing. """
+        pidfile_path = self.mock_pidfile_path
+        self.mock_pidfile.write = scaffold.Mock(
+            "mock_pidfile.write",
+            tracker=self.mock_tracker)
+        self.mock_pidfile.close = scaffold.Mock(
+            "mock_pidfile.close",
+            tracker=self.mock_tracker)
+        expect_mock_output = """\
+            ...
+            Called mock_pidfile.write(...)
+            Called mock_pidfile.close()
+            """ % vars()
+        pidlockfile.write_pid_to_pidfile(pidfile_path)
+        scaffold.mock_restore()
+        self.failUnlessMockCheckerMatch(expect_mock_output)

@@ -96,7 +96,7 @@ class DaemonRunner(object):
             """
         if self.pidfile.is_locked():
             pidfile_path = self.pidfile.path
-            if pidfile_lock_is_stale(self.pidfile):
+            if is_pidfile_stale(self.pidfile):
                 self.pidfile.break_lock()
             else:
                 error = SystemExit(
@@ -123,7 +123,7 @@ class DaemonRunner(object):
                 % vars())
             raise error
 
-        if pidfile_lock_is_stale(self.pidfile):
+        if is_pidfile_stale(self.pidfile):
             self.pidfile.break_lock()
         else:
             pid = self.pidfile.read_pid()
@@ -172,7 +172,7 @@ def make_pidlockfile(path):
     return lockfile
 
 
-def pidfile_lock_is_stale(pidfile):
+def is_pidfile_stale(pidfile):
     """ Determine whether a PID file refers to a nonexistent PID. """
     result = False
 

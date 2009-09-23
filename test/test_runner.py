@@ -485,8 +485,8 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
         scaffold.mock_restore()
         self.failUnlessIn(exc.message, pidfile_path)
 
-    def test_breaks_lock_if_pidfile_lock_stale(self):
-        """ Should break lock if PID file lock is stale. """
+    def test_breaks_lock_if_pidfile_stale(self):
+        """ Should break lock if PID file is stale. """
         instance = self.test_instance
         pidfile_path = self.mock_pidfile_path
         test_pid = self.mock_other_pid

@@ -179,6 +179,14 @@ class DaemonRunner_TestCase(scaffold.TestCase):
         """ Should have specified application object. """
         self.failUnlessIs(self.test_app, self.test_instance.app)
 
+    def test_sets_pidfile_none_when_pidfile_path_is_none(self):
+        """ Should set ‘pidfile’ to ‘None’ when ‘pidfile_path’ is ‘None’. """
+        pidfile_path = None
+        self.test_app.pidfile_path = pidfile_path
+        expect_pidfile = None
+        instance = runner.DaemonRunner(self.test_app)
+        self.failUnlessIs(expect_pidfile, instance.pidfile)
+
     def test_error_when_pidfile_path_not_string(self):
         """ Should raise ValueError when PID file path not a string. """
         pidfile_path = object()

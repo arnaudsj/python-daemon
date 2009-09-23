@@ -62,8 +62,9 @@ class DaemonRunner(object):
               paths to open and replace the existing `sys.stdin`,
               `sys.stdout`, `sys.stderr`.
 
-            * `pidfile_path`: Filesystem path to a file that will be
-              used as the PID file for the daemon.
+            * `pidfile_path`: Absolute filesystem path to a file that
+              will be used as the PID file for the daemon. If
+              ``None``, no PID file will be used.
 
             * `run`: Callable that will be invoked when the daemon is
               started.
@@ -77,7 +78,9 @@ class DaemonRunner(object):
         self.daemon_context.stderr = open(
             app.stderr_path, 'w+', buffering=0)
 
-        self.pidfile = make_pidlockfile(app.pidfile_path)
+        self.pidfile = None
+        if app.pidfile_path is not None:
+            self.pidfile = make_pidlockfile(app.pidfile_path)
         self.daemon_context.pidfile = self.pidfile
 
     def _usage_exit(self, argv):

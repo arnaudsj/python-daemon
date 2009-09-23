@@ -47,29 +47,6 @@ class PIDLockFile(LinkFileLock):
         result = read_pid_from_pidfile(self.path)
         return result
 
-    def is_locked(self):
-        """ Test if the lock is currently held.
-
-            The lock is held if the PID file for this lock exists.
-
-            """
-        result = pidfile_exists(self.path)
-        return result
-
-    def i_am_locking(self):
-        """ Test if the lock is held by the current process.
-
-            Returns ``True`` if the current process ID matches the
-            number stored in the PID file.
-
-            """
-        result = False
-        current_pid = os.getpid()
-        pidfile_pid = self.read_pid()
-        if current_pid == pidfile_pid:
-            result = True
-        return result
-
     poll_interval = 0.1
 
     def acquire(self, timeout=None):

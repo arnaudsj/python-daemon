@@ -2,6 +2,7 @@
 
     * Raise specific errors on ‘DaemonRunner’ failures.
     * Distinguish different conditions on reading and parsing PID file.
+    * Refactor code to ‘_terminate_daemon_process’ method.
 
 2009-09-18  Ben Finney  <ben+python@benfinney.id.au>
 

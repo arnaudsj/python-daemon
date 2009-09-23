@@ -27,6 +27,19 @@ import pidlockfile
 from daemon import DaemonContext
 
 
+class DaemonRunnerError(Exception):
+    """ Abstract base class for errors from DaemonRunner. """
+
+class DaemonRunnerInvalidActionError(ValueError, DaemonRunnerError):
+    """ Raised when specified action for DaemonRunner is invalid. """
+
+class DaemonRunnerStartFailureError(RuntimeError, DaemonRunnerError):
+    """ Raised when failure starting DaemonRunner. """
+
+class DaemonRunnerStopFailureError(RuntimeError, DaemonRunnerError):
+    """ Raised when failure stopping DaemonRunner. """
+
+
 class DaemonRunner(object):
     """ Controller for a callable running in a separate background process.
 

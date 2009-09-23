@@ -34,6 +34,33 @@ from daemon import pidlockfile
 from daemon import runner
 
 
+class Exception_TestCase(scaffold.Exception_TestCase):
+    """ Test cases for module exception classes. """
+
+    def __init__(self, *args, **kwargs):
+        """ Set up a new instance. """
+        super(Exception_TestCase, self).__init__(*args, **kwargs)
+
+        self.valid_exceptions = {
+            runner.DaemonRunnerError: dict(
+                min_args = 1,
+                types = (Exception,),
+                ),
+            runner.DaemonRunnerInvalidActionError: dict(
+                min_args = 1,
+                types = (runner.DaemonRunnerError, ValueError),
+                ),
+            runner.DaemonRunnerStartFailureError: dict(
+                min_args = 1,
+                types = (runner.DaemonRunnerError, RuntimeError),
+                ),
+            runner.DaemonRunnerStopFailureError: dict(
+                min_args = 1,
+                types = (runner.DaemonRunnerError, RuntimeError),
+                ),
+            }
+
+
 def setup_runner_fixtures(testcase):
     """ Set up common test fixtures for DaemonRunner test case. """
     testcase.mock_tracker = scaffold.MockTracker()

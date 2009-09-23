@@ -7,6 +7,8 @@
     * Don't set pidfile at all if no path specified to constructor.
     * Write the PID file using correct OS locking and permissions.
     * Close the PID file after writing.
+    * Implement ‘PIDLockFile’ as subclass of ‘lockfile.LinkFileLock’.
+    * Remove redundant checks for file existence.
 
 2009-09-18  Ben Finney  <ben+python@benfinney.id.au>
 

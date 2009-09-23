@@ -82,19 +82,6 @@ def setup_pidfile_fixtures(testcase):
         returns=testcase.mock_current_pid,
         tracker=testcase.mock_tracker)
 
-    def mock_path_exists(path):
-        if path == testcase.mock_pidfile_path:
-            result = testcase.pidfile_path_exists_func()
-        else:
-            result = False
-        return result
-
-    testcase.pidfile_path_exists_func = (lambda: False)
-
-    scaffold.mock(
-        "os.path.exists",
-        mock_obj=mock_path_exists)
-
     def mock_pidfile_open_nonexist(filename, mode, buffering):
         if 'r' in mode:
             raise IOError(errno.ENOENT, "No such file %(filename)r" % vars())
@@ -192,17 +179,14 @@ def setup_lockfile_method_mocks(testcase, class_name):
         if testcase.mock_locking_pid is not None:
             raise lockfile.AlreadyLocked()
         testcase.mock_locking_pid = testcase.mock_current_pid
-        testcase.pidfile_path_exists_func = (lambda: True)
     def mock_release():
         if testcase.mock_locking_pid is None:
             raise lockfile.NotLocked()
         if testcase.mock_locking_pid != testcase.mock_current_pid:
             raise lockfile.NotMyLock()
         testcase.mock_locking_pid = None
-        testcase.pidfile_path_exists_func = (lambda: False)
     def mock_break_lock():
         testcase.mock_locking_pid = None
-        testcase.pidfile_path_exists_func = (lambda: False)
 
     for func_name in [
         'is_locked', 'i_am_locking',
@@ -299,7 +283,6 @@ class PIDLockFile_acquire_TestCase(scaffold.TestCase):
         setup_pidlockfile_fixtures(self)
         self.mock_tracker.clear()
 
-        self.pidfile_path_exists_func = (lambda: False)
         self.pidfile_open_func = self.mock_pidfile_open_nonexist
 
     def tearDown(self):
@@ -361,7 +344,6 @@ class PIDLockFile_release_TestCase(scaffold.TestCase):
 
         self.mock_pidfile = self.mock_pidfile_current
         self.mock_locking_pid = self.mock_current_pid
-        self.pidfile_path_exists_func = (lambda: True)
         self.pidfile_open_func = self.mock_pidfile_open_okay
 
     def tearDown(self):
@@ -431,7 +413,6 @@ class PIDLockFile_break_lock_TestCase(scaffold.TestCase):
         self.mock_tracker.clear()
 
         self.mock_pidfile = self.mock_pidfile_other
-        self.pidfile_path_exists_func = (lambda: True)
         self.pidfile_open_func = self.mock_pidfile_open_okay
 
     def tearDown(self):

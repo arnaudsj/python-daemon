@@ -189,22 +189,25 @@ def emit_message(message, stream=None):
 
 def make_pidlockfile(path):
     """ Make a PIDLockFile instance with the given filesystem path. """
-    lockfile = None
-
-    if path is not None:
-        if not isinstance(path, basestring):
-            error = ValueError("Not a filesystem path: %(path)r" % vars())
-            raise error
-        if not os.path.isabs(path):
-            error = ValueError("Not an absolute path: %(path)r" % vars())
-            raise error
-        lockfile = pidlockfile.PIDLockFile(path)
+    if not isinstance(path, basestring):
+        error = ValueError("Not a filesystem path: %(path)r" % vars())
+        raise error
+    if not os.path.isabs(path):
+        error = ValueError("Not an absolute path: %(path)r" % vars())
+        raise error
+    lockfile = pidlockfile.PIDLockFile(path)
 
     return lockfile
 
 
 def is_pidfile_stale(pidfile):
-    """ Determine whether a PID file refers to a nonexistent PID. """
+    """ Determine whether a PID file is stale.
+
+        Returns ``True`` (“stale”) if the contents of the file can be
+        read but do not match the PID of a currently-running process,
+        otherwise ``False``.
+
+        """
     result = False
 
     pidfile_pid = pidfile.read_pid()

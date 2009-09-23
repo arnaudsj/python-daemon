@@ -76,12 +76,12 @@ def setup_pidlockfile_fixtures(testcase):
         "pidlockfile.remove_existing_pidfile",
         tracker=testcase.mock_tracker)
 
-
+
 class PIDLockFile_TestCase(scaffold.TestCase):
     """ Test cases for PIDLockFile class. """
 
     def setUp(self):
-        """ Set up test fixtures """
+        """ Set up test fixtures. """
         setup_pidlockfile_fixtures(self)
 
     def tearDown(self):

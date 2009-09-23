@@ -378,7 +378,7 @@ class DaemonRunner_do_action_TestCase(scaffold.TestCase):
         scaffold.mock_restore()
 
     def test_raises_error_if_unknown_action(self):
-        """ Should emit a usage message and exit if too few arguments. """
+        """ Should emit a usage message and exit if action is unknown. """
         instance = self.test_instance
         instance.action = 'bogus'
         expect_error = runner.DaemonRunnerInvalidActionError
@@ -524,7 +524,6 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
         os.kill.mock_raises = error
         expect_mock_output = """\
             ...
-            Called os.kill(%(test_pid)r, %(expect_signal)r)
             Called pidlockfile.PIDLockFile.break_lock()
             """ % vars()
         instance.do_action()

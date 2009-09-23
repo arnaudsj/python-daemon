@@ -34,9 +34,10 @@ class PIDFileParseError(ValueError, PIDFileError):
 class PIDLockFile(LockBase):
     """ Lockfile implemented as a Unix PID file.
 
-        The lock file is a normal file named by the attribute `path`.
-        A lock's PID file contains a single line of text, containing
-        the process ID (PID) of the process that acquired the lock.
+        The PID file is named by the attribute `path`. When locked,
+        the file will be created with a single line of text,
+        containing the process ID (PID) of the process that acquired
+        the lock.
 
         """
 
@@ -101,14 +102,14 @@ class PIDLockFile(LockBase):
             time.sleep(self.poll_interval)
         try:
             write_pid_to_pidfile(self.path)
-        except OSError:
-            error = LockFailed()
+        except OSError, exc:
+            error = LockFailed("%(exc)s" % vars())
             raise error
 
     def release(self):
         """ Release the lock.
 
-            Removes the PID file to release the lock, or raises an
+            Removes the PID file then releases the lock, or raises an
             error if the current process does not hold the lock.
 
             """
@@ -123,8 +124,8 @@ class PIDLockFile(LockBase):
     def break_lock(self):
         """ Break an existing lock.
 
-            Removes the PID file if it already exists, otherwise does
-            nothing.
+            If the lock is held, breaks the lock and removes the PID
+            file.
 
             """
         remove_existing_pidfile(self.path)
@@ -141,11 +142,12 @@ def read_pid_from_pidfile(pidfile_path):
     """ Read the PID recorded in the named PID file.
 
         Read and return the numeric PID recorded as text in the named
-        PID file. If the PID file cannot be read, or if the content is
-        not a valid PID, return ``None``.
+        PID file. If the PID file does not exist, return ``None``. If
+        the content is not a valid PID, raise ``PIDFileParseError``.
 
         """
     pid = None
+    pidfile = None
     try:
         pidfile = open(pidfile_path, 'r')
     except IOError, exc:
@@ -153,8 +155,19 @@ def read_pid_from_pidfile(pidfile_path):
             pass
         else:
             raise
-    else:
-        line = pidfile.read().strip()
+
+    if pidfile:
+        # According to the FHS 2.3 section on PID files in ‘/var/run’:
+        #
+        #   The file must consist of the process identifier in
+        #   ASCII-encoded decimal, followed by a newline character. …
+        #
+        #   Programs that read PID files should be somewhat flexible
+        #   in what they accept; i.e., they should ignore extra
+        #   whitespace, leading zeroes, absence of the trailing
+        #   newline, or additional lines in the PID file.
+
+        line = pidfile.readline().strip()
         try:
             pid = int(line)
         except ValueError:
@@ -173,6 +186,13 @@ def write_pid_to_pidfile(pidfile_path):
 
         """
     pidfile = open(pidfile_path, 'w')
+
+    # According to the FHS 2.3 section on PID files in ‘/var/run’:
+    #
+    #   The file must consist of the process identifier in
+    #   ASCII-encoded decimal, followed by a newline character. For
+    #   example, if crond was process number 25, /var/run/crond.pid
+    #   would contain three characters: two, five, and newline.
 
     pid = os.getpid()
     line = "%(pid)d\n" % vars()

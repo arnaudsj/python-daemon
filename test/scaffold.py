@@ -79,6 +79,14 @@ def get_function_signature(func):
         'arg_defaults': arg_defaults,
         }
 
+    non_pos_names = list(func.func_code.co_varnames[arg_count:])
+    COLLECTS_ARBITRARY_POSITIONAL_ARGS = 0x04
+    if func.func_code.co_flags & COLLECTS_ARBITRARY_POSITIONAL_ARGS:
+        signature['var_args'] = non_pos_names.pop(0)
+    COLLECTS_ARBITRARY_KEYWORD_ARGS = 0x08
+    if func.func_code.co_flags & COLLECTS_ARBITRARY_KEYWORD_ARGS:
+        signature['var_kw_args'] = non_pos_names.pop(0)
+
     return signature
 
 
@@ -94,6 +102,10 @@ def format_function_signature(func):
         else:
             arg_text_template = "%(arg_name)s"
         args_text.append(arg_text_template % vars())
+    if 'var_args' in signature:
+        args_text.append("*%(var_args)s" % signature)
+    if 'var_kw_args' in signature:
+        args_text.append("**%(var_kw_args)s" % signature)
     signature_args_text = ", ".join(args_text)
 
     func_name = signature['name']
@@ -320,11 +332,15 @@ class TestCase(unittest.TestCase):
 
             * function name,
 
-            * positional argument count,
+            * count of named parameters,
 
-            * positional argument name sequence,
+            * sequence of named parameters,
 
-            * positional argument default values.
+            * default values of named parameters,
+
+            * collector for arbitrary positional arguments,
+
+            * collector for arbitrary keyword arguments.
 
             """
         first_signature = get_function_signature(first)

@@ -2,6 +2,7 @@
 
     * Implement ‘TimeoutPIDLockFile’ to specify a timeout in advance of
       lock acquisition.
+    * Use lock with timeout for ‘DaemonRunner’.
 
 2009-09-24  Ben Finney  <ben+python@benfinney.id.au>
 

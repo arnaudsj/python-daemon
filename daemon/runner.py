@@ -198,7 +198,7 @@ def make_pidlockfile(path):
     if not os.path.isabs(path):
         error = ValueError("Not an absolute path: %(path)r" % vars())
         raise error
-    lockfile = pidlockfile.PIDLockFile(path)
+    lockfile = pidlockfile.TimeoutPIDLockFile(path)
 
     return lockfile
 

@@ -145,6 +145,14 @@ def setup_pidfile_fixtures(testcase):
     scenarios = make_pidlockfile_scenarios()
     testcase.pidlockfile_scenarios = scenarios
 
+    def get_scenario_option(testcase, key, default=None):
+        value = default
+        try:
+            value = testcase.scenario[key]
+        except (NameError, TypeError, AttributeError, KeyError):
+            pass
+        return value
+
     scaffold.mock(
         "os.getpid",
         returns=scenarios['simple']['pid'],
@@ -201,7 +209,8 @@ def setup_pidfile_fixtures(testcase):
     testcase.mock_pidfile_open_funcs = make_mock_open_funcs(testcase)
 
     def mock_open(filename, mode='r', buffering=None):
-        if filename == testcase.scenario['path']:
+        scenario_path = get_scenario_option(testcase, 'path')
+        if filename == scenario_path:
             func_name = testcase.scenario['open_func_name']
             mock_open_func = testcase.mock_pidfile_open_funcs[func_name]
             result = mock_open_func(filename, mode, buffering)
@@ -215,7 +224,8 @@ def setup_pidfile_fixtures(testcase):
         tracker=testcase.mock_tracker)
 
     def mock_os_open(filename, flags, mode=None):
-        if filename == testcase.scenario['path']:
+        scenario_path = get_scenario_option(testcase, 'path')
+        if filename == scenario_path:
             func_name = testcase.scenario['os_open_func_name']
             mock_os_open_func = testcase.mock_pidfile_open_funcs[func_name]
             result = mock_os_open_func(filename, flags, mode)
@@ -229,6 +239,8 @@ def setup_pidfile_fixtures(testcase):
         tracker=testcase.mock_tracker)
 
     def mock_os_fdopen(fd, mode='r', buffering=None):
+        scenario_pidfile = get_scenario_option(
+            testcase, 'pidfile', FakeFileDescriptorStringIO())
         if fd == testcase.scenario['pidfile'].fileno():
             result = testcase.scenario['pidfile']
         else:

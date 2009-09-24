@@ -60,6 +60,49 @@ def make_suite(path=test_dir):
     return suite
 
 
+def get_function_signature(func):
+    """ Get the function signature as a mapping of attributes. """
+    arg_count = func.func_code.co_argcount
+    arg_names = func.func_code.co_varnames[:arg_count]
+
+    arg_defaults = {}
+    func_defaults = ()
+    if func.func_defaults is not None:
+        func_defaults = func.func_defaults
+    for (name, value) in zip(arg_names[::-1], func_defaults[::-1]):
+        arg_defaults[name] = value
+
+    signature = {
+        'name': func.__name__,
+        'arg_count': arg_count,
+        'arg_names': arg_names,
+        'arg_defaults': arg_defaults,
+        }
+
+    return signature
+
+
+def format_function_signature(func):
+    """ Format the function signature as printable text. """
+    signature = get_function_signature(func)
+
+    args_text = []
+    for arg_name in signature['arg_names']:
+        if arg_name in signature['arg_defaults']:
+            arg_default = signature['arg_defaults'][arg_name]
+            arg_text_template = "%(arg_name)s=%(arg_default)r"
+        else:
+            arg_text_template = "%(arg_name)s"
+        args_text.append(arg_text_template % vars())
+    signature_args_text = ", ".join(args_text)
+
+    func_name = signature['name']
+    signature_text = (
+        "%(func_name)s(%(signature_args_text)s)" % vars())
+
+    return signature_text
+
+
 class TestCase(unittest.TestCase):
     """ Test case behaviour. """
 
@@ -265,6 +308,43 @@ class TestCase(unittest.TestCase):
             raise self.failureException(msg)
 
     assertFunctionInTraceback = failUnlessFunctionInTraceback
+
+    def failUnlessFunctionSignatureMatch(self, first, second, msg=None):
+        """ Fail if the function signatures do not match.
+
+            Fail the test if the function signature does not match
+            between the ``first`` function and the ``second``
+            function.
+
+            The function signature includes:
+
+            * function name,
+
+            * positional argument count,
+
+            * positional argument name sequence,
+
+            * positional argument default values.
+
+            """
+        first_signature = get_function_signature(first)
+        second_signature = get_function_signature(second)
+
+        if first_signature != second_signature:
+            if msg is None:
+                first_signature_text = format_function_signature(first)
+                second_signature_text = format_function_signature(second)
+                msg = (textwrap.dedent("""\
+                    Function signatures do not match:
+                        %(first_signature)r != %(second_signature)r
+                    Expected:
+                        %(first_signature_text)s
+                    Got:
+                        %(second_signature_text)s""")
+                    ) % vars()
+            raise self.failureException(msg)
+
+    assertFunctionSignatureMatch = failUnlessFunctionSignatureMatch
 
 
 class Exception_TestCase(TestCase):

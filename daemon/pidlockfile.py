@@ -97,10 +97,10 @@ class TimeoutPIDLockFile(PIDLockFile):
 
         """
 
-    def __init__(self, acquire_timeout, *args, **kwargs):
+    def __init__(self, path, acquire_timeout=None, *args, **kwargs):
         """ Set up the parameters of a DaemonRunnerLock. """
         self.acquire_timeout = acquire_timeout
-        super(TimeoutPIDLockFile, self).__init__(*args, **kwargs)
+        super(TimeoutPIDLockFile, self).__init__(path, *args, **kwargs)
 
     def acquire(self, timeout=None, *args, **kwargs):
         """ Acquire the lock. """

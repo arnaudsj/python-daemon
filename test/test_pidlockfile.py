@@ -721,11 +721,11 @@ class TimeoutPIDLockFile_TestCase(scaffold.TestCase):
             'acquire_timeout': object(),
             }
 
-        self.test_args = dict(
+        self.test_kwargs = dict(
             path=self.scenario['pidfile_path'],
             acquire_timeout=self.scenario['acquire_timeout'],
             )
-        self.test_instance = pidlockfile.TimeoutPIDLockFile(**self.test_args)
+        self.test_instance = pidlockfile.TimeoutPIDLockFile(**self.test_kwargs)
 
     def tearDown(self):
         """ Tear down test fixtures. """
@@ -736,17 +736,27 @@ class TimeoutPIDLockFile_TestCase(scaffold.TestCase):
         instance = self.test_instance
         self.failUnlessIsInstance(instance, pidlockfile.PIDLockFile)
 
+    def test_init_has_expected_signature(self):
+        """ Should have expected signature for ‘__init__’. """
+        def test_func(self, path, acquire_timeout=None, *args, **kwargs): pass
+        test_func.__name__ = '__init__'
+        self.failUnlessFunctionSignatureMatch(
+            test_func, 
+            pidlockfile.TimeoutPIDLockFile.__init__)
+
     def test_has_specified_acquire_timeout(self):
         """ Should have specified ‘acquire_timeout’ value. """
         instance = self.test_instance
-        expect_timeout = self.test_args['acquire_timeout']
+        expect_timeout = self.test_kwargs['acquire_timeout']
         self.failUnlessEqual(expect_timeout, instance.acquire_timeout)
 
     def test_calls_superclass_init(self):
         """ Should call the superclass ‘__init__’. """
+        expect_path = self.test_kwargs['path']
         expect_mock_output = """\
-            Called pidlockfile.PIDLockFile.__init__(...)
-            """
+            Called pidlockfile.PIDLockFile.__init__(
+                %(expect_path)r)
+            """ % vars()
         self.failUnlessMockCheckerMatch(expect_mock_output)
 
     def test_acquire_uses_specified_timeout(self):
@@ -764,7 +774,7 @@ class TimeoutPIDLockFile_TestCase(scaffold.TestCase):
     def test_acquire_uses_stored_timeout_by_default(self):
         """ Should call superclass ‘acquire’ with stored timeout by default. """
         instance = self.test_instance
-        test_timeout = self.test_args['acquire_timeout']
+        test_timeout = self.test_kwargs['acquire_timeout']
         expect_timeout = test_timeout
         self.mock_tracker.clear()
         expect_mock_output = """\

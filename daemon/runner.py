@@ -241,8 +241,8 @@ class DaemonRunnerLock(pidlockfile.PIDLockFile):
         self.acquire_timeout = acquire_timeout
         super(DaemonRunnerLock, self).__init__(*args, **kwargs)
 
-    def acquire(self, timeout=None):
+    def acquire(self, timeout=None, *args, **kwargs):
         """ Acquire the lock. """
         if timeout is None:
             timeout = self.acquire_timeout
-        super(DaemonRunnerLock, self).acquire(timeout)
+        super(DaemonRunnerLock, self).acquire(timeout, *args, **kwargs)

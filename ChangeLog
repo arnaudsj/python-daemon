@@ -1,3 +1,7 @@
+2009-09-24  Ben Finney  <ben+python@benfinney.id.au>
+
+    * Make a separate collection of PIDLockFile test scenarios.
+
 2009-09-23  Ben Finney  <ben+python@benfinney.id.au>
 
     * Raise specific errors on ‘DaemonRunner’ failures.

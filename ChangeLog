@@ -44,11 +44,6 @@
     * Fix keywords argument for distribution setup.
     * Exclude ‘test’ package from distribution installation.
 
-2009-07-08  Ben Finney  <ben+python@benfinney.id.au>
-
-    * Implement PIDFileLock.acquire timeout semantics as per ‘lockfile’
-      library.
-
 2009-06-21  Ben Finney  <ben+python@benfinney.id.au>
 
     Version 1.4.6 released.

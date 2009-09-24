@@ -179,7 +179,7 @@ def setup_pidfile_fixtures(testcase):
         if (flags & os.O_CREAT):
             result = testcase.scenario['pidfile'].fileno()
         else:
-            raise IOError(errno.EPERM, "Read denied on %(filename)r" % vars())
+            raise OSError(errno.EPERM, "Read denied on %(filename)r" % vars())
         return result
 
     def mock_pidfile_os_open_okay(filename, flags, mode):

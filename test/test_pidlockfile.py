@@ -59,6 +59,33 @@ class Exception_TestCase(scaffold.Exception_TestCase):
             }
 
 
+def make_pidlockfile_scenarios():
+    """ Make a collection of scenarios for testing PIDLockFile instances. """
+
+    mock_pidfile_path = tempfile.mktemp()
+
+    scenarios = {
+        'not-exist': {},
+        'not-exist-write-denied': {},
+        'not-exist-write-busy': {},
+        'exist-read-denied': {},
+        'exist-locked-read-denied': {},
+        'exist-empty': {},
+        'exist-invalid': {},
+        'exist-current-pid': {},
+        'exist-current-pid-locked': {},
+        'exist-other-pid': {},
+        'exist-other-pid-locked': {},
+        }
+
+    for scenario in scenarios.values():
+        scenario['path'] = mock_pidfile_path
+
+    return scenarios
+
+pidlockfile_scenarios = make_pidlockfile_scenarios()
+
+
 def setup_pidfile_fixtures(testcase):
     """ Set up common fixtures for PID file test cases. """
     testcase.mock_tracker = scaffold.MockTracker()
@@ -73,8 +100,6 @@ def setup_pidfile_fixtures(testcase):
         "%(mock_other_pid)d\n" % vars(testcase))
     testcase.mock_pidfile_bogus = FakeFileDescriptorStringIO(
         "b0gUs")
-
-    mock_pidfile_path = tempfile.mktemp()
 
     testcase.mock_pidfile = NotImplemented
 
@@ -167,23 +192,6 @@ def setup_pidfile_fixtures(testcase):
         returns_func=mock_os_fdopen,
         tracker=testcase.mock_tracker)
 
-    testcase.pidlockfile_scenarios = {
-        'not-exist': {},
-        'not-exist-write-denied': {},
-        'not-exist-write-busy': {},
-        'exist-read-denied': {},
-        'exist-locked-read-denied': {},
-        'exist-empty': {},
-        'exist-invalid': {},
-        'exist-current-pid': {},
-        'exist-current-pid-locked': {},
-        'exist-other-pid': {},
-        'exist-other-pid-locked': {},
-        }
-
-    for scenario in testcase.pidlockfile_scenarios.values():
-        scenario['path'] = mock_pidfile_path
-
     testcase.scenario = NotImplemented
 
 
@@ -242,7 +250,7 @@ def setup_pidlockfile_fixtures(testcase, scenario_name=None):
 
 def set_pidlockfile_scenario(testcase, scenario_name, clear_tracker=True):
     """ Set up the test case to the specified scenario. """
-    testcase.scenario = testcase.pidlockfile_scenarios[scenario_name]
+    testcase.scenario = pidlockfile_scenarios[scenario_name]
     setup_lockfile_method_mocks(testcase, "lockfile.LinkFileLock")
     testcase.pidlockfile_args = dict(
         path=testcase.scenario['path'],

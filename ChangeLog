@@ -1,7 +1,7 @@
 2009-09-24  Ben Finney  <ben+python@benfinney.id.au>
 
-    * Implement ‘DaemonRunnerLock’ to provide a timeout in advance of lock
-      acquisition.
+    * Implement ‘TimeoutPIDLockFile’ to specify a timeout in advance of
+      lock acquisition.
 
 2009-09-24  Ben Finney  <ben+python@benfinney.id.au>
 

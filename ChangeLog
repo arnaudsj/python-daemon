@@ -1,5 +1,10 @@
 2009-09-24  Ben Finney  <ben+python@benfinney.id.au>
 
+    * Implement ‘DaemonRunnerLock’ to provide a timeout in advance of lock
+      acquisition.
+
+2009-09-24  Ben Finney  <ben+python@benfinney.id.au>
+
     Version 1.5 released.
 
     * Make a separate collection of PIDLockFile test scenarios.

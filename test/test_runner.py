@@ -616,3 +616,55 @@ class DaemonRunner_do_action_restart_TestCase(scaffold.TestCase):
             """
         instance.do_action()
         self.failUnlessMockCheckerMatch(expect_mock_output)
+
+
+class DaemonRunnerLock_TestCase(scaffold.TestCase):
+    """ Test cases for ‘DaemonRunnerLock’ class. """
+
+    def setUp(self):
+        """ Set up test fixtures. """
+        self.mock_tracker = scaffold.MockTracker()
+
+        pidlockfile_scenarios = make_pidlockfile_scenarios()
+        self.pidlockfile_scenario = pidlockfile_scenarios['simple']
+        pidfile_path = self.pidlockfile_scenario['path']
+
+        scaffold.mock(
+            "pidlockfile.PIDLockFile.__init__",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "pidlockfile.PIDLockFile.acquire",
+            tracker=self.mock_tracker)
+
+        self.scenario = {
+            'pidfile_path': self.pidlockfile_scenario['path'],
+            'acquire_timeout': object(),
+            }
+
+        self.test_args = dict(
+            path=self.scenario['pidfile_path'],
+            acquire_timeout=self.scenario['acquire_timeout'],
+            )
+        self.test_instance = runner.DaemonRunnerLock(**self.test_args)
+
+    def tearDown(self):
+        """ Tear down test fixtures. """
+        scaffold.mock_restore()
+
+    def test_inherits_from_pidlockfile(self):
+        """ Should inherit from PIDLockFile. """
+        instance = self.test_instance
+        self.failUnlessIsInstance(instance, pidlockfile.PIDLockFile)
+
+    def test_has_specified_acquire_timeout(self):
+        """ Should have specified ‘acquire_timeout’ value. """
+        instance = self.test_instance
+        expect_timeout = self.test_args['acquire_timeout']
+        self.failUnlessEqual(expect_timeout, instance.acquire_timeout)
+
+    def test_calls_superclass_init(self):
+        """ Should call the superclass ‘__init__’. """
+        expect_mock_output = """\
+            Called pidlockfile.PIDLockFile.__init__(...)
+            """
+        self.failUnlessMockCheckerMatch(expect_mock_output)

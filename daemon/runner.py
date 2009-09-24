@@ -222,3 +222,13 @@ def is_pidfile_stale(pidfile):
             result = True
 
     return result
+
+
+class DaemonRunnerLock(pidlockfile.PIDLockFile):
+    """ Lockfile implemented as a Unix PID file for a DaemonRunner.
+        """
+
+    def __init__(self, acquire_timeout, *args, **kwargs):
+        """ Set up the parameters of a DaemonRunnerLock. """
+        self.acquire_timeout = acquire_timeout
+        super(DaemonRunnerLock, self).__init__(*args, **kwargs)

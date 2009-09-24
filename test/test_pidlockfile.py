@@ -76,12 +76,26 @@ def make_pidlockfile_scenarios():
 
     scenarios = {
         'simple': {},
-        'not-exist': {},
-        'not-exist-write-denied': {},
-        'not-exist-write-busy': {},
-        'exist-read-denied': {},
+        'not-exist': {
+            'open_func_name': 'mock_open_nonexist',
+            'os_open_func_name': 'mock_os_open_nonexist',
+            },
+        'not-exist-write-denied': {
+            'open_func_name': 'mock_open_nonexist',
+            'os_open_func_name': 'mock_os_open_nonexist',
+            },
+        'not-exist-write-busy': {
+            'open_func_name': 'mock_open_nonexist',
+            'os_open_func_name': 'mock_os_open_nonexist',
+            },
+        'exist-read-denied': {
+            'open_func_name': 'mock_open_read_denied',
+            'os_open_func_name': 'mock_os_open_read_denied',
+            },
         'exist-locked-read-denied': {
             'locking_pid': mock_other_pid,
+            'open_func_name': 'mock_open_read_denied',
+            'os_open_func_name': 'mock_os_open_read_denied',
             },
         'exist-empty': {},
         'exist-invalid': {
@@ -116,6 +130,10 @@ def make_pidlockfile_scenarios():
             scenario['pidfile_pid'] = None
         if 'locking_pid' not in scenario:
             scenario['locking_pid'] = None
+        if 'open_func_name' not in scenario:
+            scenario['open_func_name'] = 'mock_open_okay'
+        if 'os_open_func_name' not in scenario:
+            scenario['os_open_func_name'] = 'mock_os_open_okay'
 
     return scenarios
 
@@ -132,33 +150,61 @@ def setup_pidfile_fixtures(testcase):
         returns=scenarios['simple']['pid'],
         tracker=testcase.mock_tracker)
 
-    def mock_pidfile_open_nonexist(filename, mode, buffering):
-        if 'r' in mode:
-            raise IOError(errno.ENOENT, "No such file %(filename)r" % vars())
-        else:
+    def make_mock_open_funcs(testcase):
+
+        def mock_open_nonexist(filename, mode, buffering):
+            if 'r' in mode:
+                raise IOError(
+                    errno.ENOENT, "No such file %(filename)r" % vars())
+            else:
+                result = testcase.scenario['pidfile']
+            return result
+
+        def mock_open_read_denied(filename, mode, buffering):
+            if 'r' in mode:
+                raise IOError(
+                    errno.EPERM, "Read denied on %(filename)r" % vars())
+            else:
+                result = testcase.scenario['pidfile']
+            return result
+
+        def mock_open_okay(filename, mode, buffering):
             result = testcase.scenario['pidfile']
-        return result
+            return result
 
-    def mock_pidfile_open_read_denied(filename, mode, buffering):
-        if 'r' in mode:
-            raise IOError(errno.EPERM, "Read denied on %(filename)r" % vars())
-        else:
-            result = testcase.scenario['pidfile']
-        return result
+        def mock_os_open_nonexist(filename, flags, mode):
+            if (flags & os.O_CREAT):
+                result = testcase.scenario['pidfile'].fileno()
+            else:
+                raise OSError(
+                    errno.ENOENT, "No such file %(filename)r" % vars())
+            return result
 
-    def mock_pidfile_open_okay(filename, mode, buffering):
-        result = testcase.scenario['pidfile']
-        return result
+        def mock_os_open_read_denied(filename, flags, mode):
+            if (flags & os.O_CREAT):
+                result = testcase.scenario['pidfile'].fileno()
+            else:
+                raise OSError(
+                    errno.EPERM, "Read denied on %(filename)r" % vars())
+            return result
 
-    testcase.mock_pidfile_open_nonexist = mock_pidfile_open_nonexist
-    testcase.mock_pidfile_open_read_denied = mock_pidfile_open_read_denied
-    testcase.mock_pidfile_open_okay = mock_pidfile_open_okay
+        def mock_os_open_okay(filename, flags, mode):
+            result = testcase.scenario['pidfile'].fileno()
+            return result
 
-    testcase.pidfile_open_func = NotImplemented
+        funcs = dict(
+            (name, obj) for (name, obj) in vars().items()
+            if hasattr(obj, '__call__'))
+
+        return funcs
+
+    testcase.mock_pidfile_open_funcs = make_mock_open_funcs(testcase)
 
     def mock_open(filename, mode='r', buffering=None):
         if filename == testcase.scenario['path']:
-            result = testcase.pidfile_open_func(filename, mode, buffering)
+            func_name = testcase.scenario['open_func_name']
+            mock_open_func = testcase.mock_pidfile_open_funcs[func_name]
+            result = mock_open_func(filename, mode, buffering)
         else:
             result = FakeFileDescriptorStringIO()
         return result
@@ -168,36 +214,14 @@ def setup_pidfile_fixtures(testcase):
         returns_func=mock_open,
         tracker=testcase.mock_tracker)
 
-    def mock_pidfile_os_open_nonexist(filename, flags, mode):
-        if (flags & os.O_CREAT):
-            result = testcase.scenario['pidfile'].fileno()
-        else:
-            raise OSError(errno.ENOENT, "No such file %(filename)r" % vars())
-        return result
-
-    def mock_pidfile_os_open_read_denied(filename, flags, mode):
-        if (flags & os.O_CREAT):
-            result = testcase.scenario['pidfile'].fileno()
-        else:
-            raise OSError(errno.EPERM, "Read denied on %(filename)r" % vars())
-        return result
-
-    def mock_pidfile_os_open_okay(filename, flags, mode):
-        result = testcase.scenario['pidfile'].fileno()
-        return result
-
     def mock_os_open(filename, flags, mode=None):
         if filename == testcase.scenario['path']:
-            result = testcase.pidfile_os_open_func(filename, flags, mode)
+            func_name = testcase.scenario['os_open_func_name']
+            mock_os_open_func = testcase.mock_pidfile_open_funcs[func_name]
+            result = mock_os_open_func(filename, flags, mode)
         else:
             result = FakeFileDescriptorStringIO().fileno()
         return result
-
-    testcase.mock_pidfile_os_open_nonexist = mock_pidfile_os_open_nonexist
-    testcase.mock_pidfile_os_open_read_denied = mock_pidfile_os_open_read_denied
-    testcase.mock_pidfile_os_open_okay = mock_pidfile_os_open_okay
-
-    testcase.pidfile_os_open_func = NotImplemented
 
     scaffold.mock(
         "os.open",
@@ -320,8 +344,6 @@ class PIDLockFile_read_pid_TestCase(scaffold.TestCase):
         """ Set up test fixtures. """
         setup_pidlockfile_fixtures(self, 'exist-other-pid')
 
-        self.pidfile_open_func = self.mock_pidfile_open_okay
-
     def tearDown(self):
         """ Tear down test fixtures. """
         scaffold.mock_restore()
@@ -342,8 +364,6 @@ class PIDLockFile_acquire_TestCase(scaffold.TestCase):
         """ Set up test fixtures. """
         setup_pidlockfile_fixtures(self)
         set_pidlockfile_scenario(self, 'not-exist')
-
-        self.pidfile_open_func = self.mock_pidfile_open_nonexist
 
     def tearDown(self):
         """ Tear down test fixtures. """
@@ -409,7 +429,6 @@ class PIDLockFile_release_TestCase(scaffold.TestCase):
     def test_does_not_remove_existing_pidfile_if_not_locking(self):
         """ Should not request removal of PID file if not locking. """
         set_pidlockfile_scenario(self, 'exist-empty')
-        self.pidfile_open_func = self.mock_pidfile_open_okay
         instance = self.test_instance
         expect_error = lockfile.NotLocked
         unwanted_mock_output = (
@@ -424,7 +443,6 @@ class PIDLockFile_release_TestCase(scaffold.TestCase):
     def test_does_not_remove_existing_pidfile_if_not_my_lock(self):
         """ Should not request removal of PID file if we are not locking. """
         set_pidlockfile_scenario(self, 'exist-other-pid-locked')
-        self.pidfile_open_func = self.mock_pidfile_open_okay
         instance = self.test_instance
         expect_error = lockfile.NotMyLock
         unwanted_mock_output = (
@@ -439,7 +457,6 @@ class PIDLockFile_release_TestCase(scaffold.TestCase):
     def test_removes_existing_pidfile_if_i_am_locking(self):
         """ Should request removal of specified PID file if lock is ours. """
         set_pidlockfile_scenario(self, 'exist-current-pid-locked')
-        self.pidfile_open_func = self.mock_pidfile_open_okay
         instance = self.test_instance
         pidfile_path = self.scenario['path']
         expect_mock_output = """\
@@ -453,7 +470,6 @@ class PIDLockFile_release_TestCase(scaffold.TestCase):
     def test_calls_linkfilelock_release(self):
         """ Should finally call LinkFileLock.release method. """
         set_pidlockfile_scenario(self, 'exist-current-pid-locked')
-        self.pidfile_open_func = self.mock_pidfile_open_okay
         instance = self.test_instance
         expect_mock_output = """\
             ...
@@ -470,8 +486,6 @@ class PIDLockFile_break_lock_TestCase(scaffold.TestCase):
         """ Set up test fixtures. """
         setup_pidlockfile_fixtures(self)
         set_pidlockfile_scenario(self, 'exist-other-pid-locked')
-
-        self.pidfile_open_func = self.mock_pidfile_open_okay
 
     def tearDown(self):
         """ Tear down test fixtures. """
@@ -513,7 +527,6 @@ class read_pid_from_pidfile_TestCase(scaffold.TestCase):
     def test_opens_specified_filename(self):
         """ Should attempt to open specified pidfile filename. """
         set_pidlockfile_scenario(self, 'exist-other-pid')
-        self.pidfile_open_func = self.mock_pidfile_open_okay
         pidfile_path = self.scenario['path']
         expect_mock_output = """\
             Called __builtin__.open(%(pidfile_path)r, 'r')
@@ -525,7 +538,6 @@ class read_pid_from_pidfile_TestCase(scaffold.TestCase):
     def test_reads_pid_from_file(self):
         """ Should read the PID from the specified file. """
         set_pidlockfile_scenario(self, 'exist-other-pid')
-        self.pidfile_open_func = self.mock_pidfile_open_okay
         pidfile_path = self.scenario['path']
         expect_pid = self.scenario['pidfile_pid']
         pid = pidlockfile.read_pid_from_pidfile(pidfile_path)
@@ -535,7 +547,6 @@ class read_pid_from_pidfile_TestCase(scaffold.TestCase):
     def test_returns_none_when_file_nonexist(self):
         """ Should return None when the PID file does not exist. """
         set_pidlockfile_scenario(self, 'not-exist')
-        self.pidfile_open_func = self.mock_pidfile_open_nonexist
         pidfile_path = self.scenario['path']
         pid = pidlockfile.read_pid_from_pidfile(pidfile_path)
         scaffold.mock_restore()
@@ -545,7 +556,6 @@ class read_pid_from_pidfile_TestCase(scaffold.TestCase):
         """ Should raise error when the PID file read fails. """
         set_pidlockfile_scenario(self, 'exist-read-denied')
         pidfile_path = self.scenario['path']
-        self.pidfile_open_func = self.mock_pidfile_open_read_denied
         expect_error = EnvironmentError
         self.failUnlessRaises(
             expect_error,
@@ -555,7 +565,6 @@ class read_pid_from_pidfile_TestCase(scaffold.TestCase):
         """ Should raise error when the PID file is empty. """
         set_pidlockfile_scenario(self, 'exist-empty')
         pidfile_path = self.scenario['path']
-        self.pidfile_open_func = self.mock_pidfile_open_okay
         expect_error = pidlockfile.PIDFileParseError
         self.failUnlessRaises(
             expect_error,
@@ -565,7 +574,6 @@ class read_pid_from_pidfile_TestCase(scaffold.TestCase):
         """ Should raise error when the PID file contents are invalid. """
         set_pidlockfile_scenario(self, 'exist-invalid')
         pidfile_path = self.scenario['path']
-        self.pidfile_open_func = self.mock_pidfile_open_okay
         expect_error = pidlockfile.PIDFileParseError
         self.failUnlessRaises(
             expect_error,
@@ -630,9 +638,6 @@ class write_pid_to_pidfile_TestCase(scaffold.TestCase):
         """ Set up test fixtures. """
         setup_pidfile_fixtures(self)
         set_pidlockfile_scenario(self, 'not-exist')
-
-        self.pidfile_open_func = self.mock_pidfile_open_nonexist
-        self.pidfile_os_open_func = self.mock_pidfile_os_open_nonexist
 
     def tearDown(self):
         """ Tear down test fixtures. """

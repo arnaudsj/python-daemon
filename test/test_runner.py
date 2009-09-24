@@ -668,3 +668,27 @@ class DaemonRunnerLock_TestCase(scaffold.TestCase):
             Called pidlockfile.PIDLockFile.__init__(...)
             """
         self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_acquire_uses_specified_timeout(self):
+        """ Should call the superclass ‘acquire’ with specified timeout. """
+        instance = self.test_instance
+        test_timeout = object()
+        expect_timeout = test_timeout
+        self.mock_tracker.clear()
+        expect_mock_output = """\
+            Called pidlockfile.PIDLockFile.acquire(%(expect_timeout)r)
+            """ % vars()
+        instance.acquire(test_timeout)
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_acquire_uses_stored_timeout_by_default(self):
+        """ Should call superclass ‘acquire’ with stored timeout by default. """
+        instance = self.test_instance
+        test_timeout = self.test_args['acquire_timeout']
+        expect_timeout = test_timeout
+        self.mock_tracker.clear()
+        expect_mock_output = """\
+            Called pidlockfile.PIDLockFile.acquire(%(expect_timeout)r)
+            """ % vars()
+        instance.acquire()
+        self.failUnlessMockCheckerMatch(expect_mock_output)

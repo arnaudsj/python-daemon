@@ -226,9 +226,23 @@ def is_pidfile_stale(pidfile):
 
 class DaemonRunnerLock(pidlockfile.PIDLockFile):
     """ Lockfile implemented as a Unix PID file for a DaemonRunner.
+
+        This uses the ``PIDLockFile`` implementation, with the
+        following changes:
+
+        * The `acquire_timeout` parameter to the initialiser will be
+          used as the default `timeout` parameter for the `acquire`
+          method.
+
         """
 
     def __init__(self, acquire_timeout, *args, **kwargs):
         """ Set up the parameters of a DaemonRunnerLock. """
         self.acquire_timeout = acquire_timeout
         super(DaemonRunnerLock, self).__init__(*args, **kwargs)
+
+    def acquire(self, timeout=None):
+        """ Acquire the lock. """
+        if timeout is None:
+            timeout = self.acquire_timeout
+        super(DaemonRunnerLock, self).acquire(timeout)

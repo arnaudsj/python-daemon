@@ -66,6 +66,9 @@ class DaemonRunner(object):
               will be used as the PID file for the daemon. If
               ``None``, no PID file will be used.
 
+            * `pidfile_timeout`: Used as the default acquisition
+              timeout value supplied to the runner's PID lock file.
+
             * `run`: Callable that will be invoked when the daemon is
               started.
             
@@ -80,7 +83,8 @@ class DaemonRunner(object):
 
         self.pidfile = None
         if app.pidfile_path is not None:
-            self.pidfile = make_pidlockfile(app.pidfile_path)
+            self.pidfile = make_pidlockfile(
+                app.pidfile_path, app.pidfile_timeout)
         self.daemon_context.pidfile = self.pidfile
 
     def _usage_exit(self, argv):
@@ -190,7 +194,7 @@ def emit_message(message, stream=None):
     stream.flush()
 
 
-def make_pidlockfile(path):
+def make_pidlockfile(path, acquire_timeout):
     """ Make a PIDLockFile instance with the given filesystem path. """
     if not isinstance(path, basestring):
         error = ValueError("Not a filesystem path: %(path)r" % vars())
@@ -198,7 +202,7 @@ def make_pidlockfile(path):
     if not os.path.isabs(path):
         error = ValueError("Not an absolute path: %(path)r" % vars())
         raise error
-    lockfile = pidlockfile.TimeoutPIDLockFile(path)
+    lockfile = pidlockfile.TimeoutPIDLockFile(path, acquire_timeout)
 
     return lockfile
 

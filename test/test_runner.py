@@ -84,6 +84,10 @@ def setup_runner_fixtures(testcase):
 
     set_pidlockfile_scenario(testcase, 'not-exist')
 
+    testcase.scenario = {
+        'pidfile_timeout': 23,
+        }
+
     testcase.mock_runner_lock = scaffold.Mock(
         "pidlockfile.TimeoutPIDLockFile",
         tracker=testcase.mock_tracker)
@@ -101,6 +105,7 @@ def setup_runner_fixtures(testcase):
             self.stdout_path = testcase.stream_file_paths['stdout']
             self.stderr_path = testcase.stream_file_paths['stderr']
             self.pidfile_path = testcase.pidlockfile_scenario['path']
+            self.pidfile_timeout = testcase.scenario['pidfile_timeout']
 
         run = scaffold.Mock(
             "TestApp.run",
@@ -212,12 +217,15 @@ class DaemonRunner_TestCase(scaffold.TestCase):
             expect_error,
             runner.DaemonRunner, self.test_app)
 
-    def test_creates_lock(self):
-        """ Should create a TimeoutPIDLockFile with specified path. """
+    def test_creates_lock_with_specified_parameters(self):
+        """ Should create a TimeoutPIDLockFile with specified params. """
         pidfile_path = self.pidlockfile_scenario['path']
+        pidfile_timeout = self.scenario['pidfile_timeout']
         expect_mock_output = """\
             ...
-            Called pidlockfile.TimeoutPIDLockFile(%(pidfile_path)r)
+            Called pidlockfile.TimeoutPIDLockFile(
+                %(pidfile_path)r,
+                %(pidfile_timeout)r)
             """ % vars()
         scaffold.mock_restore()
         self.failUnlessMockCheckerMatch(expect_mock_output)

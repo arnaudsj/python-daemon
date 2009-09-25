@@ -87,10 +87,12 @@ def make_runner_scenarios():
     return scenarios
 
 
-def set_runner_scenario(testcase, scenario_name):
+def set_runner_scenario(testcase, scenario_name, clear_tracker=True):
     """ Set the DaemonRunner test scenario for the test case. """
     scenarios = testcase.runner_scenarios
     testcase.scenario = scenarios[scenario_name]
+    if clear_tracker:
+        testcase.mock_tracker.clear()
 
 
 def set_pidlockfile_scenario(testcase, scenario_name):
@@ -114,12 +116,12 @@ def setup_runner_fixtures(testcase):
         mock_obj=testcase.mock_stderr,
         tracker=testcase.mock_tracker)
 
-    set_runner_scenario(testcase, 'simple')
+    simple_scenario = testcase.runner_scenarios['simple']
 
     testcase.mock_pidlockfile = scaffold.Mock(
         "pidlockfile.PIDLockFile",
         tracker=testcase.mock_tracker)
-    testcase.mock_pidlockfile.path = testcase.scenario['pidfile_path']
+    testcase.mock_pidlockfile.path = simple_scenario['pidfile_path']
 
     scaffold.mock(
         "pidlockfile.PIDLockFile",
@@ -132,7 +134,7 @@ def setup_runner_fixtures(testcase):
             self.stdin_path = testcase.stream_file_paths['stdin']
             self.stdout_path = testcase.stream_file_paths['stdout']
             self.stderr_path = testcase.stream_file_paths['stderr']
-            self.pidfile_path = testcase.scenario['pidfile_path']
+            self.pidfile_path = simple_scenario['pidfile_path']
 
         run = scaffold.Mock(
             "TestApp.run",
@@ -183,6 +185,8 @@ def setup_runner_fixtures(testcase):
 
     testcase.test_instance = runner.DaemonRunner(testcase.test_app)
 
+    testcase.scenario = NotImplemented
+
 
 class DaemonRunner_TestCase(scaffold.TestCase):
     """ Test cases for DaemonRunner class. """
@@ -190,7 +194,7 @@ class DaemonRunner_TestCase(scaffold.TestCase):
     def setUp(self):
         """ Set up test fixtures. """
         setup_runner_fixtures(self)
-        self.mock_tracker.clear()
+        set_runner_scenario(self, 'simple')
 
         scaffold.mock(
             "runner.DaemonRunner.parse_args",
@@ -321,6 +325,7 @@ class DaemonRunner_usage_exit_TestCase(scaffold.TestCase):
     def setUp(self):
         """ Set up test fixtures. """
         setup_runner_fixtures(self)
+        set_runner_scenario(self, 'simple')
 
     def tearDown(self):
         """ Tear down test fixtures. """
@@ -355,7 +360,8 @@ class DaemonRunner_parse_args_TestCase(scaffold.TestCase):
     def setUp(self):
         """ Set up test fixtures. """
         setup_runner_fixtures(self)
-        self.mock_tracker.clear()
+        set_runner_scenario(self, 'simple')
+
         scaffold.mock(
             "daemon.runner.DaemonRunner._usage_exit",
             raises=NotImplementedError,
@@ -419,6 +425,7 @@ class DaemonRunner_do_action_TestCase(scaffold.TestCase):
     def setUp(self):
         """ Set up test fixtures. """
         setup_runner_fixtures(self)
+        set_runner_scenario(self, 'simple')
 
     def tearDown(self):
         """ Tear down test fixtures. """
@@ -440,11 +447,10 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
     def setUp(self):
         """ Set up test fixtures. """
         setup_runner_fixtures(self)
-        self.mock_tracker.clear()
+        set_runner_scenario(self, 'simple')
 
         self.test_instance.action = 'start'
 
-        set_pidlockfile_scenario(self, 'not-exist')
         self.mock_pidlockfile.is_locked.mock_returns = False
         self.mock_pidlockfile.i_am_locking.mock_returns = False
         self.mock_pidlockfile.read_pid.mock_returns = None
@@ -535,11 +541,10 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
     def setUp(self):
         """ Set up test fixtures. """
         setup_runner_fixtures(self)
-        self.mock_tracker.clear()
+        set_runner_scenario(self, 'pidfile-locked')
 
         self.test_instance.action = 'stop'
 
-        set_runner_scenario(self, 'pidfile-locked')
         self.mock_pidlockfile.is_locked.mock_returns = True
         self.mock_pidlockfile.i_am_locking.mock_returns = False
         self.mock_pidlockfile.read_pid.mock_returns = (
@@ -625,7 +630,7 @@ class DaemonRunner_do_action_restart_TestCase(scaffold.TestCase):
     def setUp(self):
         """ Set up test fixtures. """
         setup_runner_fixtures(self)
-        self.mock_tracker.clear()
+        set_runner_scenario(self, 'pidfile-locked')
 
         self.test_instance.action = 'restart'
 

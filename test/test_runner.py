@@ -118,13 +118,15 @@ def setup_runner_fixtures(testcase):
 
     simple_scenario = testcase.runner_scenarios['simple']
 
+    testcase.lockfile_class_name = "pidlockfile.PIDLockFile"
+
     testcase.mock_pidlockfile = scaffold.Mock(
-        "pidlockfile.PIDLockFile",
+        testcase.lockfile_class_name,
         tracker=testcase.mock_tracker)
     testcase.mock_pidlockfile.path = simple_scenario['pidfile_path']
 
     scaffold.mock(
-        "pidlockfile.PIDLockFile",
+        testcase.lockfile_class_name,
         returns=testcase.mock_pidlockfile,
         tracker=testcase.mock_tracker)
 
@@ -251,9 +253,10 @@ class DaemonRunner_TestCase(scaffold.TestCase):
     def test_creates_pidlockfile(self):
         """ Should create a PIDLockFile with the specified PID file path. """
         pidfile_path = self.scenario['pidfile_path']
+        lockfile_class_name = self.lockfile_class_name
         expect_mock_output = """\
             ...
-            Called pidlockfile.PIDLockFile(%(pidfile_path)r)
+            Called %(lockfile_class_name)s(%(pidfile_path)r)
             """ % vars()
         scaffold.mock_restore()
         self.failUnlessMockCheckerMatch(expect_mock_output)
@@ -492,10 +495,11 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
         expect_signal = signal.SIG_DFL
         error = OSError(errno.ESRCH, "Not running")
         os.kill.mock_raises = error
+        lockfile_class_name = self.lockfile_class_name
         expect_mock_output = """\
             ...
             Called os.kill(%(test_pid)r, %(expect_signal)r)
-            Called pidlockfile.PIDLockFile.break_lock()
+            Called %(lockfile_class_name)s.break_lock()
             ...
             """ % vars()
         instance.do_action()
@@ -583,9 +587,10 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
         expect_signal = signal.SIG_DFL
         error = OSError(errno.ESRCH, "Not running")
         os.kill.mock_raises = error
+        lockfile_class_name = self.lockfile_class_name
         expect_mock_output = """\
             ...
-            Called pidlockfile.PIDLockFile.break_lock()
+            Called %(lockfile_class_name)s.break_lock()
             """ % vars()
         instance.do_action()
         scaffold.mock_restore()

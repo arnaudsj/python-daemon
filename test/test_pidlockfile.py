@@ -255,26 +255,26 @@ def setup_pidfile_fixtures(testcase):
     testcase.scenario = NotImplemented
 
 
-def setup_lockfile_method_mocks(testcase, class_name):
+def setup_lockfile_method_mocks(testcase, scenario, class_name):
     """ Set up common mock methods for lockfile class. """
 
     def mock_is_locked():
-        return (testcase.scenario['locking_pid'] is not None)
+        return (scenario['locking_pid'] is not None)
     def mock_i_am_locking():
         return (
-            testcase.scenario['locking_pid'] == testcase.scenario['pid'])
+            scenario['locking_pid'] == scenario['pid'])
     def mock_acquire(timeout=None):
-        if testcase.scenario['locking_pid'] is not None:
+        if scenario['locking_pid'] is not None:
             raise lockfile.AlreadyLocked()
-        testcase.scenario['locking_pid'] = testcase.scenario['pid']
+        scenario['locking_pid'] = scenario['pid']
     def mock_release():
-        if testcase.scenario['locking_pid'] is None:
+        if scenario['locking_pid'] is None:
             raise lockfile.NotLocked()
-        if testcase.scenario['locking_pid'] != testcase.scenario['pid']:
+        if scenario['locking_pid'] != scenario['pid']:
             raise lockfile.NotMyLock()
-        testcase.scenario['locking_pid'] = None
+        scenario['locking_pid'] = None
     def mock_break_lock():
-        testcase.scenario['locking_pid'] = None
+        scenario['locking_pid'] = None
 
     for func_name in [
         'is_locked', 'i_am_locking',
@@ -311,7 +311,8 @@ def setup_pidlockfile_fixtures(testcase, scenario_name=None):
 def set_pidlockfile_scenario(testcase, scenario_name, clear_tracker=True):
     """ Set up the test case to the specified scenario. """
     testcase.scenario = testcase.pidlockfile_scenarios[scenario_name]
-    setup_lockfile_method_mocks(testcase, "lockfile.LinkFileLock")
+    setup_lockfile_method_mocks(
+        testcase, testcase.scenario, "lockfile.LinkFileLock")
     testcase.pidlockfile_args = dict(
         path=testcase.scenario['path'],
         )

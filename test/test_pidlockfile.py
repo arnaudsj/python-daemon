@@ -258,6 +258,8 @@ def setup_pidfile_fixtures(testcase):
 def setup_lockfile_method_mocks(testcase, scenario, class_name):
     """ Set up common mock methods for lockfile class. """
 
+    def mock_read_pid():
+        return scenario['pidfile_pid']
     def mock_is_locked():
         return (scenario['locking_pid'] is not None)
     def mock_i_am_locking():
@@ -277,6 +279,7 @@ def setup_lockfile_method_mocks(testcase, scenario, class_name):
         scenario['locking_pid'] = None
 
     for func_name in [
+        'read_pid',
         'is_locked', 'i_am_locking',
         'acquire', 'release', 'break_lock',
         ]:
@@ -286,10 +289,13 @@ def setup_lockfile_method_mocks(testcase, scenario, class_name):
             lockfile_func_name,
             returns_func=mock_func,
             tracker=testcase.mock_tracker)
-        scaffold.mock(
-            lockfile_func_name,
-            mock_obj=mock_lockfile_func,
-            tracker=testcase.mock_tracker)
+        try:
+            scaffold.mock(
+                lockfile_func_name,
+                mock_obj=mock_lockfile_func,
+                tracker=testcase.mock_tracker)
+        except NameError:
+            pass
 
 
 def setup_pidlockfile_fixtures(testcase, scenario_name=None):

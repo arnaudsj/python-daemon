@@ -114,15 +114,15 @@ class DaemonRunner(object):
     def _start(self):
         """ Open the daemon context and run the application.
             """
-        if self.pidfile.is_locked():
-            pidfile_path = self.pidfile.path
-            if is_pidfile_stale(self.pidfile):
-                self.pidfile.break_lock()
-            else:
-                raise DaemonRunnerStartFailureError(
-                    "PID file %(pidfile_path)r already locked" % vars())
+        if is_pidfile_stale(self.pidfile):
+            self.pidfile.break_lock()
 
-        self.daemon_context.open()
+        try:
+            self.daemon_context.open()
+        except pidlockfile.AlreadyLocked:
+            pidfile_path = self.pidfile.path
+            raise DaemonRunnerStartFailureError(
+                "PID file %(pidfile_path)r already locked" % vars())
 
         pid = os.getpid()
         message = self.start_message % vars()
@@ -210,19 +210,20 @@ def make_pidlockfile(path, acquire_timeout):
 def is_pidfile_stale(pidfile):
     """ Determine whether a PID file is stale.
 
-        Returns ``True`` (“stale”) if the contents of the file can be
-        read but do not match the PID of a currently-running process,
-        otherwise ``False``.
+        Return ``True`` (“stale”) if the contents of the PID file are
+        valid but do not match the PID of a currently-running process;
+        otherwise return ``False``.
 
         """
     result = False
 
     pidfile_pid = pidfile.read_pid()
-    try:
-        os.kill(pidfile_pid, signal.SIG_DFL)
-    except OSError, exc:
-        if exc.errno == errno.ESRCH:
-            # The specified PID does not exist
-            result = True
+    if pidfile_pid is not None:
+        try:
+            os.kill(pidfile_pid, signal.SIG_DFL)
+        except OSError, exc:
+            if exc.errno == errno.ESRCH:
+                # The specified PID does not exist
+                result = True
 
     return result

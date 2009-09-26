@@ -465,10 +465,6 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
 
         self.test_instance.action = 'start'
 
-        self.mock_runner_lock.is_locked.mock_returns = False
-        self.mock_runner_lock.i_am_locking.mock_returns = False
-        self.mock_runner_lock.read_pid.mock_returns = None
-
     def tearDown(self):
         """ Tear down test fixtures. """
         scaffold.mock_restore()
@@ -477,10 +473,8 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
         """ Should raise error if PID file is locked. """
         set_pidlockfile_scenario(self, 'exist-other-pid-locked')
         instance = self.test_instance
-        self.mock_runner_lock.is_locked.mock_returns = True
-        self.mock_runner_lock.i_am_locking.mock_returns = False
-        self.mock_runner_lock.read_pid.mock_returns = (
-            self.scenario['pidlockfile_scenario']['pidfile_pid'])
+        instance.daemon_context.open.mock_raises = (
+            pidlockfile.AlreadyLocked)
         pidfile_path = self.scenario['pidfile_path']
         expect_error = runner.DaemonRunnerStartFailureError
         expect_message_content = pidfile_path
@@ -495,10 +489,8 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
 
     def test_breaks_lock_if_no_such_process(self):
         """ Should request breaking lock if PID file process is not running. """
-        set_pidlockfile_scenario(self, 'exist-other-pid-locked')
+        set_runner_scenario(self, 'pidfile-locked')
         instance = self.test_instance
-        self.mock_runner_lock.is_locked.mock_returns = True
-        self.mock_runner_lock.i_am_locking.mock_returns = False
         self.mock_runner_lock.read_pid.mock_returns = (
             self.scenario['pidlockfile_scenario']['pidfile_pid'])
         pidfile_path = self.scenario['pidfile_path']

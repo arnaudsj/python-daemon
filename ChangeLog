@@ -1,3 +1,8 @@
+2009-09-26  Ben Finney  <ben+python@benfinney.id.au>
+
+    * Make a separate collection of DaemonRunner test scenarios.
+    * Handle a start request with a timeout on the PID file lock acquire.
+
 2009-09-24  Ben Finney  <ben+python@benfinney.id.au>
 
     * Implement ‘TimeoutPIDLockFile’ to specify a timeout in advance of

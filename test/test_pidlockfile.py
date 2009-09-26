@@ -255,28 +255,31 @@ def setup_pidfile_fixtures(testcase):
     testcase.scenario = NotImplemented
 
 
-def setup_lockfile_method_mocks(testcase, class_name):
+def setup_lockfile_method_mocks(testcase, scenario, class_name):
     """ Set up common mock methods for lockfile class. """
 
+    def mock_read_pid():
+        return scenario['pidfile_pid']
     def mock_is_locked():
-        return (testcase.scenario['locking_pid'] is not None)
+        return (scenario['locking_pid'] is not None)
     def mock_i_am_locking():
         return (
-            testcase.scenario['locking_pid'] == testcase.scenario['pid'])
+            scenario['locking_pid'] == scenario['pid'])
     def mock_acquire(timeout=None):
-        if testcase.scenario['locking_pid'] is not None:
+        if scenario['locking_pid'] is not None:
             raise lockfile.AlreadyLocked()
-        testcase.scenario['locking_pid'] = testcase.scenario['pid']
+        scenario['locking_pid'] = scenario['pid']
     def mock_release():
-        if testcase.scenario['locking_pid'] is None:
+        if scenario['locking_pid'] is None:
             raise lockfile.NotLocked()
-        if testcase.scenario['locking_pid'] != testcase.scenario['pid']:
+        if scenario['locking_pid'] != scenario['pid']:
             raise lockfile.NotMyLock()
-        testcase.scenario['locking_pid'] = None
+        scenario['locking_pid'] = None
     def mock_break_lock():
-        testcase.scenario['locking_pid'] = None
+        scenario['locking_pid'] = None
 
     for func_name in [
+        'read_pid',
         'is_locked', 'i_am_locking',
         'acquire', 'release', 'break_lock',
         ]:
@@ -286,10 +289,13 @@ def setup_lockfile_method_mocks(testcase, class_name):
             lockfile_func_name,
             returns_func=mock_func,
             tracker=testcase.mock_tracker)
-        scaffold.mock(
-            lockfile_func_name,
-            mock_obj=mock_lockfile_func,
-            tracker=testcase.mock_tracker)
+        try:
+            scaffold.mock(
+                lockfile_func_name,
+                mock_obj=mock_lockfile_func,
+                tracker=testcase.mock_tracker)
+        except NameError:
+            pass
 
 
 def setup_pidlockfile_fixtures(testcase, scenario_name=None):
@@ -311,7 +317,8 @@ def setup_pidlockfile_fixtures(testcase, scenario_name=None):
 def set_pidlockfile_scenario(testcase, scenario_name, clear_tracker=True):
     """ Set up the test case to the specified scenario. """
     testcase.scenario = testcase.pidlockfile_scenarios[scenario_name]
-    setup_lockfile_method_mocks(testcase, "lockfile.LinkFileLock")
+    setup_lockfile_method_mocks(
+        testcase, testcase.scenario, "lockfile.LinkFileLock")
     testcase.pidlockfile_args = dict(
         path=testcase.scenario['path'],
         )
@@ -695,4 +702,90 @@ class write_pid_to_pidfile_TestCase(scaffold.TestCase):
             """ % vars()
         pidlockfile.write_pid_to_pidfile(pidfile_path)
         scaffold.mock_restore()
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+
+class TimeoutPIDLockFile_TestCase(scaffold.TestCase):
+    """ Test cases for ‘TimeoutPIDLockFile’ class. """
+
+    def setUp(self):
+        """ Set up test fixtures. """
+        self.mock_tracker = scaffold.MockTracker()
+
+        pidlockfile_scenarios = make_pidlockfile_scenarios()
+        self.pidlockfile_scenario = pidlockfile_scenarios['simple']
+        pidfile_path = self.pidlockfile_scenario['path']
+
+        scaffold.mock(
+            "pidlockfile.PIDLockFile.__init__",
+            tracker=self.mock_tracker)
+        scaffold.mock(
+            "pidlockfile.PIDLockFile.acquire",
+            tracker=self.mock_tracker)
+
+        self.scenario = {
+            'pidfile_path': self.pidlockfile_scenario['path'],
+            'acquire_timeout': object(),
+            }
+
+        self.test_kwargs = dict(
+            path=self.scenario['pidfile_path'],
+            acquire_timeout=self.scenario['acquire_timeout'],
+            )
+        self.test_instance = pidlockfile.TimeoutPIDLockFile(**self.test_kwargs)
+
+    def tearDown(self):
+        """ Tear down test fixtures. """
+        scaffold.mock_restore()
+
+    def test_inherits_from_pidlockfile(self):
+        """ Should inherit from PIDLockFile. """
+        instance = self.test_instance
+        self.failUnlessIsInstance(instance, pidlockfile.PIDLockFile)
+
+    def test_init_has_expected_signature(self):
+        """ Should have expected signature for ‘__init__’. """
+        def test_func(self, path, acquire_timeout=None, *args, **kwargs): pass
+        test_func.__name__ = '__init__'
+        self.failUnlessFunctionSignatureMatch(
+            test_func, 
+            pidlockfile.TimeoutPIDLockFile.__init__)
+
+    def test_has_specified_acquire_timeout(self):
+        """ Should have specified ‘acquire_timeout’ value. """
+        instance = self.test_instance
+        expect_timeout = self.test_kwargs['acquire_timeout']
+        self.failUnlessEqual(expect_timeout, instance.acquire_timeout)
+
+    def test_calls_superclass_init(self):
+        """ Should call the superclass ‘__init__’. """
+        expect_path = self.test_kwargs['path']
+        expect_mock_output = """\
+            Called pidlockfile.PIDLockFile.__init__(
+                %(expect_path)r)
+            """ % vars()
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_acquire_uses_specified_timeout(self):
+        """ Should call the superclass ‘acquire’ with specified timeout. """
+        instance = self.test_instance
+        test_timeout = object()
+        expect_timeout = test_timeout
+        self.mock_tracker.clear()
+        expect_mock_output = """\
+            Called pidlockfile.PIDLockFile.acquire(%(expect_timeout)r)
+            """ % vars()
+        instance.acquire(test_timeout)
+        self.failUnlessMockCheckerMatch(expect_mock_output)
+
+    def test_acquire_uses_stored_timeout_by_default(self):
+        """ Should call superclass ‘acquire’ with stored timeout by default. """
+        instance = self.test_instance
+        test_timeout = self.test_kwargs['acquire_timeout']
+        expect_timeout = test_timeout
+        self.mock_tracker.clear()
+        expect_mock_output = """\
+            Called pidlockfile.PIDLockFile.acquire(%(expect_timeout)r)
+            """ % vars()
+        instance.acquire()
         self.failUnlessMockCheckerMatch(expect_mock_output)

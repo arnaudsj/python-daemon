@@ -66,6 +66,9 @@ class DaemonRunner(object):
               will be used as the PID file for the daemon. If
               ``None``, no PID file will be used.
 
+            * `pidfile_timeout`: Used as the default acquisition
+              timeout value supplied to the runner's PID lock file.
+
             * `run`: Callable that will be invoked when the daemon is
               started.
             
@@ -80,7 +83,8 @@ class DaemonRunner(object):
 
         self.pidfile = None
         if app.pidfile_path is not None:
-            self.pidfile = make_pidlockfile(app.pidfile_path)
+            self.pidfile = make_pidlockfile(
+                app.pidfile_path, app.pidfile_timeout)
         self.daemon_context.pidfile = self.pidfile
 
     def _usage_exit(self, argv):
@@ -110,15 +114,15 @@ class DaemonRunner(object):
     def _start(self):
         """ Open the daemon context and run the application.
             """
-        if self.pidfile.is_locked():
-            pidfile_path = self.pidfile.path
-            if is_pidfile_stale(self.pidfile):
-                self.pidfile.break_lock()
-            else:
-                raise DaemonRunnerStartFailureError(
-                    "PID file %(pidfile_path)r already locked" % vars())
+        if is_pidfile_stale(self.pidfile):
+            self.pidfile.break_lock()
 
-        self.daemon_context.open()
+        try:
+            self.daemon_context.open()
+        except pidlockfile.AlreadyLocked:
+            pidfile_path = self.pidfile.path
+            raise DaemonRunnerStartFailureError(
+                "PID file %(pidfile_path)r already locked" % vars())
 
         pid = os.getpid()
         message = self.start_message % vars()
@@ -190,7 +194,7 @@ def emit_message(message, stream=None):
     stream.flush()
 
 
-def make_pidlockfile(path):
+def make_pidlockfile(path, acquire_timeout):
     """ Make a PIDLockFile instance with the given filesystem path. """
     if not isinstance(path, basestring):
         error = ValueError("Not a filesystem path: %(path)r" % vars())
@@ -198,7 +202,7 @@ def make_pidlockfile(path):
     if not os.path.isabs(path):
         error = ValueError("Not an absolute path: %(path)r" % vars())
         raise error
-    lockfile = pidlockfile.PIDLockFile(path)
+    lockfile = pidlockfile.TimeoutPIDLockFile(path, acquire_timeout)
 
     return lockfile
 
@@ -206,19 +210,20 @@ def make_pidlockfile(path):
 def is_pidfile_stale(pidfile):
     """ Determine whether a PID file is stale.
 
-        Returns ``True`` (“stale”) if the contents of the file can be
-        read but do not match the PID of a currently-running process,
-        otherwise ``False``.
+        Return ``True`` (“stale”) if the contents of the PID file are
+        valid but do not match the PID of a currently-running process;
+        otherwise return ``False``.
 
         """
     result = False
 
     pidfile_pid = pidfile.read_pid()
-    try:
-        os.kill(pidfile_pid, signal.SIG_DFL)
-    except OSError, exc:
-        if exc.errno == errno.ESRCH:
-            # The specified PID does not exist
-            result = True
+    if pidfile_pid is not None:
+        try:
+            os.kill(pidfile_pid, signal.SIG_DFL)
+        except OSError, exc:
+            if exc.errno == errno.ESRCH:
+                # The specified PID does not exist
+                result = True
 
     return result

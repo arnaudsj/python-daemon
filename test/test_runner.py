@@ -25,6 +25,7 @@ from test_pidlockfile import (
     FakeFileDescriptorStringIO,
     setup_pidfile_fixtures,
     make_pidlockfile_scenarios,
+    setup_lockfile_method_mocks,
     )
 from test_daemon import (
     setup_streams_fixtures,
@@ -91,6 +92,8 @@ def set_runner_scenario(testcase, scenario_name, clear_tracker=True):
     """ Set the DaemonRunner test scenario for the test case. """
     scenarios = testcase.runner_scenarios
     testcase.scenario = scenarios[scenario_name]
+    set_pidlockfile_scenario(
+        testcase, testcase.scenario['pidlockfile_scenario_name'])
     if clear_tracker:
         testcase.mock_tracker.clear()
 
@@ -99,6 +102,9 @@ def set_pidlockfile_scenario(testcase, scenario_name):
     """ Set the PIDLockFile test scenario for the test case. """
     scenarios = testcase.pidlockfile_scenarios
     testcase.pidlockfile_scenario = scenarios[scenario_name]
+    setup_lockfile_method_mocks(
+        testcase, testcase.pidlockfile_scenario,
+        testcase.lockfile_class_name)
 
 
 def setup_runner_fixtures(testcase):

@@ -29,11 +29,10 @@ known to be safe once detached (to ansure any files that continue to
 be used are under the control of the daemon process).
 
 If you want the process to generate output via the system streams
-‘sys.stdout’ and ‘sys.stderr’, set the ‘stdout’ and/or ‘stderr’
-options to a file-like object that does not buffer writes
-(remembering, again, that there is no controlling terminal). If these
-objects have file descriptors, they will be preserved when the daemon
-context opens.
+‘sys.stdout’ and ‘sys.stderr’, set the ‘DaemonContext’'s ‘stdout’
+and/or ‘stderr’ options to a file-like object (e.g. the ‘stream’
+attribute of a ‘logging.Handler’ instance). If these objects have file
+descriptors, they will be preserved when the daemon context opens.
 
 How can I run a service communicating with a separate daemon process?
 ---------------------------------------------------------------------

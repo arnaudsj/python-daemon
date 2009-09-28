@@ -1,0 +1,76 @@
+python-daemon Frequently Asked Questions
+########################################
+
+:Author: Ben Finney <ben+python@benfinney.id.au>
+:Updated: 2009-09-28
+
+..  contents::
+
+1  What is the purpose of the ‘python-daemon’ library?
+2  Why does the output stop after opening the daemon context?
+3  How can I run a service communicating with a separate daemon process?
+
+What is the purpose of the ‘python-daemon’ library?
+---------------------------------------------------
+
+The ‘python-daemon’ library has a deliberately narrow focus: that of
+being a reference implementation for `PEP 3143`_, “Standard daemon
+process library”.
+
+..  _`PEP 3143`: http://www.python.org/dev/peps/pep-3143
+
+Why does the output stop after opening the daemon context?
+----------------------------------------------------------
+
+The specified behaviour in `PEP 3143`_ includes the requirement to
+detach the process from the controlling terminal (to allow the process
+to continue to run as a daemon), and to close all file descriptors not
+known to be safe once detached (to ansure any files that continue to
+be used are under the control of the daemon process).
+
+If you want the process to generate output via the system streams
+‘sys.stdout’ and ‘sys.stderr’, set the ‘stdout’ and/or ‘stderr’
+options to a file-like object that does not buffer writes
+(remembering, again, that there is no controlling terminal). If these
+objects have file descriptors, they will be preserved when the daemon
+context opens.
+
+How can I run a service communicating with a separate daemon process?
+---------------------------------------------------------------------
+
+As specified in `PEP 3143`_, the ‘python-daemon’ library is
+specifically focussed on the goal of having the *current running
+program* become a well-behaved Unix daemon process. This leaves open
+the question of how this program is started, or about multiple
+programs interacting. As detailed in PEP 3143:
+
+    A daemon is not a service
+
+    There is a related concept in many systems, called a “service”. A
+    service differs from the model in this PEP, in that rather than
+    having the *current* program continue to run as a daemon process,
+    a service starts an *additional* process to run in the background,
+    and the current process communicates with that additional process
+    via some defined channels.
+
+    The Unix-style daemon model in this PEP can be used, among other
+    things, to implement the background-process part of a service; but
+    this PEP does not address the other aspects of setting up and
+    managing a service.
+
+A possible starting point for such a “service” model of execution is
+in a `message from 2009-01-30`_ to the ``python-ideas`` forum.
+
+..  _`message from 2009-01-30`: http://mail.python.org/pipermail/python-ideas/2009-January/002606.html
+
+
+..
+    Local variables:
+    mode: rst
+    coding: utf-8
+    time-stamp-format: "%:y-%02m-%02d"
+    time-stamp-start: "^:Updated:[         ]+"
+    time-stamp-end: "$"
+    time-stamp-line-limit: 20
+    End:
+    vim: filetype=rst fileencoding=utf-8 :

@@ -1,6 +1,8 @@
 2009-10-19  Ben Finney  <ben+python@benfinney.id.au>
 
     * Ensure we only prevent core dumps if ‘prevent_core’ is true.
+      Thanks to Denis Bilenko for reporting the lacking implementation of
+      this documented option.
 
 2009-09-26  Ben Finney  <ben+python@benfinney.id.au>
 

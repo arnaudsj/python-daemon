@@ -210,6 +210,7 @@ class DaemonContext(object):
         umask=0,
         uid=None,
         gid=None,
+        prevent_core=True,
         detach_process=None,
         files_preserve=None,
         pidfile=None,
@@ -222,6 +223,7 @@ class DaemonContext(object):
         self.chroot_directory = chroot_directory
         self.working_directory = working_directory
         self.umask = umask
+        self.prevent_core = prevent_core
         self.files_preserve = files_preserve
         self.pidfile = pidfile
         self.stdin = stdin
@@ -318,7 +320,8 @@ class DaemonContext(object):
         if self.chroot_directory is not None:
             change_root_directory(self.chroot_directory)
 
-        prevent_core_dump()
+        if self.prevent_core:
+            prevent_core_dump()
 
         change_file_creation_mask(self.umask)
         change_working_directory(self.working_directory)

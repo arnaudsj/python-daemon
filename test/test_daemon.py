@@ -431,6 +431,15 @@ class DaemonContext_open_TestCase(scaffold.TestCase):
         instance.open()
         self.failUnlessMockCheckerMatch(expect_mock_output)
 
+    def test_omits_prevent_core_dump_if_prevent_core_false(self):
+        """ Should omit preventing core dumps if `prevent_core` is false. """
+        instance = self.test_instance
+        instance.prevent_core = False
+        unwanted_output = """\
+            ...Called daemon.daemon.prevent_core_dump()..."""
+        instance.open()
+        self.failIfMockCheckerMatch(unwanted_output)
+
     def test_closes_open_files(self):
         """ Should close all open files, excluding `files_preserve`. """
         instance = self.test_instance

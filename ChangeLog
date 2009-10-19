@@ -1,4 +1,10 @@
+2009-10-19  Ben Finney  <ben+python@benfinney.id.au>
+
+    * Ensure we only prevent core dumps if ‘prevent_core’ is true.
+
 2009-09-26  Ben Finney  <ben+python@benfinney.id.au>
+
+    Version 1.5.1 released.
 
     * Make a separate collection of DaemonRunner test scenarios.
     * Handle a start request with a timeout on the PID file lock acquire.

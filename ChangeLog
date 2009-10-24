@@ -4,6 +4,10 @@
       Thanks to Denis Bilenko for reporting the lacking implementation of
       this documented option.
 
+2009-09-28  Ben Finney  <ben+python@benfinney.id.au>
+
+    * Add initial Frequently Asked Questions document.
+
 2009-09-26  Ben Finney  <ben+python@benfinney.id.au>
 
     Version 1.5.1 released.

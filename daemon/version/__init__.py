@@ -13,7 +13,7 @@
 
 from version_info import version_info
 
-version_info['version_string'] = u"1.5.2"
+version_info['version_string'] = u"1.5.3"
 
 version_short = u"%(version_string)s" % version_info
 version_full = u"%(version_string)s.r%(revno)s" % version_info

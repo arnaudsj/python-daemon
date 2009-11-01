@@ -1,3 +1,7 @@
+2009-11-01  Ben Finney  <ben+python@benfinney.id.au>
+
+    * Use ‘unicode’ data type for all text values.
+
 2009-10-24  Ben Finney  <ben+python@benfinney.id.au>
 
     Version 1.5.2 released.

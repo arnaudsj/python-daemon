@@ -3,7 +3,7 @@
 # daemon/version/__init__.py
 # Part of python-daemon, an implementation of PEP 3143.
 #
-# Copyright © 2008–2009 Ben Finney <ben+python@benfinney.id.au>
+# Copyright © 2008–2010 Ben Finney <ben+python@benfinney.id.au>
 # This is free software: you may copy, modify, and/or distribute this work
 # under the terms of the Python Software Foundation License, version 2 or
 # later as published by the Python Software Foundation.

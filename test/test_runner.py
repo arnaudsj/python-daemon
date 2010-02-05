@@ -485,7 +485,7 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
         else:
             raise self.failureException(
                 "Failed to raise " + expect_error.__name__)
-        self.failUnlessIn(exc.message, expect_message_content)
+        self.failUnlessIn(str(exc), expect_message_content)
 
     def test_breaks_lock_if_no_such_process(self):
         """ Should request breaking lock if PID file process is not running. """
@@ -580,7 +580,7 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
             raise self.failureException(
                 "Failed to raise " + expect_error.__name__)
         scaffold.mock_restore()
-        self.failUnlessIn(exc.message, expect_message_content)
+        self.failUnlessIn(str(exc), expect_message_content)
 
     def test_breaks_lock_if_pidfile_stale(self):
         """ Should break lock if PID file is stale. """
@@ -628,8 +628,7 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
         else:
             raise self.failureException(
                 "Failed to raise " + expect_error.__name__)
-        scaffold.mock_restore()
-        self.failUnlessIn(exc.message, expect_message_content)
+        self.failUnlessIn(str(exc), expect_message_content)
 
 
 class DaemonRunner_do_action_restart_TestCase(scaffold.TestCase):

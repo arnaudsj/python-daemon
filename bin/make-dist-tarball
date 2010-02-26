@@ -12,7 +12,7 @@
 # at your option, any later version.
 # No warranty expressed or implied. See the file LICENSE for details.
 
-""" Create the distribution tarball from VCS """
+""" Create the distribution tarball from VCS. """
 
 import os
 import sys
@@ -38,7 +38,7 @@ revision_tree = branch.basis_tree()
 
 
 def get_generated_version_info_content():
-    """ Return the generated version-info module, or None """
+    """ Return the generated version-info module, or None. """
 
     content = None
 
@@ -54,7 +54,7 @@ def get_generated_version_info_content():
     return content
 
 def get_existing_version_info_content(module_path):
-    """ Return the content of the existing version-info module, or None """
+    """ Return the content of the existing version-info module, or None. """
 
     content = None
 
@@ -67,7 +67,7 @@ def get_existing_version_info_content(module_path):
     return content
 
 def update_version_info_module_if_needed(module_path):
-    """ Update the version-info module iff it is out of date """
+    """ Update the version-info module iff it is out of date. """
 
     generated_content = get_generated_version_info_content()
     existing_content = get_existing_version_info_content(module_path)
@@ -107,7 +107,7 @@ os.remove(this_program_export)
 
 
 def make_dist_tarball(tarball_path, tree_root):
-    """ Create a named tarball from the specified directory tree """
+    """ Create a named tarball from the specified directory tree. """
 
     save_curdir = os.path.abspath(os.path.curdir)
 

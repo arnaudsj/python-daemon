@@ -14,6 +14,7 @@
 """ Distribution setup for python-daemon library.
     """
 
+import os
 import textwrap
 from setuptools import setup, find_packages
 
@@ -21,6 +22,11 @@ distribution_name = "python-daemon"
 main_module_name = 'daemon'
 main_module = __import__(main_module_name, fromlist=['version'])
 version = main_module.version
+
+
+prog_dir = os.path.dirname(__file__)
+version_file = open(os.path.join(prog_dir, "version"))
+version_short = version_file.read().strip()
 
 short_description, long_description = (
     textwrap.dedent(d).strip()
@@ -30,7 +36,7 @@ short_description, long_description = (
 
 setup(
     name=distribution_name,
-    version=version.version,
+    version=version_short,
     packages=find_packages(exclude=["test"]),
 
     # setuptools metadata

@@ -610,7 +610,7 @@ class DaemonContext_close_TestCase(scaffold.TestCase):
         instance = self.test_instance
         instance.pidfile = self.mock_pidlockfile
         expect_mock_output = """\
-            Called pidlockfile.PIDLockFile.__exit__()
+            Called pidlockfile.PIDLockFile.__exit__(None, None, None)
             """
         instance.close()
         self.failUnlessMockCheckerMatch(expect_mock_output)

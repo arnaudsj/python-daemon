@@ -3,6 +3,9 @@
     * daemon/daemon.py: Invoke the pidfile context manager's ‘__exit__’
       method with the correct arguments (as per
       <URL:http://docs.python.org/library/stdtypes.html#typecontextmanager>).
+    * version: New plain-text data file to store project version string.
+    * setup.py: Read version string from data file.
+    * daemon/version/__init__.py: Query version string with ‘pkg_resources’.
 
 2010-01-20  Ben Finney  <ben+python@benfinney.id.au>
 

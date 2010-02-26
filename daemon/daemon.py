@@ -373,7 +373,9 @@ class DaemonContext(object):
             return
 
         if self.pidfile is not None:
-            self.pidfile.__exit__()
+            # Follow the interface for telling a context manager to exit,
+            # <URL:http://docs.python.org/library/stdtypes.html#typecontextmanager>.
+            self.pidfile.__exit__(None, None, None)
 
         self._is_open = False
 

@@ -373,8 +373,8 @@ class DaemonContext(object):
             return
 
         if self.pidfile is not None:
-            # Emulate the described behaviour for when a ‘with’ block ends,
-            # <URL:http://docs.python.org/reference/datamodel.html#context-managers>.
+            # Follow the interface for telling a context manager to exit,
+            # <URL:http://docs.python.org/library/stdtypes.html#typecontextmanager>.
             self.pidfile.__exit__(None, None, None)
 
         self._is_open = False

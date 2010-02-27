@@ -1,6 +1,6 @@
 2010-02-26  Ben Finney  <ben+python@benfinney.id.au>
 
-    Version 1.5.3 release.
+    Version 1.5.3 released.
 
     * daemon/daemon.py: Invoke the pidfile context manager's ‘__exit__’
       method with the correct arguments (as per

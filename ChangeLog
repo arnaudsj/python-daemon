@@ -1,5 +1,7 @@
 2010-02-27  Ben Finney  <ben+python@benfinney.id.au>
 
+    Version 1.5.4 released.
+
     * MANIFEST.in: Explicitly include version data file, otherwise
       everything breaks for users of the sdist.
 

@@ -1,3 +1,9 @@
+2010-03-02  Ben Finney  <ben+python@benfinney.id.au>
+
+    * Stop using ‘pkg_resources’ and revert to previous version string
+      handling, until a better way that doesn't break everyone else's
+      installation can be found.
+
 2010-02-27  Ben Finney  <ben+python@benfinney.id.au>
 
     Version 1.5.4 released.

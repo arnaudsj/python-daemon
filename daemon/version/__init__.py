@@ -11,13 +11,9 @@
 
 """ Version information for the python-daemon distribution. """
 
-import pkg_resources
-
 from version_info import version_info
 
-
-distribution = pkg_resources.require("python-daemon")[0]
-version_info['version_string'] = distribution.version
+version_info['version_string'] = u"1.5.5"
 
 version_short = u"%(version_string)s" % version_info
 version_full = u"%(version_string)s.r%(revno)s" % version_info

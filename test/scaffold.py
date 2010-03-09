@@ -18,6 +18,13 @@ import os
 import sys
 import operator
 import textwrap
+try:
+    # Python 2.6 or greater?
+    from functools import reduce
+except ImportError:
+    # Not available, so try the builtin function.
+    assert reduce
+
 from minimock import (
     Mock,
     TraceTracker as MockTracker,

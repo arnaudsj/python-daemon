@@ -13,7 +13,7 @@
 """ Unit test for runner module.
     """
 
-import __builtin__
+import __builtin__ as builtins
 import os
 import sys
 import tempfile
@@ -180,7 +180,7 @@ def setup_runner_fixtures(testcase):
         return result
 
     scaffold.mock(
-        u"__builtin__.open",
+        u"builtins.open",
         returns_func=mock_open,
         tracker=testcase.mock_tracker)
 

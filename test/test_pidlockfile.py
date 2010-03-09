@@ -13,7 +13,7 @@
 """ Unit test for pidlockfile module.
     """
 
-import __builtin__
+import __builtin__ as builtins
 import os
 from StringIO import StringIO
 import itertools
@@ -219,7 +219,7 @@ def setup_pidfile_fixtures(testcase):
         return result
 
     scaffold.mock(
-        u"__builtin__.open",
+        u"builtins.open",
         returns_func=mock_open,
         tracker=testcase.mock_tracker)
 
@@ -548,7 +548,7 @@ class read_pid_from_pidfile_TestCase(scaffold.TestCase):
         set_pidlockfile_scenario(self, 'exist-other-pid')
         pidfile_path = self.scenario['path']
         expect_mock_output = u"""\
-            Called __builtin__.open(%(pidfile_path)r, 'r')
+            Called builtins.open(%(pidfile_path)r, 'r')
             """ % vars()
         dummy = pidlockfile.read_pid_from_pidfile(pidfile_path)
         scaffold.mock_restore()

@@ -1,6 +1,7 @@
 2010-03-09  Ben Finney  <ben+python@benfinney.id.au>
 
     * Use ‘unicode’ data type for all text values.
+    * Prepare for Python 3 upgrade why tweaking some names and imports.
 
 2010-03-03  Ben Finney  <ben+python@benfinney.id.au>
 

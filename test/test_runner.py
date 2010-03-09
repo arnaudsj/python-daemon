@@ -13,7 +13,7 @@
 """ Unit test for runner module.
     """
 
-import __builtin__
+import __builtin__ as builtins
 import os
 import sys
 import tempfile
@@ -180,7 +180,7 @@ def setup_runner_fixtures(testcase):
         return result
 
     scaffold.mock(
-        u"__builtin__.open",
+        u"builtins.open",
         returns_func=mock_open,
         tracker=testcase.mock_tracker)
 
@@ -629,7 +629,7 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
             raise self.failureException(
                 u"Failed to raise " + expect_error.__name__)
         scaffold.mock_restore()
-        self.failUnlessIn(unicode(exc.message), expect_message_content)
+        self.failUnlessIn(unicode(exc), expect_message_content)
 
 
 class DaemonRunner_do_action_restart_TestCase(scaffold.TestCase):

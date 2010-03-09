@@ -1478,11 +1478,11 @@ class detach_process_context_TestCase(scaffold.TestCase):
         test_pids_iter = iter([fork_error])
 
         def mock_fork():
-            next = test_pids_iter.next()
-            if isinstance(next, Exception):
-                raise next
+            next_item = test_pids_iter.next()
+            if isinstance(next_item, Exception):
+                raise next_item
             else:
-                return next
+                return next_item
 
         scaffold.mock(
             u"os.fork",
@@ -1532,11 +1532,11 @@ class detach_process_context_TestCase(scaffold.TestCase):
         test_pids_iter = iter([0, fork_error])
 
         def mock_fork():
-            next = test_pids_iter.next()
-            if isinstance(next, Exception):
-                raise next
+            next_item = test_pids_iter.next()
+            if isinstance(next_item, Exception):
+                raise next_item
             else:
-                return next
+                return next_item
 
         scaffold.mock(
             u"os.fork",

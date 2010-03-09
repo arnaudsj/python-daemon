@@ -17,8 +17,8 @@
 import textwrap
 from setuptools import setup, find_packages
 
-distribution_name = "python-daemon"
-main_module_name = 'daemon'
+distribution_name = u"python-daemon"
+main_module_name = u'daemon'
 main_module = __import__(main_module_name, fromlist=['version'])
 version = main_module.version
 
@@ -31,17 +31,17 @@ short_description, long_description = (
 setup(
     name=distribution_name,
     version=version.version,
-    packages=find_packages(exclude=["test"]),
+    packages=find_packages(exclude=[u"test"]),
 
     # setuptools metadata
     zip_safe=False,
-    test_suite="test.suite",
+    test_suite=u"test.suite",
     tests_require=[
-        "MiniMock >=1.2.2",
+        u"MiniMock >=1.2.2",
         ],
     install_requires=[
-        "setuptools",
-        "lockfile >=0.7",
+        u"setuptools",
+        u"lockfile >=0.7",
         ],
 
     # PyPI metadata
@@ -54,11 +54,11 @@ setup(
     long_description=long_description,
     classifiers=[
         # Reference: http://pypi.python.org/pypi?%3Aaction=list_classifiers
-        "Development Status :: 4 - Beta",
-        "License :: OSI Approved :: Python Software Foundation License",
-        "Operating System :: POSIX",
-        "Programming Language :: Python",
-        "Intended Audience :: Developers",
-        "Topic :: Software Development :: Libraries :: Python Modules",
+        u"Development Status :: 4 - Beta",
+        u"License :: OSI Approved :: Python Software Foundation License",
+        u"Operating System :: POSIX",
+        u"Programming Language :: Python",
+        u"Intended Audience :: Developers",
+        u"Topic :: Software Development :: Libraries :: Python Modules",
         ],
     )

@@ -119,13 +119,13 @@ def setup_runner_fixtures(testcase):
 
     testcase.mock_stderr = FakeFileDescriptorStringIO()
     scaffold.mock(
-        "sys.stderr",
+        u"sys.stderr",
         mock_obj=testcase.mock_stderr,
         tracker=testcase.mock_tracker)
 
     simple_scenario = testcase.runner_scenarios['simple']
 
-    testcase.lockfile_class_name = "pidlockfile.TimeoutPIDLockFile"
+    testcase.lockfile_class_name = u"pidlockfile.TimeoutPIDLockFile"
 
     testcase.mock_runner_lock = scaffold.Mock(
         testcase.lockfile_class_name,
@@ -147,23 +147,23 @@ def setup_runner_fixtures(testcase):
             self.pidfile_timeout = simple_scenario['pidfile_timeout']
 
         run = scaffold.Mock(
-            "TestApp.run",
+            u"TestApp.run",
             tracker=testcase.mock_tracker)
 
     testcase.TestApp = TestApp
 
     scaffold.mock(
-        "daemon.runner.DaemonContext",
+        u"daemon.runner.DaemonContext",
         returns=scaffold.Mock(
-            "DaemonContext",
+            u"DaemonContext",
             tracker=testcase.mock_tracker),
         tracker=testcase.mock_tracker)
 
     testcase.test_app = testcase.TestApp()
 
-    testcase.test_program_name = "bazprog"
+    testcase.test_program_name = u"bazprog"
     testcase.test_program_path = (
-        "/foo/bar/%(test_program_name)s" % vars(testcase))
+        u"/foo/bar/%(test_program_name)s" % vars(testcase))
     testcase.valid_argv_params = {
         'start': [testcase.test_program_path, 'start'],
         'stop': [testcase.test_program_path, 'stop'],
@@ -180,16 +180,16 @@ def setup_runner_fixtures(testcase):
         return result
 
     scaffold.mock(
-        "__builtin__.open",
+        u"__builtin__.open",
         returns_func=mock_open,
         tracker=testcase.mock_tracker)
 
     scaffold.mock(
-        "os.kill",
+        u"os.kill",
         tracker=testcase.mock_tracker)
 
     scaffold.mock(
-        "sys.argv",
+        u"sys.argv",
         mock_obj=testcase.valid_argv_params['start'],
         tracker=testcase.mock_tracker)
 
@@ -207,7 +207,7 @@ class DaemonRunner_TestCase(scaffold.TestCase):
         set_runner_scenario(self, 'simple')
 
         scaffold.mock(
-            "runner.DaemonRunner.parse_args",
+            u"runner.DaemonRunner.parse_args",
             tracker=self.mock_tracker)
 
         self.test_instance = runner.DaemonRunner(self.test_app)
@@ -222,7 +222,7 @@ class DaemonRunner_TestCase(scaffold.TestCase):
 
     def test_parses_commandline_args(self):
         """ Should parse commandline arguments. """
-        expect_mock_output = """\
+        expect_mock_output = u"""\
             Called runner.DaemonRunner.parse_args()
             ...
             """
@@ -251,7 +251,7 @@ class DaemonRunner_TestCase(scaffold.TestCase):
 
     def test_error_when_pidfile_path_not_absolute(self):
         """ Should raise ValueError when PID file path not absolute. """
-        pidfile_path = "foo/bar.pid"
+        pidfile_path = u"foo/bar.pid"
         self.test_app.pidfile_path = pidfile_path
         expect_error = ValueError
         self.failUnlessRaises(
@@ -263,7 +263,7 @@ class DaemonRunner_TestCase(scaffold.TestCase):
         pidfile_path = self.scenario['pidfile_path']
         pidfile_timeout = self.scenario['pidfile_timeout']
         lockfile_class_name = self.lockfile_class_name
-        expect_mock_output = """\
+        expect_mock_output = u"""\
             ...
             Called %(lockfile_class_name)s(
                 %(pidfile_path)r,
@@ -358,7 +358,7 @@ class DaemonRunner_usage_exit_TestCase(scaffold.TestCase):
         instance = self.test_instance
         progname = self.test_program_name
         argv = [self.test_program_path]
-        expect_stderr_output = """\
+        expect_stderr_output = u"""\
             usage: %(progname)s ...
             """ % vars()
         self.failUnlessRaises(
@@ -377,7 +377,7 @@ class DaemonRunner_parse_args_TestCase(scaffold.TestCase):
         set_runner_scenario(self, 'simple')
 
         scaffold.mock(
-            "daemon.runner.DaemonRunner._usage_exit",
+            u"daemon.runner.DaemonRunner._usage_exit",
             raises=NotImplementedError,
             tracker=self.mock_tracker)
 
@@ -389,7 +389,7 @@ class DaemonRunner_parse_args_TestCase(scaffold.TestCase):
         """ Should emit a usage message and exit if too few arguments. """
         instance = self.test_instance
         argv = [self.test_program_path]
-        expect_mock_output = """\
+        expect_mock_output = u"""\
             Called daemon.runner.DaemonRunner._usage_exit(%(argv)r)
             """ % vars()
         try:
@@ -403,7 +403,7 @@ class DaemonRunner_parse_args_TestCase(scaffold.TestCase):
         instance = self.test_instance
         progname = self.test_program_name
         argv = [self.test_program_path, 'bogus']
-        expect_mock_output = """\
+        expect_mock_output = u"""\
             Called daemon.runner.DaemonRunner._usage_exit(%(argv)r)
             """ % vars()
         try:
@@ -415,10 +415,10 @@ class DaemonRunner_parse_args_TestCase(scaffold.TestCase):
     def test_should_parse_system_argv_by_default(self):
         """ Should parse sys.argv by default. """
         instance = self.test_instance
-        expect_action = 'start'
+        expect_action = u'start'
         argv = self.valid_argv_params['start']
         scaffold.mock(
-            "sys.argv",
+            u"sys.argv",
             mock_obj=argv,
             tracker=self.mock_tracker)
         instance.parse_args()
@@ -448,7 +448,7 @@ class DaemonRunner_do_action_TestCase(scaffold.TestCase):
     def test_raises_error_if_unknown_action(self):
         """ Should emit a usage message and exit if action is unknown. """
         instance = self.test_instance
-        instance.action = 'bogus'
+        instance.action = u'bogus'
         expect_error = runner.DaemonRunnerInvalidActionError
         self.failUnlessRaises(
             expect_error,
@@ -463,7 +463,7 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
         setup_runner_fixtures(self)
         set_runner_scenario(self, 'simple')
 
-        self.test_instance.action = 'start'
+        self.test_instance.action = u'start'
 
     def tearDown(self):
         """ Tear down test fixtures. """
@@ -484,8 +484,8 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
             pass
         else:
             raise self.failureException(
-                "Failed to raise " + expect_error.__name__)
-        self.failUnlessIn(str(exc), expect_message_content)
+                u"Failed to raise " + expect_error.__name__)
+        self.failUnlessIn(unicode(exc.message), expect_message_content)
 
     def test_breaks_lock_if_no_such_process(self):
         """ Should request breaking lock if PID file process is not running. """
@@ -496,10 +496,10 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
         pidfile_path = self.scenario['pidfile_path']
         test_pid = self.scenario['pidlockfile_scenario']['pidfile_pid']
         expect_signal = signal.SIG_DFL
-        error = OSError(errno.ESRCH, "Not running")
+        error = OSError(errno.ESRCH, u"Not running")
         os.kill.mock_raises = error
         lockfile_class_name = self.lockfile_class_name
-        expect_mock_output = """\
+        expect_mock_output = u"""\
             ...
             Called os.kill(%(test_pid)r, %(expect_signal)r)
             Called %(lockfile_class_name)s.break_lock()
@@ -512,7 +512,7 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
     def test_requests_daemon_context_open(self):
         """ Should request the daemon context to open. """
         instance = self.test_instance
-        expect_mock_output = """\
+        expect_mock_output = u"""\
             ...
             Called DaemonContext.open()
             ...
@@ -524,7 +524,7 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
         """ Should emit start message to stderr. """
         instance = self.test_instance
         current_pid = self.scenario['pid']
-        expect_stderr = """\
+        expect_stderr = u"""\
             started with pid %(current_pid)d
             """ % vars()
         instance.do_action()
@@ -534,7 +534,7 @@ class DaemonRunner_do_action_start_TestCase(scaffold.TestCase):
     def test_requests_app_run(self):
         """ Should request the application to run. """
         instance = self.test_instance
-        expect_mock_output = """\
+        expect_mock_output = u"""\
             ...
             Called TestApp.run()
             """
@@ -550,7 +550,7 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
         setup_runner_fixtures(self)
         set_runner_scenario(self, 'pidfile-locked')
 
-        self.test_instance.action = 'stop'
+        self.test_instance.action = u'stop'
 
         self.mock_runner_lock.is_locked.mock_returns = True
         self.mock_runner_lock.i_am_locking.mock_returns = False
@@ -578,7 +578,7 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
             pass
         else:
             raise self.failureException(
-                "Failed to raise " + expect_error.__name__)
+                u"Failed to raise " + expect_error.__name__)
         scaffold.mock_restore()
         self.failUnlessIn(str(exc), expect_message_content)
 
@@ -588,10 +588,10 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
         pidfile_path = self.scenario['pidfile_path']
         test_pid = self.scenario['pidlockfile_scenario']['pidfile_pid']
         expect_signal = signal.SIG_DFL
-        error = OSError(errno.ESRCH, "Not running")
+        error = OSError(errno.ESRCH, u"Not running")
         os.kill.mock_raises = error
         lockfile_class_name = self.lockfile_class_name
-        expect_mock_output = """\
+        expect_mock_output = u"""\
             ...
             Called %(lockfile_class_name)s.break_lock()
             """ % vars()
@@ -604,7 +604,7 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
         instance = self.test_instance
         test_pid = self.scenario['pidlockfile_scenario']['pidfile_pid']
         expect_signal = signal.SIGTERM
-        expect_mock_output = """\
+        expect_mock_output = u"""\
             ...
             Called os.kill(%(test_pid)r, %(expect_signal)r)
             """ % vars()
@@ -617,7 +617,7 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
         instance = self.test_instance
         test_pid = self.scenario['pidlockfile_scenario']['pidfile_pid']
         pidfile_path = self.scenario['pidfile_path']
-        error = OSError(errno.EPERM, "Nice try")
+        error = OSError(errno.EPERM, u"Nice try")
         os.kill.mock_raises = error
         expect_error = runner.DaemonRunnerStopFailureError
         expect_message_content = str(test_pid)
@@ -627,8 +627,9 @@ class DaemonRunner_do_action_stop_TestCase(scaffold.TestCase):
             pass
         else:
             raise self.failureException(
-                "Failed to raise " + expect_error.__name__)
-        self.failUnlessIn(str(exc), expect_message_content)
+                u"Failed to raise " + expect_error.__name__)
+        scaffold.mock_restore()
+        self.failUnlessIn(unicode(exc.message), expect_message_content)
 
 
 class DaemonRunner_do_action_restart_TestCase(scaffold.TestCase):
@@ -639,7 +640,7 @@ class DaemonRunner_do_action_restart_TestCase(scaffold.TestCase):
         setup_runner_fixtures(self)
         set_runner_scenario(self, 'pidfile-locked')
 
-        self.test_instance.action = 'restart'
+        self.test_instance.action = u'restart'
 
     def tearDown(self):
         """ Tear down test fixtures. """
@@ -649,12 +650,12 @@ class DaemonRunner_do_action_restart_TestCase(scaffold.TestCase):
         """ Should request stop, then start. """
         instance = self.test_instance
         scaffold.mock(
-            "daemon.runner.DaemonRunner._start",
+            u"daemon.runner.DaemonRunner._start",
             tracker=self.mock_tracker)
         scaffold.mock(
-            "daemon.runner.DaemonRunner._stop",
+            u"daemon.runner.DaemonRunner._stop",
             tracker=self.mock_tracker)
-        expect_mock_output = """\
+        expect_mock_output = u"""\
             Called daemon.runner.DaemonRunner._stop()
             Called daemon.runner.DaemonRunner._start()
             """

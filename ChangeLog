@@ -1,3 +1,38 @@
+2010-03-09  Ben Finney  <ben+python@benfinney.id.au>
+
+    * Use ‘unicode’ data type for all text values.
+
+2010-03-03  Ben Finney  <ben+python@benfinney.id.au>
+
+    * MANIFEST.in: Include the documentation in the distribution.
+
+2010-03-02  Ben Finney  <ben+python@benfinney.id.au>
+
+    Version 1.5.5 released.
+
+    * Stop using ‘pkg_resources’ and revert to pre-1.5.3 version-string
+      handling, until a better way that doesn't break everyone else's
+      installation can be found.
+
+2010-02-27  Ben Finney  <ben+python@benfinney.id.au>
+
+    Version 1.5.4 released.
+
+    * MANIFEST.in: Explicitly include version data file, otherwise
+      everything breaks for users of the sdist.
+
+2010-02-26  Ben Finney  <ben+python@benfinney.id.au>
+
+    Version 1.5.3 released.
+
+    * daemon/daemon.py: Invoke the pidfile context manager's ‘__exit__’
+      method with the correct arguments (as per
+      <URL:http://docs.python.org/library/stdtypes.html#typecontextmanager>).
+      Thanks to Ludvig Ericson for the bug report.
+    * version: New plain-text data file to store project version string.
+    * setup.py: Read version string from data file.
+    * daemon/version/__init__.py: Query version string with ‘pkg_resources’.
+
 2010-01-20  Ben Finney  <ben+python@benfinney.id.au>
 
     * Add ‘pylint’ configuration for this project.

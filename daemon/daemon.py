@@ -3,7 +3,7 @@
 # daemon/daemon.py
 # Part of python-daemon, an implementation of PEP 3143.
 #
-# Copyright © 2008–2009 Ben Finney <ben+python@benfinney.id.au>
+# Copyright © 2008–2010 Ben Finney <ben+python@benfinney.id.au>
 # Copyright © 2007–2008 Robert Niederreiter, Jens Klein
 # Copyright © 2004–2005 Chad J. Schroeder
 # Copyright © 2003 Clark Evans
@@ -373,7 +373,9 @@ class DaemonContext(object):
             return
 
         if self.pidfile is not None:
-            self.pidfile.__exit__()
+            # Follow the interface for telling a context manager to exit,
+            # <URL:http://docs.python.org/library/stdtypes.html#typecontextmanager>.
+            self.pidfile.__exit__(None, None, None)
 
         self._is_open = False
 

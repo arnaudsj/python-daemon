@@ -3,7 +3,7 @@
 # test/test_daemon.py
 # Part of python-daemon, an implementation of PEP 3143.
 #
-# Copyright © 2008–2009 Ben Finney <ben+python@benfinney.id.au>
+# Copyright © 2008–2010 Ben Finney <ben+python@benfinney.id.au>
 #
 # This is free software: you may copy, modify, and/or distribute this work
 # under the terms of the Python Software Foundation License, version 2 or
@@ -610,7 +610,7 @@ class DaemonContext_close_TestCase(scaffold.TestCase):
         instance = self.test_instance
         instance.pidfile = self.mock_pidlockfile
         expect_mock_output = u"""\
-            Called pidlockfile.PIDLockFile.__exit__()
+            Called pidlockfile.PIDLockFile.__exit__(None, None, None)
             """
         instance.close()
         self.failUnlessMockCheckerMatch(expect_mock_output)

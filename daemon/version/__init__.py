@@ -3,7 +3,7 @@
 # daemon/version/__init__.py
 # Part of python-daemon, an implementation of PEP 3143.
 #
-# Copyright © 2008–2009 Ben Finney <ben+python@benfinney.id.au>
+# Copyright © 2008–2010 Ben Finney <ben+python@benfinney.id.au>
 # This is free software: you may copy, modify, and/or distribute this work
 # under the terms of the Python Software Foundation License, version 2 or
 # later as published by the Python Software Foundation.
@@ -13,7 +13,7 @@
 
 from version_info import version_info
 
-version_info['version_string'] = u"1.5.3"
+version_info['version_string'] = u"1.5.6"
 
 version_short = u"%(version_string)s" % version_info
 version_full = u"%(version_string)s.r%(revno)s" % version_info

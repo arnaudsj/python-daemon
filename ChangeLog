@@ -1,3 +1,7 @@
+2010-03-09  Ben Finney  <ben+python@benfinney.id.au>
+
+    * Use ‘unicode’ data type for all text values.
+
 2010-03-03  Ben Finney  <ben+python@benfinney.id.au>
 
     * MANIFEST.in: Include the documentation in the distribution.
